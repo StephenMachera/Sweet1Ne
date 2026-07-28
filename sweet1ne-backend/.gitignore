@@ -1,0 +1,30 @@
+# --- Python / backend ---
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# --- Node / frontend ---
+node_modules/
+.next/
+out/
+build/
+
+# --- Env files (never commit real secrets) ---
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env.local
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# --- Logs ---
+*.log
+npm-debug.log*
