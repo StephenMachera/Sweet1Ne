@@ -11,3 +11,4 @@ click==8.1.7
 sqlalchemy==2.0.35
 psycopg2-binary==2.9.9
 alembic==1.13.3
+pyjwt[crypto]==2.9.0

@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  /* Director / admin palette */
+  --color-ink: #14181c;
+  --color-ink-muted: #5b6167;
+  --color-ink-cool: #0e1317;
+  --color-ink-cool-deep: #0a0e11;
+  --color-paper: #f6f3ee;
+  --color-gold: #d4a853;
+
+  /* Branch palette */
+  --color-amber: #e0913a;
+  --color-espresso: #221c18;
+  --color-espresso-deep: #1a1512;
+  --color-warm-paper: #faf7f2;
+
+  /* Shared status colours */
+  --color-ember: #c1502e;
+  --color-sage: #6b7f5e;
+
+  /* Fonts */
+  --font-display: var(--font-display), serif;
+  --font-body: var(--font-body), sans-serif;
+  --font-mono: var(--font-mono), monospace;
+
+  /* UI accents */
+  --color-teal: #2f7d7f;
+  --color-teal-soft: #e6f2f2;
+  --color-violet: #6b5b95;
+  --color-violet-soft: #efecf6;
+  --color-rose: #b8496b;
+  --color-rose-soft: #fbebf0;
+  --color-sage-soft: #eef2ea;
+  --color-gold-soft: #fbf3e3;
+  --color-amber-soft: #fdf1e3;
+  --color-ember-soft: #fbeae5;
+
+  /* Branch level */
+  --color-navy: #0f172a;
+  --color-emerald: #10b981;
+  --color-emerald-dark: #059669;
+  --color-slate-bg: #f1f5f9;
+  --color-slate-border: #e2e8f0;
+  --color-slate-muted: #94a3b8;
+  --color-slate-subtle: #64748b;
+  --color-slate-label: #475569;
+  --color-body: #374151;
+
+  /* Status */
+  --color-success: #16a34a;
+  --color-success-bg: #dcfce7;
+  --color-danger: #dc2626;
+  --color-danger-bg: #fee2e2;
+  --color-warning: #ca8a04;
+  --color-warning-bg: #fef9c3;
+  --color-info: #2563eb;
+  --color-info-bg: #dbeafe;
+  --color-purple: #7c3aed;
+  --color-purple-bg: #f3e8ff;
+}
