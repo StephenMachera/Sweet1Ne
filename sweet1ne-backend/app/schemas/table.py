@@ -4,13 +4,17 @@ from pydantic import BaseModel, ConfigDict
 
 
 class TableIn(BaseModel):
-    # Only meaningful for a director — a manager's own branch always wins,
-    # regardless of what's sent here (see the route).
     branch_id: uuid.UUID | None = None
     region: str | None = None
     number: int
     seats: int
+    is_active: bool | None = None
 
+class TableUpdate(BaseModel):
+    region: str | None = None
+    number: int | None = None
+    seats: int | None = None
+    is_active: bool | None = None
 
 class TableOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)

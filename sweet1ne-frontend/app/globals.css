@@ -59,3 +59,27 @@
   --color-purple: #7c3aed;
   --color-purple-bg: #f3e8ff;
 }
+
+@media print {
+  aside,
+  header,
+  button,
+  a[href^="/"],
+  .print\:hidden {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  /* One QR per printable block, four to a page */
+  .grid > div {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
