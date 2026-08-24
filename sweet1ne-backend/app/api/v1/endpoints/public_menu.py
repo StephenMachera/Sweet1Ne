@@ -118,6 +118,9 @@ def get_table_context(
 
     settings_blob = tenant.settings or {}
 
+    tenant_blob = tenant.settings or {}
+    branch_blob = branch.settings or {}
+
     return PublicTableOut(
         table_number=table.number,
         region=table.region,
@@ -127,5 +130,9 @@ def get_table_context(
         tenant_name=tenant.name,
         logo_url=tenant.logo_url,
         currency=tenant.currency,
-        ask_for_name=bool(settings_blob.get("ask_for_customer_name", False)),
+        ask_for_name=bool(tenant_blob.get("ask_for_customer_name", False)),
+        allergen_notice=tenant_blob.get("allergen_notice"),
+        food_hygiene_rating=tenant_blob.get("food_hygiene_rating"),
+        prep_minutes_min=int(branch_blob.get("prep_minutes_min", 15)),
+        prep_minutes_max=int(branch_blob.get("prep_minutes_max", 25)),
     )
