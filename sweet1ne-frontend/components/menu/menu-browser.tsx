@@ -10,8 +10,16 @@ export type MainCategory = {
   name: string;
   sort_order: number;
   branch_id: string | null;
+  prep_station: string;
 };
-export type SubCategory = { id: string; main_category_id: string; name: string; sort_order: number };
+
+export type SubCategory = {
+  id: string;
+  main_category_id: string;
+  name: string;
+  sort_order: number;
+};
+
 export type MenuItem = {
   id: string;
   sub_category_id: string;
@@ -22,11 +30,19 @@ export type MenuItem = {
   is_available: boolean;
   dietary_tags: string[];
   allergen_tags: string[];
+  /** Set when an active promotion applies — this is what will be charged. */
+  promo_price: number | null;
+  promo_titles: string[];
 };
 
 export type CartLine = { menu_item_id: string; quantity: number };
 
 const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
+
+/** What an item actually costs right now — the promo price if there is one. */
+function effectivePrice(item: MenuItem) {
+  return item.promo_price ?? item.price;
+}
 
 export function MenuBrowser({
   mode,
@@ -34,12 +50,14 @@ export function MenuBrowser({
   onSubmitOrder,
   submitLabel = "Send order",
   headerSlot,
+  compact = false,
 }: {
   mode: "ordering" | "preview";
   fetcher: (path: string) => Promise<any>;
   onSubmitOrder?: (lines: CartLine[]) => Promise<void>;
   submitLabel?: string;
   headerSlot?: React.ReactNode;
+  compact?: boolean;
 }) {
   const [mains, setMains] = useState<MainCategory[]>([]);
   const [subs, setSubs] = useState<SubCategory[]>([]);
@@ -86,11 +104,10 @@ export function MenuBrowser({
       if (!item.is_available) return false;
       if (query) {
         const q = query.toLowerCase();
-        const matches =
+        return (
           item.title.toLowerCase().includes(q) ||
-          (item.description ?? "").toLowerCase().includes(q);
-        if (!matches) return false;
-        return true; // search spans the whole menu
+          (item.description ?? "").toLowerCase().includes(q)
+        );
       }
       if (activeSub) return item.sub_category_id === activeSub;
       return subIds.has(item.sub_category_id);
@@ -101,8 +118,15 @@ export function MenuBrowser({
   const cartCount = cartLines.reduce((sum, [, qty]) => sum + qty, 0);
   const cartTotal = cartLines.reduce((sum, [id, qty]) => {
     const item = items.find((i) => i.id === id);
+    return sum + (item ? effectivePrice(item) * qty : 0);
+  }, 0);
+
+  // What the same cart would cost at list prices — used to show the saving.
+  const cartFullTotal = cartLines.reduce((sum, [id, qty]) => {
+    const item = items.find((i) => i.id === id);
     return sum + (item ? item.price * qty : 0);
   }, 0);
+  const saving = cartFullTotal - cartTotal;
 
   function change(itemId: string, delta: number) {
     setCart((prev) => {
@@ -130,8 +154,8 @@ export function MenuBrowser({
 
   if (loading) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
+      <div className={`grid gap-4 ${compact ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3"}`}>
+        {[0, 1, 2, 3].map((i) => (
           <div key={i} className="overflow-hidden rounded-xl border border-slate-bg bg-white">
             <div className="h-40 animate-pulse bg-slate-bg" />
             <div className="space-y-2 p-4">
@@ -145,7 +169,7 @@ export function MenuBrowser({
   }
 
   return (
-    <div className="space-y-5 pb-24">
+    <div className={`space-y-5 ${compact ? "" : "pb-24"}`}>
       {error && (
         <div
           role="alert"
@@ -233,30 +257,70 @@ export function MenuBrowser({
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          className={`grid gap-4 ${compact ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3"}`}
+        >
           {visibleItems.map((item) => {
             const qty = cart[item.id] ?? 0;
+            const discounted = item.promo_price != null;
+
             return (
               <div
                 key={item.id}
-                className="flex flex-col overflow-hidden rounded-xl border border-slate-bg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
+                className={`flex flex-col overflow-hidden rounded-xl border bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${
+                  discounted ? "border-danger/30" : "border-slate-bg"
+                }`}
               >
-                <div className="h-40 bg-slate-bg">
+                <div
+                  className={`relative flex items-center justify-center overflow-hidden bg-slate-bg ${
+                    compact ? "h-32" : "h-40"
+                  }`}
+                >
                   {item.picture ? (
-                    <img src={item.picture} alt="" className="h-full w-full object-cover" />
+                    <>
+                      <img
+                        src={item.picture}
+                        alt=""
+                        aria-hidden
+                        className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-xl"
+                      />
+                      <img
+                        src={item.picture}
+                        alt=""
+                        className="relative max-h-full max-w-full object-contain"
+                      />
+                    </>
                   ) : (
-                    <div className="flex h-full items-center justify-center text-slate-muted">
-                      <span className="text-xs uppercase tracking-[0.14em]">No photo</span>
-                    </div>
+                    <span className="text-xs uppercase tracking-[0.14em] text-slate-muted">
+                      No photo
+                    </span>
+                  )}
+
+                  {discounted && (
+                    <span className="absolute left-2 top-2 rounded-full bg-danger px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+                      Offer
+                    </span>
                   )}
                 </div>
 
                 <div className="flex flex-1 flex-col p-4">
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="font-medium text-navy">{item.title}</h3>
-                    <span className="shrink-0 font-semibold tabular-nums text-navy">
-                      {gbp.format(item.price)}
-                    </span>
+
+                    {discounted ? (
+                      <span className="flex shrink-0 flex-col items-end">
+                        <span className="font-semibold tabular-nums text-danger">
+                          {gbp.format(item.promo_price!)}
+                        </span>
+                        <span className="text-xs tabular-nums text-slate-muted line-through">
+                          {gbp.format(item.price)}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="shrink-0 font-semibold tabular-nums text-navy">
+                        {gbp.format(item.price)}
+                      </span>
+                    )}
                   </div>
 
                   {item.description && (
@@ -265,8 +329,18 @@ export function MenuBrowser({
                     </p>
                   )}
 
-                  {(item.dietary_tags.length > 0 || item.allergen_tags.length > 0) && (
+                  {(item.promo_titles.length > 0 ||
+                    item.dietary_tags.length > 0 ||
+                    item.allergen_tags.length > 0) && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
+                      {item.promo_titles.map((promoTitle) => (
+                        <span
+                          key={promoTitle}
+                          className="rounded-full bg-danger-bg px-2 py-0.5 text-[11px] font-medium text-danger"
+                        >
+                          {promoTitle}
+                        </span>
+                      ))}
                       {item.dietary_tags.map((tag) => (
                         <span
                           key={tag}
@@ -328,8 +402,14 @@ export function MenuBrowser({
 
       {/* Cart bar */}
       {ordering && cartCount > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-border bg-white px-4 py-3 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]">
-          <div className="mx-auto flex max-w-3xl items-center gap-3">
+        <div
+          className={
+            compact
+              ? "sticky bottom-0 mt-4 rounded-t-xl border-t border-slate-border bg-white px-3 py-3 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]"
+              : "fixed inset-x-0 bottom-0 z-30 border-t border-slate-border bg-white px-4 py-3 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]"
+          }
+        >
+          <div className={`flex items-center gap-3 ${compact ? "" : "mx-auto max-w-3xl"}`}>
             <button
               onClick={() => setCartOpen((v) => !v)}
               className="flex items-center gap-2 text-sm text-slate-subtle hover:text-navy"
@@ -337,9 +417,18 @@ export function MenuBrowser({
               <ShoppingCart size={18} />
               {cartCount} item{cartCount === 1 ? "" : "s"}
             </button>
-            <span className="flex-1 text-right font-semibold tabular-nums text-navy">
-              {gbp.format(cartTotal)}
+
+            <span className="flex-1 text-right">
+              <span className="font-semibold tabular-nums text-navy">
+                {gbp.format(cartTotal)}
+              </span>
+              {saving > 0 && (
+                <span className="ml-2 text-xs font-medium text-danger">
+                  saving {gbp.format(saving)}
+                </span>
+              )}
             </span>
+
             <Button
               onClick={submit}
               disabled={submitting}
@@ -350,13 +439,24 @@ export function MenuBrowser({
           </div>
 
           {cartOpen && (
-            <div className="mx-auto mt-3 max-w-3xl space-y-2 border-t border-slate-bg pt-3">
+            <div
+              className={`mt-3 space-y-2 border-t border-slate-bg pt-3 ${
+                compact ? "max-h-40 overflow-y-auto" : "mx-auto max-w-3xl"
+              }`}
+            >
               {cartLines.map(([id, qty]) => {
                 const item = items.find((i) => i.id === id);
                 if (!item) return null;
+                const lineTotal = effectivePrice(item) * qty;
+
                 return (
                   <div key={id} className="flex items-center gap-3 text-sm">
-                    <span className="flex-1 truncate text-body">{item.title}</span>
+                    <span className="flex-1 truncate text-body">
+                      {item.title}
+                      {item.promo_price != null && (
+                        <span className="ml-1.5 text-[11px] text-danger">offer</span>
+                      )}
+                    </span>
                     <button
                       onClick={() => change(id, -1)}
                       className="flex h-6 w-6 items-center justify-center rounded text-slate-muted hover:bg-slate-bg"
@@ -371,7 +471,7 @@ export function MenuBrowser({
                       <Plus size={13} />
                     </button>
                     <span className="w-16 text-right tabular-nums text-navy">
-                      {gbp.format(item.price * qty)}
+                      {gbp.format(lineTotal)}
                     </span>
                     <button
                       onClick={() => setCart((prev) => ({ ...prev, [id]: 0 }))}

@@ -2,10 +2,12 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Plus, ReceiptText, Search, X } from "lucide-react";
+import { ChevronDown, Pencil, Plus, ReceiptText, Search, X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { MenuBrowser, type CartLine } from "@/components/menu/menu-browser";
+import { OrderLineEditor } from "@/components/orders/order-line-editor";
+import { OrderSummary } from "@/components/orders/order-summary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -23,6 +25,7 @@ type OrderItem = {
 type Order = {
   id: string;
   table_id: string;
+  table_number: number | null;
   seat_number: number | null;
   status: string;
   special_request: string | null;
@@ -40,19 +43,35 @@ const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" 
 const STATUS_STYLES: Record<string, string> = {
   pending: "bg-warning-bg text-warning",
   in_progress: "bg-info-bg text-info",
+  ready: "bg-purple-bg text-purple",
   completed: "bg-success-bg text-success",
   cancelled: "bg-danger-bg text-danger",
 };
 
-const FILTERS = [
-  { key: "open", label: "Open" },
-  { key: "all", label: "All today" },
+const PERIODS = [
+  { key: "daily", label: "Today" },
+  { key: "weekly", label: "This week" },
+  { key: "monthly", label: "This month" },
+  { key: "yearly", label: "This year" },
+  { key: "all", label: "All time" },
+];
+
+const STATUSES = [
+  { key: "", label: "All" },
+  { key: "pending", label: "Pending" },
+  { key: "in_progress", label: "In progress" },
+  { key: "ready", label: "Ready" },
   { key: "completed", label: "Completed" },
   { key: "cancelled", label: "Cancelled" },
 ];
 
 function timeOf(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function BranchOrdersPage({
@@ -66,30 +85,34 @@ export default function BranchOrdersPage({
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [tables, setTables] = useState<Table[]>([]);
-  const [filter, setFilter] = useState("open");
+  const [period, setPeriod] = useState("daily");
+  const [status, setStatus] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [addingTo, setAddingTo] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  // Order-number lookup — how a waiter reaches an order that isn't theirs.
   const [lookupId, setLookupId] = useState("");
   const [lookupResult, setLookupResult] = useState<Order | null>(null);
   const [lookingUp, setLookingUp] = useState(false);
 
   const canView = hasPermission(me, "view_orders");
   const canAdd = hasPermission(me, "place_orders");
+  const canEdit = hasPermission(me, "edit_orders");
   const seesEverything = hasPermission(me, "view_all_orders");
 
-  const load = useCallback(
-    () =>
-      apiFetch("/staff/orders")
-        .then(setOrders)
-        .catch((e) => setError(e.message))
-        .finally(() => setLoading(false)),
-    []
-  );
+  const load = useCallback(() => {
+    const params = new URLSearchParams({ period });
+    if (status) params.set("status", status);
+
+    setLoading(true);
+    return apiFetch(`/staff/orders?${params.toString()}`)
+      .then(setOrders)
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [period, status]);
 
   useEffect(() => {
     if (meLoading || !me) return;
@@ -98,9 +121,11 @@ export default function BranchOrdersPage({
       return;
     }
     load();
+    // Today's view is live; historical periods don't need refreshing.
+    if (period !== "daily") return;
     const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
-  }, [meLoading, me, canView, branchSlug, router, load]);
+  }, [meLoading, me, canView, branchSlug, router, load, period]);
 
   useEffect(() => {
     if (!canAdd) return;
@@ -149,19 +174,14 @@ export default function BranchOrdersPage({
     return <p className="text-sm text-slate-muted">Loading…</p>;
   }
 
-  const tableLabel = (id: string) => {
-    const table = tables.find((t) => t.id === id);
-    return table ? `Table ${table.number}` : "Table";
-  };
+  const tableLabel = (order: Order) =>
+    order.table_number
+      ? `Table ${order.table_number}`
+      : tables.find((t) => t.id === order.table_id)
+        ? `Table ${tables.find((t) => t.id === order.table_id)!.number}`
+        : "Table";
 
-  const visible = lookupResult
-    ? [lookupResult]
-    : orders.filter((o) => {
-        if (filter === "open") return o.status === "pending" || o.status === "in_progress";
-        if (filter === "completed") return o.status === "completed";
-        if (filter === "cancelled") return o.status === "cancelled";
-        return true;
-      });
+  const visible = lookupResult ? [lookupResult] : orders;
 
   function renderOrder(order: Order) {
     const expanded = expandedId === order.id;
@@ -179,7 +199,7 @@ export default function BranchOrdersPage({
         >
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium text-navy">{tableLabel(order.table_id)}</span>
+              <span className="font-medium text-navy">{tableLabel(order)}</span>
               {order.seat_number && (
                 <span className="text-sm text-slate-muted">Seat {order.seat_number}</span>
               )}
@@ -219,46 +239,78 @@ export default function BranchOrdersPage({
           <div className="border-t border-slate-bg bg-slate-bg/30 px-4 py-4 sm:px-5">
             <p className="mb-3 font-mono text-[11px] text-slate-muted">Order {order.id}</p>
 
-            <ul className="space-y-2">
-              {order.order_items.map((line) => {
-                const addedLater =
-                  firstItemAt &&
-                  line.created_at &&
-                  new Date(line.created_at).getTime() - new Date(firstItemAt).getTime() > 60000;
+            {editingId === order.id ? (
+              <OrderLineEditor
+                order={order}
+                onSaved={(updated) => {
+                  setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+                  if (lookupResult?.id === updated.id) setLookupResult(updated);
+                  setEditingId(null);
+                  setNotice("Order updated.");
+                  setTimeout(() => setNotice(null), 4000);
+                }}
+                onCancel={() => setEditingId(null)}
+              />
+            ) : (
+              <>
+                <ul className="space-y-2">
+                  {order.order_items.map((line) => {
+                    const addedLater =
+                      firstItemAt &&
+                      line.created_at &&
+                      new Date(line.created_at).getTime() - new Date(firstItemAt).getTime() >
+                        60000;
 
-                return (
-                  <li key={line.id} className="flex items-center gap-3 text-sm">
-                    <span className="w-6 shrink-0 tabular-nums text-slate-muted">
-                      {line.quantity}×
-                    </span>
-                    <span className="flex-1 truncate text-body">
-                      {line.menu_item_title ?? "Item"}
-                      {addedLater && (
-                        <span className="ml-2 rounded-full bg-info-bg px-2 py-0.5 text-[11px] text-info">
-                          added later
+                    return (
+                      <li key={line.id} className="flex items-center gap-3 text-sm">
+                        <span className="w-6 shrink-0 tabular-nums text-slate-muted">
+                          {line.quantity}×
                         </span>
-                      )}
-                    </span>
-                    <span className="tabular-nums text-navy">{gbp.format(line.total_price)}</span>
-                  </li>
-                );
-              })}
-            </ul>
+                        <span className="flex-1 truncate text-body">
+                          {line.menu_item_title ?? "Item"}
+                          {addedLater && (
+                            <span className="ml-2 rounded-full bg-info-bg px-2 py-0.5 text-[11px] text-info">
+                              added later
+                            </span>
+                          )}
+                        </span>
+                        <span className="tabular-nums text-navy">
+                          {gbp.format(line.total_price)}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
 
-            {order.special_request && (
-              <p className="mt-3 rounded-lg bg-warning-bg px-3 py-2 text-sm text-warning">
-                {order.special_request}
-              </p>
-            )}
+                {order.special_request && (
+                  <p className="mt-3 rounded-lg bg-warning-bg px-3 py-2 text-sm text-warning">
+                    {order.special_request}
+                  </p>
+                )}
 
-            {canAdd && !closed && (
-              <Button
-                onClick={() => setAddingTo(order)}
-                className="mt-4 w-full bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90 sm:w-auto"
-              >
-                <Plus size={15} className="mr-1.5" />
-                Add items
-              </Button>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {canEdit && order.status === "pending" && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setEditingId(order.id)}
+                      className="border-slate-border text-slate-subtle"
+                    >
+                      <Pencil size={15} className="mr-1.5" />
+                      Edit order
+                    </Button>
+                  )}
+
+                  {canAdd && !closed && (
+                    <Button
+                      onClick={() => setAddingTo(order)}
+                      className="bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
+                    >
+                      <Plus size={15} className="mr-1.5" />
+                      Add items
+                    </Button>
+                  )}
+                </div>
+              </>
             )}
           </div>
         )}
@@ -267,12 +319,13 @@ export default function BranchOrdersPage({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-navy sm:text-3xl">Orders</h1>
         <p className="mt-1 text-sm text-slate-subtle">
           {visible.length} {visible.length === 1 ? "order" : "orders"}
           {!seesEverything && !lookupResult && <> · yours and QR orders</>}
+          {visible.length === 200 && " (showing the most recent 200)"}
         </p>
       </div>
 
@@ -335,23 +388,46 @@ export default function BranchOrdersPage({
 
       {lookupResult ? (
         <>
-          <p className="text-sm text-slate-subtle">Showing one order — clear the search to go back.</p>
+          <p className="text-sm text-slate-subtle">
+            Showing one order — clear the search to go back.
+          </p>
           <ul className="space-y-3">{renderOrder(lookupResult)}</ul>
         </>
       ) : (
         <>
+          {/* Period tabs */}
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-            {FILTERS.map((f) => (
+            {PERIODS.map((p) => (
               <button
-                key={f.key}
-                onClick={() => setFilter(f.key)}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm transition-colors ${
-                  filter === f.key
+                key={p.key}
+                onClick={() => setPeriod(p.key)}
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                  period === p.key
                     ? "bg-gradient-to-br from-emerald to-emerald-dark text-white shadow-sm"
                     : "border border-slate-border bg-white text-slate-subtle hover:text-navy"
                 }`}
               >
-                {f.label}
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Summary */}
+          {orders.length > 0 && <OrderSummary orders={orders} tone="branch" />}
+
+          {/* Status pills */}
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            {STATUSES.map((s) => (
+              <button
+                key={s.key}
+                onClick={() => setStatus(s.key)}
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+                  status === s.key
+                    ? "bg-navy text-white"
+                    : "border border-slate-border bg-white text-slate-subtle hover:text-navy"
+                }`}
+              >
+                {s.label}
               </button>
             ))}
           </div>
@@ -370,10 +446,10 @@ export default function BranchOrdersPage({
       )}
 
       <Dialog open={addingTo !== null} onOpenChange={(open) => !open && setAddingTo(null)}>
-        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+        <DialogContent className="max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-3xl overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold text-navy">
-              Add to {addingTo && tableLabel(addingTo.table_id)}
+              Add to {addingTo && tableLabel(addingTo)}
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-slate-subtle">
@@ -385,6 +461,7 @@ export default function BranchOrdersPage({
             fetcher={fetcher}
             onSubmitOrder={addItems}
             submitLabel="Add to order"
+            compact
           />
         </DialogContent>
       </Dialog>

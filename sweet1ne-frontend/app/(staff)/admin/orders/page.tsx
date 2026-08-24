@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ChevronDown, ReceiptText, Search, X } from "lucide-react";
+import { ChevronDown, ReceiptText, Search, X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
+import { OrderSummary } from "@/components/orders/order-summary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 type OrderItem = {
   id: string;
@@ -42,14 +42,24 @@ const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" 
 const STATUS_STYLES: Record<string, string> = {
   pending: "bg-gold-soft text-[#8a6a28]",
   in_progress: "bg-teal-soft text-teal",
+  ready: "bg-violet-soft text-violet",
   completed: "bg-sage-soft text-sage",
   cancelled: "bg-ember-soft text-ember",
 };
+
+const PERIODS = [
+  { key: "daily", label: "Today" },
+  { key: "weekly", label: "This week" },
+  { key: "monthly", label: "This month" },
+  { key: "yearly", label: "This year" },
+  { key: "all", label: "All time" },
+];
 
 const STATUSES = [
   { key: "", label: "All" },
   { key: "pending", label: "Pending" },
   { key: "in_progress", label: "In progress" },
+  { key: "ready", label: "Ready" },
   { key: "completed", label: "Completed" },
   { key: "cancelled", label: "Cancelled" },
 ];
@@ -69,10 +79,9 @@ export default function AdminOrdersPage() {
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [period, setPeriod] = useState("daily");
   const [branchFilter, setBranchFilter] = useState("");
   const [status, setStatus] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [lookupId, setLookupId] = useState("");
   const [lookupResult, setLookupResult] = useState<Order | null>(null);
@@ -83,19 +92,16 @@ export default function AdminOrdersPage() {
   const canVoid = hasPermission(me, "void_orders");
 
   const load = useCallback(() => {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams({ period });
     if (branchFilter) params.set("branch_id", branchFilter);
     if (status) params.set("status", status);
-    if (dateFrom) params.set("date_from", dateFrom);
-    if (dateTo) params.set("date_to", dateTo);
 
-    const qs = params.toString();
     setLoading(true);
-    return apiFetch(`/staff/orders${qs ? `?${qs}` : ""}`)
+    return apiFetch(`/staff/orders?${params.toString()}`)
       .then(setOrders)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [branchFilter, status, dateFrom, dateTo]);
+  }, [period, branchFilter, status]);
 
   useEffect(() => {
     apiFetch("/branches").then(setBranches).catch(() => setBranches([]));
@@ -148,9 +154,6 @@ export default function AdminOrdersPage() {
   }
 
   const visible = lookupResult ? [lookupResult] : orders;
-  const revenue = visible
-    .filter((o) => o.status !== "cancelled")
-    .reduce((sum, o) => sum + o.total_amount, 0);
 
   function renderOrder(order: Order) {
     const expanded = expandedId === order.id;
@@ -253,8 +256,8 @@ export default function AdminOrdersPage() {
         <div>
           <h1 className="font-display text-3xl text-ink max-md:hidden">Orders</h1>
           <p className="mt-1 text-sm text-ink-muted">
-            {visible.length} {visible.length === 1 ? "order" : "orders"} ·{" "}
-            {gbp.format(revenue)}
+            {visible.length} {visible.length === 1 ? "order" : "orders"}
+            {visible.length === 200 && " (showing the most recent 200)"}
           </p>
         </div>
       </div>
@@ -286,7 +289,10 @@ export default function AdminOrdersPage() {
           />
         </div>
         <div className="flex gap-2">
-          <Button type="submit" className="h-10 flex-1 bg-ink text-paper hover:bg-ink/90 sm:flex-none">
+          <Button
+            type="submit"
+            className="h-10 flex-1 bg-ink text-paper hover:bg-ink/90 sm:flex-none"
+          >
             Find
           </Button>
           {lookupResult && (
@@ -308,11 +314,33 @@ export default function AdminOrdersPage() {
 
       {lookupResult ? (
         <>
-          <p className="text-sm text-ink-muted">Showing one order — clear the search to go back.</p>
+          <p className="text-sm text-ink-muted">
+            Showing one order — clear the search to go back.
+          </p>
           <ul className="space-y-3">{renderOrder(lookupResult)}</ul>
         </>
       ) : (
         <>
+          {/* Period tabs */}
+          <div className="flex flex-wrap gap-2">
+            {PERIODS.map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setPeriod(p.key)}
+                className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                  period === p.key
+                    ? "bg-gold text-ink"
+                    : "border border-ink/12 bg-white text-ink-muted hover:text-ink"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Summary */}
+          {orders.length > 0 && <OrderSummary orders={orders} tone="admin" />}
+
           {/* Branch pills */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs uppercase tracking-[0.14em] text-ink-muted">Branch</span>
@@ -341,63 +369,22 @@ export default function AdminOrdersPage() {
             ))}
           </div>
 
-          {/* Status + dates */}
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="flex flex-wrap gap-2">
-              {STATUSES.map((s) => (
-                <button
-                  key={s.key}
-                  onClick={() => setStatus(s.key)}
-                  className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
-                    status === s.key
-                      ? "bg-gold text-ink"
-                      : "border border-ink/12 bg-white text-ink-muted hover:text-ink"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-end gap-2">
-              <div className="space-y-1">
-                <Label htmlFor="from" className="text-xs">
-                  From
-                </Label>
-                <Input
-                  id="from"
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="h-9 bg-white"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="to" className="text-xs">
-                  To
-                </Label>
-                <Input
-                  id="to"
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="h-9 bg-white"
-                />
-              </div>
-              {(dateFrom || dateTo) && (
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setDateFrom("");
-                    setDateTo("");
-                  }}
-                  className="h-9 text-ink-muted"
-                >
-                  <CalendarDays size={15} className="mr-1.5" />
-                  Today only
-                </Button>
-              )}
-            </div>
+          {/* Status pills */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs uppercase tracking-[0.14em] text-ink-muted">Status</span>
+            {STATUSES.map((s) => (
+              <button
+                key={s.key}
+                onClick={() => setStatus(s.key)}
+                className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+                  status === s.key
+                    ? "bg-ink text-paper"
+                    : "border border-ink/12 bg-white text-ink-muted hover:text-ink"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
           </div>
 
           {loading ? (

@@ -53,3 +53,6 @@ class StaffOrderCreate(BaseModel):
     seat_number: int | None = None
     special_request: str | None = None
     items: list[OrderItemIn]
+
+class OrderItemsAdd(BaseModel):
+    items: list[OrderItemIn]

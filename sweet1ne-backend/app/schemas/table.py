@@ -37,3 +37,20 @@ class TableOptionOut(BaseModel):
     region: str | None
     number: int
     seats: int
+
+class PublicTableOut(BaseModel):
+    """What a customer's device needs after scanning — enough to confirm
+    they're in the right place, plus branding."""
+    table_number: int
+    region: str | None
+    seats: int
+    branch_name: str
+    branch_slug: str
+    tenant_name: str
+    logo_url: str | None
+    currency: str
+    ask_for_name: bool
+    allergen_notice: str | None = None
+    food_hygiene_rating: int | None = None
+    prep_minutes_min: int = 15
+    prep_minutes_max: int = 25

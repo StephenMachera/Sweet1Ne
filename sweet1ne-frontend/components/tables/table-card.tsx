@@ -118,7 +118,8 @@ export function TableCard({
               Download
             </button>
           )}
-
+ 
+ 
           <button
             onClick={onRegenerate}
             disabled={busy}

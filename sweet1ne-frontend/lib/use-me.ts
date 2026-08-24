@@ -40,6 +40,8 @@ export function landingPath(me: Me) {
 
   if (has("access_reports")) return `${base}/dashboard`;
   if (has("update_order_status")) return `${base}/kitchen`;
+  if (has("access_kitchen")) return `${base}/kitchen`;
+  if (has("access_bar")) return `${base}/bar`;
   if (has("view_menu")) return `${base}/menu`;
   if (has("view_orders")) return `${base}/orders`;
   return `${base}/dashboard`;

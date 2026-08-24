@@ -3,8 +3,8 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
       auth, staff_menu, 
       public_menu, uploads,
-      public_orders, 
-      staff_orders, 
+      public_orders, station,
+      staff_orders, settings,
       table, promo, 
       branch, signup, 
       tenant, staff, 
@@ -27,3 +27,5 @@ api_router.include_router(staff.router,         prefix="/staff",        tags=["s
 api_router.include_router(roles.router,         prefix="/roles",        tags=["roles"])
 api_router.include_router(reports.router,       prefix="/reports",      tags=["overview-reports"])
 api_router.include_router(uploads.router,       prefix="/uploads",      tags=["uploads"])
+api_router.include_router(station.router, prefix="/station", tags=["station"])
+api_router.include_router(settings.router, prefix="/settings", tags=["settings"])

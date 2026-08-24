@@ -10,9 +10,16 @@ from app.models.main_menu_category import MainCategory
 from app.models.menu_item import MenuItem
 from app.models.sub_menu_category import SubCategory
 from app.models.table import Table
+from app.models.branch import Branch
+from app.models.tenant import Tenant
+
+
 from app.schemas.main_menu_category import MainCategoryOut
 from app.schemas.menu_items import MenuItemOut
 from app.schemas.sub_menu_category import SubCategoryOut
+from app.schemas.table import PublicTableOut
+
+from app.services.promos import active_promos, price_for, category_map
 
 router = APIRouter()
 
@@ -85,4 +92,40 @@ def public_list_menu_items(
         statement = statement.where(MenuItem.dietary_tags.contains([dietary_tag]))
 
     items = db.execute(statement).scalars().all()
-    return items
+
+    promos = active_promos(db, table.branch.tenant_id, table.branch_id)
+    categories = category_map(db, [i.id for i in items])
+
+    results = []
+    for item in items:
+        out = MenuItemOut.model_validate(item)
+        discounted, titles = price_for(item, promos, categories)
+        if titles:
+            out.promo_price = float(discounted)
+            out.promo_titles = titles
+        results.append(out)
+
+    return results
+
+@router.get("/table/{qr_token}", response_model=PublicTableOut)
+def get_table_context(
+    qr_token: uuid.UUID,
+    db: Session = Depends(get_db),
+):
+    table = resolve_branch_from_qr(str(qr_token), db)
+    branch = db.get(Branch, table.branch_id)
+    tenant = db.get(Tenant, branch.tenant_id)
+
+    settings_blob = tenant.settings or {}
+
+    return PublicTableOut(
+        table_number=table.number,
+        region=table.region,
+        seats=table.seats,
+        branch_name=branch.name,
+        branch_slug=branch.slug,
+        tenant_name=tenant.name,
+        logo_url=tenant.logo_url,
+        currency=tenant.currency,
+        ask_for_name=bool(settings_blob.get("ask_for_customer_name", False)),
+    )

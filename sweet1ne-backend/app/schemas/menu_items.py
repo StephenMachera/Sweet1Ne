@@ -23,6 +23,8 @@ class MenuItemOut(BaseModel):
     is_available: bool
     dietary_tags: list[str]
     allergen_tags: list[str]
+    promo_price: float | None = None
+    promo_titles: list[str] = []
 
 class MenuItemUpdate(BaseModel):
     sub_category_id: uuid.UUID | None = None

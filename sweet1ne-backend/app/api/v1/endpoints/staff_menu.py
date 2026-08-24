@@ -20,6 +20,8 @@ from app.schemas.menu_items import MenuItemIn, MenuItemOut, MenuItemUpdate
 
 from app.api.deps import scope_to_branch, resolve_menu_scope
 
+from app.services.promos import active_promos, category_map, price_for
+
 router = APIRouter()
 
 
@@ -190,7 +192,21 @@ def list_menu_items(
     if dietary_tag is not None:
         statement = statement.where(MenuItem.dietary_tags.contains([dietary_tag]))
 
-    return db.execute(statement).scalars().all()
+    items = db.execute(statement).scalars().all()
+
+    promos = active_promos(db, staff.tenant_id, staff.branch_id)
+    categories = category_map(db, [i.id for i in items])
+
+    results = []
+    for item in items:
+        out = MenuItemOut.model_validate(item)
+        discounted, titles = price_for(item, promos, categories)
+        if titles:
+            out.promo_price = float(discounted)
+            out.promo_titles = titles
+        results.append(out)
+
+    return results
 
 # =======================================
 #     EDIT ROUTES FOR MENUMANAGEMENT

@@ -1,12 +1,15 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/use-me";
 import { Sidebar } from "@/components/staff/sidebar";
 
 type Branch = { id: string; name: string; slug: string };
+
+const RESERVED_SLUGS = ["admin", "login", "signup", "set-password"];
+
 
 export default function BranchLayout({
   children,
@@ -16,41 +19,48 @@ export default function BranchLayout({
   params: Promise<{ branchSlug: string }>;
 }) {
   const { branchSlug } = use(params);
+  const pathname = usePathname();
   const router = useRouter();
+
+  // The customer ordering page lives under this segment but is public —
+  // no session, no sidebar, no branch lookup. It renders itself entirely.
+  const isGuestRoute =
+  pathname === `/${branchSlug}/order` || pathname.startsWith(`/${branchSlug}/order/`);
+
   const { me, loading: meLoading } = useMe();
   const [branch, setBranch] = useState<Branch | null>(null);
   const [checked, setChecked] = useState(false);
-  const [notFound, setNotFound] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isGuestRoute) return;
+    if (RESERVED_SLUGS.includes(branchSlug)) {
+      router.replace("/admin/dashboard");
+      return;
+    }
     apiFetch("/branches")
       .then((branches: Branch[]) => {
         const match = branches.find((b) => b.slug === branchSlug);
-        if (!match) {
-          setNotFound(true);
-          return;
-        }
-        setBranch(match);
+        if (match) setBranch(match);
       })
-      .catch((e) => {
-        // Don't sign anyone out over a transient failure.
-        setError(e instanceof Error ? e.message : "Couldn't load this branch.");
-      })
+      .catch(() => {})
       .finally(() => setChecked(true));
-  }, [branchSlug]);
+  }, [isGuestRoute, branchSlug, router]);
 
   useEffect(() => {
-    if (!me || !branch) return;
+    if (isGuestRoute || !me || !branch) return;
     if (me.branch_id !== null && me.branch_id !== branch.id) {
       router.replace(`/${me.branch_slug}/dashboard`);
     }
-  }, [me, branch, router]);
+  }, [isGuestRoute, me, branch, router]);
+
+  if (isGuestRoute) {
+    return <>{children}</>;
+  }
 
   if (meLoading || !checked || !branch) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-warm-paper">
-        <p className="text-sm text-ink-muted">Loading…</p>
+      <div className="flex min-h-screen items-center justify-center bg-slate-bg">
+        <p className="text-sm text-slate-muted">Loading…</p>
       </div>
     );
   }

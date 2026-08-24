@@ -58,6 +58,40 @@
   --color-info-bg: #dbeafe;
   --color-purple: #7c3aed;
   --color-purple-bg: #f3e8ff;
+
+}
+
+@theme inline{
+  
+  --color-guest-bg: var(--guest-bg);
+  --color-guest-card: var(--guest-card);
+  --color-guest-elevated: var(--guest-elevated);
+  --color-guest-text: var(--guest-text);
+  --color-guest-muted: var(--guest-muted);
+  --color-guest-border: var(--guest-border);
+  --color-guest-accent-soft: var(--guest-accent-soft);
+  --color-guest-accent: #ff8100;
+  --color-guest-accent-dark: #e06e00;
+}
+
+[data-guest-theme="light"] {
+  --guest-bg: #fbf7f2;
+  --guest-card: #ffffff;
+  --guest-elevated: #f6efe6;
+  --guest-text: #241c16;
+  --guest-muted: #7a6e64;
+  --guest-border: #efe6db;
+  --guest-accent-soft: #fff1e3;
+}
+
+[data-guest-theme="dark"] {
+  --guest-bg: #171310;
+  --guest-card: #211b16;
+  --guest-elevated: #2a221c;
+  --guest-text: #f5efe8;
+  --guest-muted: #a2968a;
+  --guest-border: #2e2620;
+  --guest-accent-soft: rgba(255, 129, 0, 0.14);
 }
 
 @media print {
@@ -79,6 +113,27 @@
 
   /* One QR per printable block, four to a page */
   .grid > div {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+@media print {
+  aside,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  
+  section {
     break-inside: avoid;
     page-break-inside: avoid;
   }

@@ -21,6 +21,8 @@ DEFAULT_PERMISSIONS = [
     ("manage_promotions", "Manage Promotions", "marketing"),
     ("view_menu", "View Menu", "menu"),
     ("view_staff_pay", "View Staff Pay & Personal Details", "administration"),
+    ("access_kitchen", "Access Kitchen Screen", "surfaces"),
+    ("access_bar", "Access Bar Screen", "surfaces"),
 ]
 
 

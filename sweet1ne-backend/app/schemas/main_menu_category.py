@@ -6,6 +6,7 @@ class MainCategoryIn(BaseModel):
     slug: str
     description: str | None = None
     branch_id: uuid.UUID | None = None
+    prep_station: str = "kitchen"
 
 class MainCategoryOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -18,6 +19,7 @@ class MainCategoryOut(BaseModel):
     description: str | None
     sort_order: int
     is_active: bool
+    prep_station: str
 
 class MainCategoryUpdate(BaseModel):
     name: str | None = None
@@ -25,3 +27,4 @@ class MainCategoryUpdate(BaseModel):
     description: str | None = None
     sort_order: int | None = None
     is_active: bool | None = None
+    prep_station: str | None = None

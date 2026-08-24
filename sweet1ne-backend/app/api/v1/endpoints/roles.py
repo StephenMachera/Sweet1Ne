@@ -14,7 +14,7 @@ from app.schemas.roles import RoleCreate, RoleOut, PermissionOut
 router = APIRouter()
 
 @router.get("/permissions", response_model=list[PermissionOut])
-def list_permissions(staff: CurrentStaff = Depends(require_permission("manage_roles"))):
+def list_permissions(staff: CurrentStaff = Depends(require_permission("manage_roles", "manage_staff"))):
     # Global catalog — same for every tenant, no filtering needed
     from app.db.session import SessionLocal
     db = SessionLocal()
@@ -23,7 +23,7 @@ def list_permissions(staff: CurrentStaff = Depends(require_permission("manage_ro
 
 @router.get("", response_model=list[RoleOut])
 def list_roles(
-    staff: CurrentStaff = Depends(require_permission("manage_roles")),
+    staff: CurrentStaff = Depends(require_permission("manage_roles","manage_staff")),
     db: Session = Depends(get_db),
 ):
     roles = db.execute(
@@ -82,7 +82,7 @@ def create_role(
     )
 
 
-@router.patch("/roles/{role_id}/permissions", response_model=RoleOut)
+@router.patch("/{role_id}/permissions", response_model=RoleOut)
 def update_role_permissions(
     role_id: uuid.UUID,
     payload: RoleCreate,

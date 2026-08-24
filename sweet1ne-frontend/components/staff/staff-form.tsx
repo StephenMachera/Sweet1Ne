@@ -11,25 +11,26 @@ export type StaffMember = {
   email: string;
   full_name: string | null;
   phone: string | null;
-  is_active: boolean;
-  role_name: string;
-  role_id: string | null;
-  branch_id: string | null;
-  branch_slug: string | null;
+  picture_url: string | null;
   employment_type: string | null;
   shift_pattern: string | null;
-  emergency_contact_name: string | null;
-  emergency_contact_phone: string | null;
-  date_of_birth: string | null;
-  address: string | null;
-  national_insurance_number: string | null;
-  salary: number | null;
-  pay_type: string | null;
-  right_to_work_verified: boolean;
-  notes: string | null;
   hire_date: string | null;
+  is_active: boolean;
+  role_name: string;
   is_super_admin: boolean;
-  picture_url: string | null;
+  branch_id: string | null;
+  branch_slug: string | null;
+
+  // Only present when the caller has view_staff_pay
+  date_of_birth?: string | null;
+  address?: string | null;
+  national_insurance_number?: string | null;
+  emergency_contact_name?: string | null;
+  emergency_contact_phone?: string | null;
+  right_to_work_verified?: boolean;
+  salary?: number | null;
+  pay_type?: string | null;
+  notes?: string | null;
 };
 
 type Option = { id: string; name: string };
@@ -39,11 +40,14 @@ const MIN_PASSWORD_LENGTH = 8;
 export function StaffForm({
   roles,
   branches,
+  tone = "admin",
   onCreated,
   onCancel,
 }: {
   roles: Option[];
-  branches: Option[];
+  /** Omitted at branch level — a manager can only add staff to their own branch. */
+  branches?: Option[];
+  tone?: "admin" | "branch";
   onCreated: (staff: StaffMember) => void;
   onCancel: () => void;
 }) {
@@ -56,6 +60,18 @@ export function StaffForm({
   const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isBranch = tone === "branch";
+
+  const primaryButton = isBranch
+    ? "bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
+    : "bg-gold text-ink hover:bg-gold/90";
+  const errorBox = isBranch
+    ? "border border-danger/25 bg-danger-bg text-danger"
+    : "border border-ember/25 bg-ember-soft text-ember";
+  const hintText = isBranch ? "text-slate-muted" : "text-ink-muted";
+  const selectBorder = isBranch ? "border-slate-border" : "border-ink/15";
+  const panelBorder = isBranch ? "border-slate-border" : "border-ink/10";
 
   const passwordTooShort =
     !sendInvite && password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
@@ -82,7 +98,9 @@ export function StaffForm({
           full_name: fullName || null,
           phone: phone || null,
           role_id: roleId,
-          branch_id: branchId || null,
+          // Branch-level callers send nothing — the backend uses their own
+          // branch. Only a director picks one (or leaves it null).
+          ...(branches ? { branch_id: branchId || null } : {}),
           send_invite: sendInvite,
           password: sendInvite ? null : password,
         }),
@@ -99,10 +117,7 @@ export function StaffForm({
     <form onSubmit={handleSubmit}>
       <fieldset disabled={saving} className="space-y-6">
         {error && (
-          <div
-            role="alert"
-            className="rounded-md border border-ember/30 bg-ember/5 px-4 py-3 text-sm text-ember"
-          >
+          <div role="alert" className={`rounded-md px-4 py-3 text-sm ${errorBox}`}>
             {error}
           </div>
         )}
@@ -115,59 +130,92 @@ export function StaffForm({
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className={selectBorder}
           />
         </div>
 
         <div className="space-y-1">
           <Label htmlFor="staffName">Full name</Label>
-          <Input id="staffName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          <Input
+            id="staffName"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            className={selectBorder}
+          />
         </div>
 
         <div className="space-y-1">
           <Label htmlFor="staffPhone">Phone</Label>
-          <Input id="staffPhone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <Input
+            id="staffPhone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className={selectBorder}
+          />
         </div>
 
         <div className="space-y-1">
           <Label htmlFor="staffRole">Role</Label>
-          <select
-            id="staffRole"
-            required
-            value={roleId}
-            onChange={(e) => setRoleId(e.target.value)}
-            className="h-10 w-full rounded-md border border-ink/15 bg-white px-3 text-sm"
-          >
-            <option value="">Choose a role…</option>
-            {roles.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
+
+          {roles.length === 0 ? (
+            <div
+              className={`rounded-lg border px-4 py-3 text-sm ${
+                isBranch
+                  ? "border-warning/30 bg-warning-bg text-warning"
+                  : "border-gold/30 bg-gold-soft text-[#8a6a28]"
+              }`}
+            >
+              No roles have been set up yet. Ask your director to create one before adding staff.
+            </div>
+          ) : (
+            <>
+              <select
+                id="staffRole"
+                required
+                value={roleId}
+                onChange={(e) => setRoleId(e.target.value)}
+                className={`h-10 w-full rounded-lg border bg-white px-3 text-sm ${selectBorder}`}
+              >
+                <option value="">Choose a role…</option>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+              {isBranch && (
+                <p className={`text-xs ${hintText}`}>
+                  Roles are set up by your director. Ask them if you need a new one.
+                </p>
+              )}
+            </>
+          )}
         </div>
 
-        <div className="space-y-1">
-          <Label htmlFor="staffBranch">Branch</Label>
-          <select
-            id="staffBranch"
-            value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-            className="h-10 w-full rounded-md border border-ink/15 bg-white px-3 text-sm"
-          >
-            <option value="">All branches (director level)</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-ink-muted">
-            Leaving this on "All branches" gives them oversight of every location.
-          </p>
-        </div>
+        {branches && (
+          <div className="space-y-1">
+            <Label htmlFor="staffBranch">Branch</Label>
+            <select
+              id="staffBranch"
+              value={branchId}
+              onChange={(e) => setBranchId(e.target.value)}
+              className={`h-10 w-full rounded-lg border bg-white px-3 text-sm ${selectBorder}`}
+            >
+              <option value="">All branches (director level)</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+            <p className={`text-xs ${hintText}`}>
+              Leaving this on "All branches" gives them oversight of every location.
+            </p>
+          </div>
+        )}
 
-        {/* Account setup method */}
-        <div className="space-y-3 rounded-md border border-ink/10 p-4">
+        {/* How they get access */}
+        <div className={`space-y-3 rounded-md border p-4 ${panelBorder}`}>
           <Label>How should they get access?</Label>
 
           <label className="flex cursor-pointer items-start gap-3">
@@ -179,8 +227,8 @@ export function StaffForm({
               className="mt-1"
             />
             <span className="text-sm">
-              <span className="text-ink">Set a password now</span>
-              <span className="mt-0.5 block text-xs text-ink-muted">
+              <span className={isBranch ? "text-navy" : "text-ink"}>Set a password now</span>
+              <span className={`mt-0.5 block text-xs ${hintText}`}>
                 You'll give them the password directly. Best for staff without an email address.
               </span>
             </span>
@@ -195,8 +243,8 @@ export function StaffForm({
               className="mt-1"
             />
             <span className="text-sm">
-              <span className="text-ink">Email them an invitation</span>
-              <span className="mt-0.5 block text-xs text-ink-muted">
+              <span className={isBranch ? "text-navy" : "text-ink"}>Email them an invitation</span>
+              <span className={`mt-0.5 block text-xs ${hintText}`}>
                 They'll set their own password from a link.
               </span>
             </span>
@@ -210,9 +258,13 @@ export function StaffForm({
                 type="text"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="font-mono"
+                className={`font-mono ${selectBorder}`}
               />
-              <p className={`text-xs ${passwordTooShort ? "text-ember" : "text-ink-muted"}`}>
+              <p
+                className={`text-xs ${
+                  passwordTooShort ? (isBranch ? "text-danger" : "text-ember") : hintText
+                }`}
+              >
                 At least {MIN_PASSWORD_LENGTH} characters. Make a note of it — you'll need to pass
                 it on.
               </p>
@@ -221,7 +273,7 @@ export function StaffForm({
         </div>
 
         <div className="flex gap-3 pt-2">
-          <Button type="submit" disabled={saving} className="bg-gold text-ink hover:bg-gold/90">
+          <Button type="submit" disabled={saving || roles.length === 0} className={primaryButton}>
             {saving
               ? sendInvite
                 ? "Sending invitation…"
@@ -230,7 +282,7 @@ export function StaffForm({
                 ? "Send invitation"
                 : "Create staff member"}
           </Button>
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
         </div>

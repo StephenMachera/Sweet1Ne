@@ -8,6 +8,8 @@ import {
   ShieldCheck,
   Tag,
   Users,
+  ChefHat,
+  Martini,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
@@ -48,6 +50,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Promotions", href: "/promotions", icon: Tag, permission: "manage_promotions" },
       { label: "Reports", href: "/reports", icon: ChartColumn, permission: "access_reports" },
       { label: "Hotel Settings", href: "/settings", icon: Settings, permission: "manage_tenant" },
+      { label: "Kitchen", href: "/kitchen", icon: ChefHat, permission: "access_kitchen" },
+      { label: "Bar", href: "/bar", icon: Martini, permission: "access_bar" },
     ],
   },
 ];
