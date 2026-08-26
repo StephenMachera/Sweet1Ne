@@ -1,48 +1,44 @@
-"use client"
+"use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api"
+import { apiFetch } from "@/lib/api";
 
-export type Me = {
-  id: string;
-  full_name: string | null;
-  email: string;
-  role_name: string;
-  branch_id: string | null;
-  branch_slug: string | null;
-  permissions: string[];
-  is_super_admin: boolean;
-};
+// The pure permission logic lives in its own module so it can be tested
+// without pulling in Supabase — re-exported here so existing imports of
+// `hasPermission` and `landingPath` from this file keep working.
+export { hasPermission, landingPath, type Me } from "./permissions";
 
+import type { Me } from "./permissions";
+
+/**
+ * Loads the logged-in staff member from /auth/me.
+ *
+ * Every page uses this to decide what to render, so it fails quietly —
+ * a null `me` means "not loaded or not signed in", and the caller decides
+ * what to do about it.
+ */
 export function useMe() {
-    const [me, setMe] = useState<Me | null>(null);
-    const [loading, setLoading] = useState(true)
+  const [me, setMe] = useState<Me | null>(null);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() =>{
-        apiFetch("/auth/me")
-        .then(setMe)
-        .catch(console.error)
-        .finally(() => setLoading(false))
-    }, []);
-    return { me, loading };
+  useEffect(() => {
+    let cancelled = false;
 
-}
+    apiFetch("/auth/me")
+      .then((data: Me) => {
+        if (!cancelled) setMe(data);
+      })
+      .catch(() => {
+        if (!cancelled) setMe(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
-export function hasPermission(me: Me | null, permission: string | null) {
-        if (permission === null) return true;
-        if (!me) return false;
-        return me.is_super_admin || me.permissions.includes(permission);
-}
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-export function landingPath(me: Me) {
-  const base = me.branch_slug ? `/${me.branch_slug}` : "/admin";
-  const has = (key: string) => me.is_super_admin || me.permissions.includes(key);
-
-  if (has("access_reports")) return `${base}/dashboard`;
-  if (has("update_order_status")) return `${base}/kitchen`;
-  if (has("access_kitchen")) return `${base}/kitchen`;
-  if (has("access_bar")) return `${base}/bar`;
-  if (has("view_menu")) return `${base}/menu`;
-  if (has("view_orders")) return `${base}/orders`;
-  return `${base}/dashboard`;
+  return { me, loading };
 }

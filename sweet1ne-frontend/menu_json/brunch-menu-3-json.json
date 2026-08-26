@@ -1,0 +1,133 @@
+{
+  "id": "21cb5d72-948f-4073-be04-65d2786e9be9",
+  "name": "Brunch Menu",
+  "__typename": "Menu",
+  "sections": [
+    {
+      "id": "fa90ee94-dbc5-500b-a2aa-3127255d5cc5",
+      "name": "Starters",
+      "description": "One starter, one main and unlimited Rum Punch or Mimosa\nAll for E40.00",
+      "__typename": "Section",
+      "child_sections": [],
+      "items": [
+        {
+          "id": "f7dea8b2-c912-5235-9999-63bb498a67c4",
+          "name": "Tempura Prawns",
+          "price": 0,
+          "price_unknown": true,
+          "description": "Lightly battered prawns fried until crisp and golden. Served hot and crunchy",
+          "number": null,
+          "tags": [],
+          "__typename": "Item",
+          "child_modifiers": [],
+          "field_translations": []
+        },
+        {
+          "id": "d9d84ee9-84a3-5ece-b393-8b89c418aecb",
+          "name": "Oxtail Bao Buns",
+          "price": 0,
+          "price_unknown": true,
+          "description": "Soft steamed bao buns filled with slow-braised oxtail",
+          "number": null,
+          "tags": [],
+          "__typename": "Item",
+          "child_modifiers": [],
+          "field_translations": []
+        },
+        {
+          "id": "aa7d5aa9-d3e6-53b2-a6da-161848fe045f",
+          "name": "Curry Goat Spring Roll",
+          "price": 0,
+          "price_unknown": true,
+          "description": "Crispy spring roll filled with seasoned tender curry goat",
+          "number": null,
+          "tags": [],
+          "__typename": "Item",
+          "child_modifiers": [],
+          "field_translations": []
+        },
+        {
+          "id": "9ab65827-480b-5e7b-b268-769214dc0959",
+          "name": "Taco",
+          "price": 0,
+          "price_unknown": true,
+          "description": "Mini tortillas filled with jerk marinated chicken or smoky beef, garnished with fresh salsa and avocado mousse",
+          "number": null,
+          "tags": [],
+          "__typename": "Item",
+          "child_modifiers": [],
+          "field_translations": []
+        },
+        {
+          "id": "881f4ac7-b44c-5edc-b9fa-082f420b7d46",
+          "name": "Suya",
+          "price": 0,
+          "price_unknown": true,
+          "description": "Thinly sliced beef marinated in a spicy peanut suya blend, flamegrilled and served with sliced onions and tomatoes",
+          "number": null,
+          "tags": [],
+          "__typename": "Item",
+          "child_modifiers": [],
+          "field_translations": []
+        }
+      ]
+    },
+    {
+      "id": "573ad3f0-18dd-56f6-93f8-3c155001dd99",
+      "name": "Mains",
+      "description": null,
+      "__typename": "Section",
+      "child_sections": [],
+      "items": [
+        {
+          "id": "a09dcce8-b27c-58d6-a5e5-7ee9bd061a3f",
+          "name": "All American",
+          "price": 0,
+          "price_unknown": true,
+          "description": "American biscuits, Fried egg, Sausage, Turkey rasher. Hash brown. Beans, Fresh fruits & Clotted cream",
+          "number": null,
+          "tags": [],
+          "__typename": "Item",
+          "child_modifiers": [],
+          "field_translations": []
+        },
+        {
+          "id": "c44d3ed1-4597-5301-a4f1-b1ffa7934a8e",
+          "name": "Buttermilk Waffles And Fried Chicken",
+          "price": 0,
+          "price_unknown": true,
+          "description": "Fluffy buttermilk waffles paired with crispy, seasoned fried chicken and finished with a drizzle of maple syrup",
+          "number": null,
+          "tags": [],
+          "__typename": "Item",
+          "child_modifiers": [],
+          "field_translations": []
+        },
+        {
+          "id": "83cee74a-aedd-5201-a020-0e788e8f04a1",
+          "name": "Soufflé Pancake Sandwich",
+          "price": 0,
+          "price_unknown": true,
+          "description": "Japanese-style soufflé pancakes layered with softly scrambled eggs, crispy turkey rasher, and melted cheese",
+          "number": null,
+          "tags": [],
+          "__typename": "Item",
+          "child_modifiers": [],
+          "field_translations": []
+        },
+        {
+          "id": "7beeaa31-a74b-5d86-9400-4cbf3dcf5427",
+          "name": "Cinnamon Apple French Toast",
+          "price": 0,
+          "price_unknown": true,
+          "description": "Cinnamon-soaked French toast served with caramelised apple compote, clotted cream, and maple syrup",
+          "number": null,
+          "tags": [],
+          "__typename": "Item",
+          "child_modifiers": [],
+          "field_translations": []
+        }
+      ]
+    }
+  ]
+}

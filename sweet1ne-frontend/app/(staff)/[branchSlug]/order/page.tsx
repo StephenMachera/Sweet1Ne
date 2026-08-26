@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { useGuestTheme, ThemeToggle } from "@/components/guest/guest-theme";
+import { effectivePrice } from "@/lib/pricing";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -86,10 +87,7 @@ const TRACK_STEPS = [
   { key: "ready", label: "Ready", icon: Utensils },
 ];
 
-/** What an item actually costs right now. */
-function effectivePrice(item: MenuItem) {
-  return item.promo_price ?? item.price;
-}
+
 
 async function publicFetch(path: string, init: RequestInit = {}) {
   const res = await fetch(`${API_URL}${path}`, {

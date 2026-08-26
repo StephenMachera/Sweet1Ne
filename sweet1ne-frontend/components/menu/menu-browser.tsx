@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, ShoppingCart, X, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { effectivePrice } from "@/lib/pricing";
 
 export type MainCategory = {
   id: string;
@@ -39,10 +40,6 @@ export type CartLine = { menu_item_id: string; quantity: number };
 
 const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
 
-/** What an item actually costs right now — the promo price if there is one. */
-function effectivePrice(item: MenuItem) {
-  return item.promo_price ?? item.price;
-}
 
 export function MenuBrowser({
   mode,
