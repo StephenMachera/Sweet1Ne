@@ -23,6 +23,7 @@ DEFAULT_PERMISSIONS = [
     ("view_staff_pay", "View Staff Pay & Personal Details", "administration"),
     ("access_kitchen", "Access Kitchen Screen", "surfaces"),
     ("access_bar", "Access Bar Screen", "surfaces"),
+    ("manage_reservations", "Manage Reservations", "operations"),
 ]
 
 

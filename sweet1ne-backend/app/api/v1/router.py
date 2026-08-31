@@ -5,10 +5,10 @@ from app.api.v1.endpoints import (
       public_menu, uploads,
       public_orders, station,
       staff_orders, settings,
-      table, promo, 
-      branch, signup, 
-      tenant, staff, 
-      roles, reports
+      table, promo, public_site,
+      branch, signup, events, 
+      tenant, staff, reservations,
+      roles, reports, newsletter
       )
 
 api_router = APIRouter()
@@ -29,3 +29,7 @@ api_router.include_router(reports.router,       prefix="/reports",      tags=["o
 api_router.include_router(uploads.router,       prefix="/uploads",      tags=["uploads"])
 api_router.include_router(station.router, prefix="/station", tags=["station"])
 api_router.include_router(settings.router, prefix="/settings", tags=["settings"])
+api_router.include_router(public_site.router, prefix="/public/site", tags=["public-site"])
+api_router.include_router(events.router, tags=["events"])
+api_router.include_router(reservations.router, tags=["reservations"])
+api_router.include_router(newsletter.router, tags=["newsletter"])

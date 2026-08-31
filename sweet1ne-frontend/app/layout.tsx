@@ -1,28 +1,26 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-display",
-  weight: ["500", "600"],
-});
-const inter = Inter({ subsets: ["latin"], variable: "--font-body" });
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  weight: ["400", "500"],
-});
 
 export const metadata: Metadata = {
   title: "Sweet1NE",
-  description: "Restaurant & bar management",
+  description: "Afro-Caribbean fusion. 100% Halal. South East London.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+/**
+ * Root layout — deliberately minimal.
+ *
+ * The three route groups each set their own fonts and colours: (site) uses
+ * Bodoni and the nocturnal palette, (staff) the gold/navy ones. Keeping the
+ * root neutral means neither has to override the other.
+ */
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${inter.variable} ${plexMono.variable}`}>
-      <body className="bg-paper text-ink font-body antialiased">{children}</body>
+    <html lang="en">
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

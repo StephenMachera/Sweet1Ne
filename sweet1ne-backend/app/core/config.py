@@ -25,5 +25,9 @@ class Settings(BaseSettings):
 
     BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
+    RESEND_API_KEY: str = ""
+    EMAIL_FROM: str = "Sweet1NE <reservations@sweet1ne.com>"
+    EMAIL_REPLY_TO: str = "info@sweet1ne.com"
+
 
 settings = Settings()

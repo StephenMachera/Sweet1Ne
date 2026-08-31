@@ -9,8 +9,10 @@ import {
   Tag,
   Users,
   ChefHat,
+  CalendarDays,
   Martini,
   UtensilsCrossed,
+  CalendarCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -34,6 +36,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Menu", href: "/menu/manage", icon: UtensilsCrossed, permission: "view_menu" },
       { label: "Tables", href: "/tables", icon: Grid3x3, permission: "manage_tables" },
       { label: "Orders", href: "/orders", icon: ReceiptText, permission: "view_orders" },
+      { label: "Events", href: "/events", icon: CalendarDays, permission: "manage_promotions" },
+      { label: "Reservations", href: "/reservations", icon: CalendarCheck, permission: "manage_reservations" },
     ],
   },
   {

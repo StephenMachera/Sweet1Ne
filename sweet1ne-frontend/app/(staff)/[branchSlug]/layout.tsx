@@ -8,7 +8,20 @@ import { Sidebar } from "@/components/staff/sidebar";
 
 type Branch = { id: string; name: string; slug: string };
 
-const RESERVED_SLUGS = ["admin", "login", "signup", "set-password"];
+const RESERVED_SLUGS = [
+  "admin",
+  "login",
+  "signup",
+  "set-password",
+  "menu",
+  "story",
+  "events",
+  "locations",
+  "reservations",
+  "contact",
+  "privacy",
+  "terms",
+];
 
 
 export default function BranchLayout({

@@ -15,6 +15,8 @@ if TYPE_CHECKING:
     from app.models.main_menu_category import MainCategory
     from app.models.role import Role
     from app.models.promo import Promo
+    from app.models.event import Event
+    from app.models.reservation import Reservation
 
 class Tenant(Base):
     __tablename__ = "tenants"
@@ -50,8 +52,25 @@ class Tenant(Base):
     # Director-level, company-wide toggles that don't need their own column/migration.
     settings: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
 
-    branches: Mapped[list["Branch"]] = relationship(back_populates="tenant", cascade="all, delete-orphan")
-    staff: Mapped[list["Staff"]] = relationship(back_populates="tenant", cascade="all, delete-orphan")
-    main_categories: Mapped[list["MainCategory"]] = relationship(back_populates="tenant", cascade="all, delete-orphan")
-    roles: Mapped[list["Role"]] = relationship(back_populates="tenant", cascade="all, delete-orphan")
-    promos: Mapped[list["Promo"]] = relationship(back_populates="tenant", cascade="all, delete-orphan")
+    #---relationship---
+    branches: Mapped[list["Branch"]] = relationship(
+        back_populates="tenant", cascade="all, delete-orphan"
+        )
+    staff: Mapped[list["Staff"]] = relationship(
+        back_populates="tenant", cascade="all, delete-orphan"
+        )
+    main_categories: Mapped[list["MainCategory"]] = relationship(
+        back_populates="tenant", cascade="all, delete-orphan"
+        )
+    roles: Mapped[list["Role"]] = relationship(
+        back_populates="tenant", cascade="all, delete-orphan"
+        )
+    promos: Mapped[list["Promo"]] = relationship(
+        back_populates="tenant", cascade="all, delete-orphan"
+        )
+    events: Mapped[list["Event"]] = relationship(
+        back_populates="tenant", cascade="all, delete-orphan"
+        )
+    reservations: Mapped[list["Reservation"]] = relationship(
+        back_populates="tenant", cascade="all, delete-orphan"
+    )

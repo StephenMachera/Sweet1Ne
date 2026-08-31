@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* A page must never scroll horizontally — on mobile browsers a stray wide
+   element pushing the body past 100vw drags `position: fixed` elements
+   (the sidebar's hamburger button) along with it instead of leaving them
+   pinned to the viewport. This is the safety net; individual wide elements
+   should still scroll within their own container, not the page. */
+html,
+body {
+  overflow-x: hidden;
+}
+
 @theme {
   /* Director / admin palette */
   --color-ink: #14181c;

@@ -107,7 +107,7 @@ spacing:
   section-gap-mobile: 64px
 ---
 
-## Brand & Style
+###  Brand & Style
 
 The design system is a "Nocturnal Editorial" aesthetic designed for Sweet1neLIVE. It prioritises high-contrast cinematic visuals, evoking the atmosphere of a premium jazz club or high-end evening lounge. The personality is sophisticated, mature, and entertainment-led, moving away from high-energy "club" tropes towards a more curated, late-night performance experience.
 
@@ -151,7 +151,7 @@ This design system eschews heavy shadows in favour of **Tonal Layering** and **F
 
 ## Shapes
 
-The shape language is **Refined and Structured**. 
+The shape language is **Refined and Structured**
 
 - **Corners:** A `0.25rem` (4px) radius is used for standard UI components like buttons and inputs. This provides a "softened architectural" look that is cleaner than sharp corners but more professional than round ones.
 - **Imagery:** Large hero images should remain sharp (0px radius) to maintain a cinematic, edge-to-edge feel.
@@ -159,20 +159,24 @@ The shape language is **Refined and Structured**.
 
 ## Components
 
-### Buttons
-- **Primary:** Brand Gold background (#D8B632) with near-black text (#050505). No shadows. 4px rounded corners.
-- **Secondary:** Transparent background with a 1px Soft Ivory border. Text in Soft Ivory.
-- **Tertiary/Action:** Soft Ivory text with a 1px underline positioned 4px below the baseline. On hover, the underline should expand or change colour to Brand Gold.
+## Buttons
+
+**Primary:** Brand Gold background (#D8B632) with near-black text (#050505). No shadows. 4px rounded corners.
+**Secondary:** Transparent background with a 1px Soft Ivory border. Text in Soft Ivory.
+**Tertiary/Action:** Soft Ivory text with a 1px underline positioned 4px below the baseline. On hover, the underline should expand or change colour to Brand Gold.
 
 ### Cards & Surfaces
-- **Performance Card:** Surface Elevated (#111111) with a hairline gold border. Images should be the primary focus, with Bodoni Moda headlines.
-- **Menu Items:** Use a simple list format with the price in Brand Gold. Avoid card containers for menus; use whitespace and subtle dividers instead.
+
+**Performance Card:** Surface Elevated (#111111) with a hairline gold border. Images should be the primary focus, with Bodoni Moda headlines.
+**Menu Items:** Use a simple list format with the price in Brand Gold. Avoid card containers for menus; use whitespace and subtle dividers instead.
 
 ### Inputs & Forms
-- **Fields:** Surface Secondary (#191714) with an Ivory label above. The border should only appear on focus, using the Brand Gold.
-- **Checkboxes:** Square with a 2px radius. When checked, the fill is Brand Gold with a dark tick.
+
+**Fields:** Surface Secondary (#191714) with an Ivory label above. The border should only appear on focus, using the Brand Gold.
+**Checkboxes:** Square with a 2px radius. When checked, the fill is Brand Gold with a dark tick.
 
 ### Feedback & Motion
-- **Transitions:** Use "Long & Smooth" transitions (400ms ease-out) for page reveals.
-- **Hover States:** Elements should subtly shift in opacity or brightness rather than scale or move, maintaining a "still and calm" interface.
-- **Icons:** Use thin-stroke (1px) linear icons in Soft Ivory. Avoid filled or "playful" icon sets.
+
+**Transitions:** Use "Long & Smooth" transitions (400ms ease-out) for page reveals.
+**Hover States:** Elements should subtly shift in opacity or brightness rather than scale or move, maintaining a "still and calm" interface.
+**Icons:** Use thin-stroke (1px) linear icons in Soft Ivory. Avoid filled or "playful" icon sets

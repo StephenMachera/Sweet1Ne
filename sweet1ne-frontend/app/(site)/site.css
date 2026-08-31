@@ -1,0 +1,75 @@
+/**
+ * Site-only styles. The grain and glow are what stop the black reading as
+ * flat digital black — they give it the warmth of a room rather than a
+ * screen.
+ */
+
+.site-root {
+  --gold: #f6d24c;
+  --gold-deep: #d8b632;
+  --ivory: #e5e2e1;
+  --ivory-dim: #cfc6af;
+  --hairline: rgba(216, 182, 50, 0.28);
+  --hairline-faint: rgba(216, 182, 50, 0.12);
+
+  position: relative;
+}
+
+/* Film grain over everything. Subtle enough to read as texture rather
+   than noise, and it costs one repeating SVG. */
+.site-root::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+}
+
+.font-body {
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+/* Small caps metadata — "DOORS OPEN", "100% HALAL". */
+.label-caps {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Warm ambient glow — like heat from a kitchen pass. Used behind the hero
+   and key imagery. */
+.glow {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(120px);
+  background: radial-gradient(circle, rgba(246, 210, 76, 0.16), transparent 70%);
+  pointer-events: none;
+}
+
+/* Everything moves slowly and calmly. */
+.site-root a,
+.site-root button {
+  transition:
+    opacity 400ms ease-out,
+    color 400ms ease-out,
+    background-color 400ms ease-out,
+    border-color 400ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-root *,
+  .site-root *::before,
+  .site-root *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

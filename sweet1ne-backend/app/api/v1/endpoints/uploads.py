@@ -9,7 +9,7 @@ router = APIRouter()
 
 ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 MAX_BYTES = 5 * 1024 * 1024  # 5 MB
-ALLOWED_FOLDERS = {"branches", "staff", "menu-items", "misc"}
+ALLOWED_FOLDERS = {"branches", "staff", "menu-items", "misc","events"}
 @router.post("/images")
 async def upload_image(
     file: UploadFile = File(...),

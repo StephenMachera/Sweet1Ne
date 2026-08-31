@@ -12,7 +12,9 @@ from app.models.permission import Permission
 from app.models.role import Role
 from app.models.role_permission import RolePermission
 from app.models.promo import Promo
-
+from app.models.event import Event
+from app.models.reservation import Reservation
+from app.models.newsletter_subscriber import NewsletterSubscriber
 __all__ = [
     "Tenant",
     "Branch", 
@@ -28,4 +30,8 @@ __all__ = [
     "Role",
     "RolePermission",
     "Promo",
+    "Event",
+    "Reservation",
+    "NewsletterSubscriber",
+
     ]
