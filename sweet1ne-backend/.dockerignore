@@ -1,0 +1,23 @@
+# Ignore files and directories that should not be included in the Docker image
+
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+.git/
+.gitignore
+
+.env
+.env.*
+!.env.example
+
+tests/
+pytest.ini
+
+*.md
+.vscode/
+.idea/

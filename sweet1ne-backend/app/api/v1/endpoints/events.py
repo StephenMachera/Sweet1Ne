@@ -123,7 +123,7 @@ def create_event(
         branch_id = payload.branch_id
         if branch_id is not None:
             branch = db.get(Branch, branch_id)
-            if branch is None or branch.tenant_id != staff.tenant_id:
+            if branch is None or str(branch.tenant_id) != staff.tenant_id:
                 raise HTTPException(status_code=404, detail="Branch not found")
 
     data = payload.model_dump(exclude={"branch_id"})
@@ -143,9 +143,9 @@ def update_event(
     db: Session = Depends(get_db),
 ):
     event = db.get(Event, event_id)
-    if event is None or event.tenant_id != staff.tenant_id:
+    if event is None or str(event.tenant_id) != staff.tenant_id:
         raise HTTPException(status_code=404, detail="Event not found")
-    if staff.branch_id is not None and event.branch_id != staff.branch_id:
+    if staff.branch_id is not None and str(event.branch_id) != staff.branch_id:
         raise HTTPException(status_code=403, detail="Not allowed to edit this event")
 
     for field, value in payload.model_dump(exclude_unset=True).items():
@@ -165,9 +165,9 @@ def unpublish_event(
     """Unpublishes rather than deletes — an event that's been shared has a
     URL people may still hold."""
     event = db.get(Event, event_id)
-    if event is None or event.tenant_id != staff.tenant_id:
+    if event is None or str(event.tenant_id) != staff.tenant_id:
         raise HTTPException(status_code=404, detail="Event not found")
-    if staff.branch_id is not None and event.branch_id != staff.branch_id:
+    if staff.branch_id is not None and str(event.branch_id) != staff.branch_id:
         raise HTTPException(status_code=403, detail="Not allowed to remove this event")
 
     event.is_published = False

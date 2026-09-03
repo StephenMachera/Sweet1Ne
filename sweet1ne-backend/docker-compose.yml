@@ -1,0 +1,46 @@
+# Runs the API and nginx together on the VPS. No database service — Supabase
+# hosts that.
+
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    # Bound to localhost only. nginx reaches it over the Docker network;
+    # nothing outside the machine can hit port 8000 directly.
+    expose:
+      - "8000"
+    networks:
+      - sweet1ne
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      # Certbot writes certificates here and nginx reads them.
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - api
+    networks:
+      - sweet1ne
+
+  certbot:
+    image: certbot/certbot
+    restart: unless-stopped
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    # Wakes twice a day to renew anything within 30 days of expiry. Let's
+    # Encrypt certificates last 90 days, so this has plenty of margin.
+    entrypoint: >
+      /bin/sh -c "trap exit TERM;
+      while :; do certbot renew --quiet; sleep 12h & wait $${!}; done;"
+
+networks:
+  sweet1ne:
+    driver: bridge
