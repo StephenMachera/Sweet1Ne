@@ -28,7 +28,7 @@ from app.services.email.templates import (
 
 router = APIRouter()
 
-VALID_TYPES = {"table", "private"}
+VALID_TYPES = {"table", "private", "enquiry"}
 
 
 def _to_out(db: Session, reservation: Reservation) -> ReservationOut:
@@ -57,14 +57,21 @@ async def create_reservation(
     if payload.reservation_type not in VALID_TYPES:
         raise HTTPException(status_code=400, detail="Unknown reservation type")
 
-    if payload.party_size < 1:
-        raise HTTPException(status_code=400, detail="Party size must be at least one.")
+    is_enquiry = payload.reservation_type == "enquiry"
 
-    # Can't book a table in the past.
-    if payload.requested_at < datetime.now(timezone.utc):
-        raise HTTPException(
-            status_code=400, detail="Please choose a date and time in the future."
-        )
+    # An enquiry has no party or date — it's a message, not a booking.
+    if not is_enquiry:
+        if payload.party_size < 1:
+            raise HTTPException(status_code=400, detail="Party size must be at least one.")
+
+        if payload.requested_at < datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=400, detail="Please choose a date and time in the future."
+            )
+
+    if is_enquiry and not payload.notes:
+        raise HTTPException(status_code=400, detail="Please tell us what you'd like to ask.")
+
 
     branch = db.get(Branch, payload.branch_id)
     if branch is None or not branch.is_active:
@@ -153,7 +160,11 @@ def list_reservations(
 
     if upcoming_only:
         today_start = datetime.combine(date.today(), time.min, tzinfo=timezone.utc)
-        statement = statement.where(Reservation.requested_at >= today_start)
+        # An enquiry has no date at all — "upcoming" doesn't apply to it, so
+        # it should never be filtered out by this check.
+        statement = statement.where(
+            or_(Reservation.requested_at >= today_start, Reservation.requested_at.is_(None))
+        )
 
     # Soonest first — the ones needing an answer are the ones happening next.
     reservations = db.execute(
@@ -192,38 +203,42 @@ async def decide_reservation(
     branch = db.get(Branch, reservation.branch_id)
     branch_settings = branch.settings or {}
 
-    if payload.status == "confirmed":
-        subject, html = reservation_confirmed.render(
-            name=reservation.name,
-            branch_name=branch.name,
-            branch_address=branch.address,
-            branch_phone=branch.phone,
-            party_size=reservation.party_size,
-            requested_at=reservation.requested_at,
-            staff_message=reservation.staff_message,
-        )
-        background.add_task(
-            send_email,
-            to=reservation.email,
-            subject=subject,
-            html=html,
-            reply_to=settings.EMAIL_REPLY_TO,
-        )
+    # Both templates read as a table booking ("you're booked", "we can't do
+    # that time") — that copy doesn't fit an enquiry, which has no date or
+    # party size to confirm or decline in the first place.
+    if reservation.reservation_type != "enquiry":
+        if payload.status == "confirmed":
+            subject, html = reservation_confirmed.render(
+                name=reservation.name,
+                branch_name=branch.name,
+                branch_address=branch.address,
+                branch_phone=branch.phone,
+                party_size=reservation.party_size,
+                requested_at=reservation.requested_at,
+                staff_message=reservation.staff_message,
+            )
+            background.add_task(
+                send_email,
+                to=reservation.email,
+                subject=subject,
+                html=html,
+                reply_to=settings.EMAIL_REPLY_TO,
+            )
 
-    elif payload.status == "declined":
-        subject, html = reservation_declined.render(
-            name=reservation.name,
-            branch_name=branch.name,
-            branch_phone=branch.phone,
-            requested_at=reservation.requested_at,
-            staff_message=reservation.staff_message,
-        )
-        background.add_task(
-            send_email,
-            to=reservation.email,
-            subject=subject,
-            html=html,
-            reply_to=settings.EMAIL_REPLY_TO,
-        )
+        elif payload.status == "declined":
+            subject, html = reservation_declined.render(
+                name=reservation.name,
+                branch_name=branch.name,
+                branch_phone=branch.phone,
+                requested_at=reservation.requested_at,
+                staff_message=reservation.staff_message,
+            )
+            background.add_task(
+                send_email,
+                to=reservation.email,
+                subject=subject,
+                html=html,
+                reply_to=settings.EMAIL_REPLY_TO,
+            )
 
     return _to_out(db, reservation)

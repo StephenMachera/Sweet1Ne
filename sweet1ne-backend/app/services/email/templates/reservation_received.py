@@ -11,11 +11,56 @@ def render(
 ) -> tuple[str, str]:
     """Acknowledgement — sent immediately, before anyone has looked at it.
 
-    Returns (subject, html)."""
-    when = requested_at.strftime("%A %-d %B at %-I:%M%p").replace("AM", "am").replace("PM", "pm")
-    what = "private hire enquiry" if reservation_type == "private" else "table request"
+    An enquiry gets different wording and no booking details, since it has
+    neither a date nor a party.
 
-    subject = f"We've got your {what} — Sweet1NE {branch_name}"
+    Returns (subject, html)."""
+    is_enquiry = reservation_type == "enquiry"
+
+    if is_enquiry:
+        subject = f"We've got your message — Sweet1NE {branch_name}"
+        heading = "Thanks for getting in touch."
+        opening = (
+            "We've got your message, and someone will come back to you shortly "
+            "— usually within a day."
+        )
+        closing = (
+            "If it's urgent, the phone is quicker during opening hours. "
+            "Otherwise, just reply to this and it reaches us."
+        )
+        details_block = ""
+    else:
+        what = "private hire enquiry" if reservation_type == "private" else "table request"
+        when = (
+            requested_at.strftime("%A %-d %B at %-I:%M%p")
+            .replace("AM", "am")
+            .replace("PM", "pm")
+        )
+
+        subject = f"We've got your {what} — Sweet1NE {branch_name}"
+        heading = f"Thanks, {name} — we've got it."
+        opening = (
+            f"Your {what} is with us. Someone will come back to you shortly to "
+            "confirm — usually within a few hours during opening times."
+        )
+        closing = (
+            "This isn't a confirmed booking yet — we'll email again once it's "
+            "secured. If anything changes in the meantime, just reply to this."
+        )
+
+        details_block = f"""
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid rgba(216,182,50,0.12);border-bottom:1px solid rgba(216,182,50,0.12);">
+              <tr><td style="padding:20px 0;">
+                <p style="margin:0 0 10px;font-size:14px;color:#98907b;">Where</p>
+                <p style="margin:0 0 18px;font-size:16px;color:#e5e2e1;">Sweet1NE {branch_name}</p>
+
+                <p style="margin:0 0 10px;font-size:14px;color:#98907b;">When</p>
+                <p style="margin:0 0 18px;font-size:16px;color:#e5e2e1;">{when}</p>
+
+                <p style="margin:0 0 10px;font-size:14px;color:#98907b;">Party</p>
+                <p style="margin:0;font-size:16px;color:#e5e2e1;">{party_size} {"person" if party_size == 1 else "people"}</p>
+              </td></tr>
+            </table>"""
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -31,30 +76,15 @@ def render(
 
           <tr><td style="padding:40px;">
             <h1 style="margin:0 0 20px;font-family:Georgia,serif;font-size:24px;font-weight:normal;line-height:1.3;color:#e5e2e1;">
-              Thanks, {name} — we've got it.
+              {heading}
             </h1>
 
             <p style="margin:0 0 24px;font-size:15px;line-height:1.65;color:#cfc6af;">
-              Your {what} is with us. Someone will come back to you shortly to
-              confirm — usually within a few hours during opening times.
+              {opening}
             </p>
-
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid rgba(216,182,50,0.12);border-bottom:1px solid rgba(216,182,50,0.12);">
-              <tr><td style="padding:20px 0;">
-                <p style="margin:0 0 10px;font-size:14px;color:#98907b;">Where</p>
-                <p style="margin:0 0 18px;font-size:16px;color:#e5e2e1;">Sweet1NE {branch_name}</p>
-
-                <p style="margin:0 0 10px;font-size:14px;color:#98907b;">When</p>
-                <p style="margin:0 0 18px;font-size:16px;color:#e5e2e1;">{when}</p>
-
-                <p style="margin:0 0 10px;font-size:14px;color:#98907b;">Party</p>
-                <p style="margin:0;font-size:16px;color:#e5e2e1;">{party_size} {"person" if party_size == 1 else "people"}</p>
-              </td></tr>
-            </table>
-
+            {details_block}
             <p style="margin:24px 0 0;font-size:14px;line-height:1.65;color:#98907b;">
-              This isn't a confirmed booking yet — we'll email again once it's
-              secured. If anything changes in the meantime, just reply to this.
+              {closing}
             </p>
           </td></tr>
 

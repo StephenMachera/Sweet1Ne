@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { UtensilsCrossed } from "lucide-react";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -36,6 +40,8 @@ const DIETARY_MARKS: Record<string, string> = {
 };
 
 export function MenuGrid() {
+  const gridRef = useRef<HTMLDivElement>(null);
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [activeMain, setActiveMain] = useState<string | null>(null);
@@ -80,11 +86,81 @@ export function MenuGrid() {
     });
   }, [items, activeMain, activeSub]);
 
+  // Items surface as they enter — blurred and enlarged, resolving into
+  // focus, in the same language as the rest of the site. Staggered by
+  // column so a row assembles rather than appearing.
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid || loading) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const ctx = gsap.context(() => {
+      gsap.utils.toArray<HTMLElement>(".menu-card").forEach((card, i) => {
+        const photo = card.querySelector(".menu-photo");
+
+        gsap.fromTo(
+          card,
+          { y: 48, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.9,
+            // Position within the row, not the whole grid — otherwise later
+            // items would wait an absurd amount of time.
+            delay: (i % 3) * 0.08,
+            ease: "power3.out",
+            scrollTrigger: { trigger: card, start: "top 92%", once: true },
+          }
+        );
+
+        gsap.fromTo(
+          photo,
+          { filter: "blur(18px)", scale: 1.22 },
+          {
+            filter: "blur(0px)",
+            scale: 1,
+            duration: 1.3,
+            delay: (i % 3) * 0.08,
+            ease: "power3.out",
+            scrollTrigger: { trigger: card, start: "top 92%", once: true },
+          }
+        );
+      });
+    }, grid);
+
+    return () => ctx.revert();
+  }, [loading, visible.length]);
+
+  // Filtering rebuilds the grid — the new set surfaces rather than swapping
+  // in, so changing category feels like the menu reassembling.
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid || loading) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const cards = grid.querySelectorAll(".menu-card");
+    if (!cards.length) return;
+
+    gsap.fromTo(
+      cards,
+      { y: 24, opacity: 0, filter: "blur(8px)" },
+      {
+        y: 0,
+        opacity: 1,
+        filter: "blur(0px)",
+        duration: 0.7,
+        stagger: 0.03,
+        ease: "power3.out",
+        overwrite: true,
+      }
+    );
+  }, [activeMain, activeSub, loading]);
+
   if (loading) {
     return (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="aspect-[4/4.5] animate-pulse bg-[#1c1b1b]" />
+          <div key={i} className="aspect-[4/5] animate-pulse bg-[#1c1b1b]" />
         ))}
       </div>
     );
@@ -171,7 +247,10 @@ export function MenuGrid() {
 
       {/* The grid. Every seventh item spans two columns — a uniform grid
           reads as a catalogue; breaking the rhythm makes it a magazine. */}
-      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div
+        ref={gridRef}
+        className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+      >
         {visible.map((item, i) => (
           <MenuCard key={item.id} item={item} wide={i % 7 === 3} />
         ))}
@@ -188,29 +267,31 @@ export function MenuGrid() {
 
 function MenuCard({ item, wide }: { item: Item; wide: boolean }) {
   const discounted = item.promo_price != null;
-  const marks = item.dietary_tags
-    .map((tag) => DIETARY_MARKS[tag])
-    .filter(Boolean);
+  const marks = item.dietary_tags.map((tag) => DIETARY_MARKS[tag]).filter(Boolean);
 
   return (
     <article
-      className={`group relative overflow-hidden bg-[#1c1b1b] ${
-        wide ? "sm:col-span-2 sm:aspect-[8/4.5]" : "aspect-[4/4.5]"
+      // opacity 0 in the initial style — GSAP brings it in. Without this the
+      // card flashes at full opacity before the animation starts.
+      className={`menu-card group relative overflow-hidden bg-[#1c1b1b] ${
+        wide ? "sm:col-span-2 sm:aspect-[8/5]" : "aspect-[4/5]"
       }`}
+      style={{ opacity: 0 }}
     >
       {item.picture ? (
-        <Image
-          src={item.picture}
-          alt={item.title}
-          fill
-          sizes={wide ? "(max-width: 640px) 100vw, 66vw" : "(max-width: 640px) 100vw, 33vw"}
-          // Images fill the card completely — no letterboxing, no padding.
-          className="object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-[1.04]"
-        />
+        <div className="menu-photo absolute inset-0">
+          <Image
+            src={item.picture}
+            alt={item.title}
+            fill
+            sizes={wide ? "(max-width: 640px) 100vw, 66vw" : "(max-width: 640px) 100vw, 33vw"}
+            className="object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-[1.04]"
+          />
+        </div>
       ) : (
         // Fallback: the dish name set large in Bodoni, so a missing photo
         // still looks deliberate rather than broken.
-        <div className="flex h-full items-center justify-center bg-gradient-to-br from-[#1c1b1b] to-[#0e0e0e] p-8">
+        <div className="menu-photo absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#1c1b1b] to-[#0e0e0e] p-8">
           <div className="text-center">
             <UtensilsCrossed
               size={28}
@@ -222,10 +303,8 @@ function MenuCard({ item, wide }: { item: Item; wide: boolean }) {
         </div>
       )}
 
-      {/* Always-on gradient so the title stays readable. */}
       <div className="absolute inset-0 bg-gradient-to-t from-[#0e0e0e] via-[#0e0e0e]/20 to-transparent" />
 
-      {/* Marks, top right. */}
       {marks.length > 0 && (
         <div className="absolute right-3 top-3 flex gap-1.5">
           {marks.map((mark) => (

@@ -6,8 +6,9 @@ import Link from "next/link";
 import { SplitReveal } from "./motion/split-reveal";
 import { Magnetic } from "./motion/magnetic";
 
-// Loop the first 11 seconds — the tail of the clip isn't needed and the
-// restart lands more naturally here.
+// The encoded files are already trimmed to 11 seconds, so `loop` on the
+// element does the work — this is here for if the untrimmed footage is ever
+// swapped in.
 const LOOP_END_SECONDS = 11;
 
 export function Hero() {
@@ -21,17 +22,25 @@ export function Hero() {
     // Anyone who's asked for less motion keeps the poster instead.
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    // Manual loop rather than the `loop` attribute, so it restarts at 11s
-    // instead of playing to the end.
+    // timeupdate only fires a few times a second, so check slightly early —
+    // otherwise the video reaches its real end first and stops dead.
     const onTimeUpdate = () => {
-      if (video.currentTime >= LOOP_END_SECONDS) {
+      if (video.currentTime >= LOOP_END_SECONDS - 0.15) {
         video.currentTime = 0;
+        video.play().catch(() => {});
       }
+    };
+
+    // If it does reach the end, restart rather than leaving a blank frame.
+    const onEnded = () => {
+      video.currentTime = 0;
+      video.play().catch(() => {});
     };
 
     const onCanPlay = () => setVideoReady(true);
 
     video.addEventListener("timeupdate", onTimeUpdate);
+    video.addEventListener("ended", onEnded);
     video.addEventListener("canplaythrough", onCanPlay);
 
     // Autoplay can still be refused despite being muted — if it is, the
@@ -40,6 +49,7 @@ export function Hero() {
 
     return () => {
       video.removeEventListener("timeupdate", onTimeUpdate);
+      video.removeEventListener("ended", onEnded);
       video.removeEventListener("canplaythrough", onCanPlay);
     };
   }, []);
@@ -60,6 +70,7 @@ export function Hero() {
       <video
         ref={videoRef}
         muted
+        loop
         // Without this, iOS opens the video fullscreen instead of inline.
         playsInline
         preload="metadata"

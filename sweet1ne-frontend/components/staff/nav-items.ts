@@ -13,6 +13,7 @@ import {
   Martini,
   UtensilsCrossed,
   CalendarCheck,
+  Mail,
   type LucideIcon,
 } from "lucide-react";
 
@@ -38,6 +39,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Orders", href: "/orders", icon: ReceiptText, permission: "view_orders" },
       { label: "Events", href: "/events", icon: CalendarDays, permission: "manage_promotions" },
       { label: "Reservations", href: "/reservations", icon: CalendarCheck, permission: "manage_reservations" },
+      { label: "Marketing", href: "/marketing", icon: Mail, permission: "manage_marketing" },
     ],
   },
   {

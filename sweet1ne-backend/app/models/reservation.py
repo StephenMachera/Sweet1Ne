@@ -36,7 +36,7 @@ class Reservation(Base):
         String, nullable=False, server_default="table"
     )
     party_size: Mapped[int] = mapped_column(Integer, nullable=False)
-    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     occasion: Mapped[str | None] = mapped_column(String)
     notes: Mapped[str | None] = mapped_column(Text)
 

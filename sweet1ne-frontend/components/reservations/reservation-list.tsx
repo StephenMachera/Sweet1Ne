@@ -24,7 +24,7 @@ type Reservation = {
   phone: string;
   reservation_type: string;
   party_size: number;
-  requested_at: string;
+  requested_at: string | null;
   occasion: string | null;
   notes: string | null;
   status: string;
@@ -42,7 +42,8 @@ const FILTERS = [
   { key: "", label: "All upcoming" },
 ];
 
-function when(iso: string) {
+function when(iso: string | null) {
+  if (!iso) return "Enquiry";
   return new Date(iso).toLocaleDateString("en-GB", {
     weekday: "short",
     day: "numeric",
@@ -50,7 +51,8 @@ function when(iso: string) {
   });
 }
 
-function time(iso: string) {
+function time(iso: string | null) {
+  if (!iso) return "—";
   return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 

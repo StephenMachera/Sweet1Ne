@@ -24,6 +24,7 @@ DEFAULT_PERMISSIONS = [
     ("access_kitchen", "Access Kitchen Screen", "surfaces"),
     ("access_bar", "Access Bar Screen", "surfaces"),
     ("manage_reservations", "Manage Reservations", "operations"),
+    ("manage_marketing", "Manage Marketing Campaigns", "marketing"),
 ]
 
 

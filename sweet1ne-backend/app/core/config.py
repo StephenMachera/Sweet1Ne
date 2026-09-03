@@ -29,5 +29,7 @@ class Settings(BaseSettings):
     EMAIL_FROM: str = "Sweet1NE <reservations@sweet1ne.com>"
     EMAIL_REPLY_TO: str = "info@sweet1ne.com"
 
+    EMAIL_LOGO_URL: str = ""
+
 
 settings = Settings()

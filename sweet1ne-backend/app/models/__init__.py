@@ -15,6 +15,7 @@ from app.models.promo import Promo
 from app.models.event import Event
 from app.models.reservation import Reservation
 from app.models.newsletter_subscriber import NewsletterSubscriber
+from app.models.campigns import Campaign
 __all__ = [
     "Tenant",
     "Branch", 
@@ -33,5 +34,6 @@ __all__ = [
     "Event",
     "Reservation",
     "NewsletterSubscriber",
+    "Campaign",
 
     ]

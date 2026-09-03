@@ -9,12 +9,12 @@ class ReservationIn(BaseModel):
     name: str
     email: EmailStr
     phone: str
-    reservation_type: str = "table"  # table | private
-    party_size: int
-    requested_at: datetime
+    reservation_type: str = "table"  # table | private | enquiry
+    # Both default for enquiries, which have neither.
+    party_size: int = 1
+    requested_at: datetime | None = None
     occasion: str | None = None
     notes: str | None = None
-    # Separate from the booking itself — see the route.
     marketing_consent: bool = False
 
 
@@ -33,7 +33,7 @@ class ReservationOut(BaseModel):
     phone: str
     reservation_type: str
     party_size: int
-    requested_at: datetime
+    requested_at: datetime | None
     occasion: str | None
     notes: str | None
     status: str
@@ -51,4 +51,4 @@ class ReservationPublicOut(BaseModel):
     id: uuid.UUID
     status: str
     branch_name: str
-    requested_at: datetime
+    requested_at: datetime | None
