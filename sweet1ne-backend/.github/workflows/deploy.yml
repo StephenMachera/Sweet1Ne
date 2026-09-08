@@ -3,14 +3,13 @@ name: Deploy backend
 on:
   push:
     branches: [main]
-    paths:
-      - "sweet1ne-backend/**"
-      - ".github/workflows/deploy.yml"
 
 jobs:
   test:
     runs-on: ubuntu-latest
     services:
+      # The suite needs a real Postgres — the permission and scoping tests
+      # run against actual tables, not mocks.
       postgres:
         image: postgres:16
         env:
@@ -23,9 +22,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    defaults:
-      run:
-        working-directory: sweet1ne-backend
     steps:
       - uses: actions/checkout@v4
 
@@ -40,6 +36,8 @@ jobs:
         run: pytest tests/ -v
 
   build-and-push:
+    # Only builds if the tests passed — a broken image never reaches the
+    # registry, let alone the server.
     needs: test
     runs-on: ubuntu-latest
     permissions:
@@ -58,8 +56,10 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: sweet1ne-backend
+          context: .
           push: true
+          # Lowercase — GHCR rejects capitals in the image path even though
+          # the GitHub username has them.
           tags: ghcr.io/stephenmachera/sweet1ne-api:latest
 
   deploy:
@@ -72,6 +72,8 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          # Pulls the new image and recreates only the api container —
+          # nginx and certbot keep running untouched.
           script: |
             cd /home/${{ secrets.VPS_USER }}/sweet1ne-backend
             docker compose pull api
