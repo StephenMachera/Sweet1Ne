@@ -123,7 +123,7 @@ export function StoryStrip() {
             >
               <div className="story-photo absolute inset-0">
                 <Image
-                  src="/images/interiors/room-full.jpg"
+                  src="/images/interiors/room-full.webp"
                   alt="The dining room at Sweet1NE"
                   fill
                   sizes="(max-width: 1024px) 100vw, 40vw"
@@ -137,7 +137,7 @@ export function StoryStrip() {
             </div>
 
             <p className="label-caps mt-4 text-[var(--muted)]">
-              Lewisham · Saturday, 9pm
+              Saturday, 9pm
             </p>
           </div>
         </div>

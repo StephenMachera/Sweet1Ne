@@ -21,8 +21,8 @@ export default function ReservationsPage() {
       <section className="relative flex min-h-[85svh] items-end overflow-hidden">
         <Parallax className="absolute inset-0 h-[120%]" amount={0.1}>
           <Image
-            src="/images/interiors/reservations-hero.jpg"
-            alt="A full table at Sweet1NE"
+            src="/images/interiors/reservations-hero.webp"
+            alt="The dining room at Sweet1NE"
             fill
             priority
             sizes="100vw"
@@ -124,7 +124,7 @@ export default function ReservationsPage() {
                 <MaskReveal className="relative aspect-square overflow-hidden">
                   <div className="absolute inset-0">
                     <Image
-                      src="/images/interiors/reservations-3.jpg"
+                      src="/images/interiors/reservations-3.webp"
                       alt=""
                       fill
                       sizes="16vw"
@@ -142,7 +142,7 @@ export default function ReservationsPage() {
       <section className="relative aspect-[4/5] w-full overflow-hidden sm:aspect-[21/9]">
         <Parallax className="absolute inset-0 h-[115%]" amount={0.08}>
           <Image
-            src="/images/interiors/reservations-closing.jpg"
+            src="/images/interiors/reservations-closing.webp"
             alt="Sweet1NE at night"
             fill
             sizes="100vw"

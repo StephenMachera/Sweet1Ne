@@ -37,8 +37,8 @@ type Fragment = {
 
 const FRAGMENTS: Fragment[] = [
   {
-    src: "/images/interiors/room-1.jpg",
-    alt: "The dining room on a Saturday night",
+    src: "/images/interiors/room-1.webp",
+    alt: "The dining room, set for service",
     from: "left",
     distance: 0.5,
     drift: 0.04,
@@ -48,8 +48,8 @@ const FRAGMENTS: Fragment[] = [
     className: "aspect-[5/4] w-[68%] lg:w-[44%]",
   },
   {
-    src: "/images/interiors/room-2.jpg",
-    alt: "A table mid-celebration",
+    src: "/images/interiors/room-2.webp",
+    alt: "Tables set for dinner near the bar",
     from: "right",
     distance: 0.6,
     drift: 0.14,
@@ -59,8 +59,8 @@ const FRAGMENTS: Fragment[] = [
     className: "aspect-[3/4] ml-auto w-[52%] lg:w-[26%] lg:-mt-28",
   },
   {
-    src: "/images/interiors/room-3.jpg",
-    alt: "The bar",
+    src: "/images/interiors/room-3.webp",
+    alt: "A corner booth in the dining room",
     from: "left",
     distance: 0.45,
     drift: 0.1,
@@ -69,8 +69,8 @@ const FRAGMENTS: Fragment[] = [
     className: "aspect-square w-[44%] lg:w-[21%] lg:ml-[12%] lg:-mt-14",
   },
   {
-    src: "/images/interiors/room-4.jpg",
-    alt: "Plates landing on the table",
+    src: "/images/interiors/room-4.webp",
+    alt: "A table set beneath the cherry blossom display",
     from: "right",
     distance: 0.55,
     drift: 0.16,
@@ -80,8 +80,8 @@ const FRAGMENTS: Fragment[] = [
     className: "aspect-[4/5] ml-auto w-[56%] lg:w-[27%] lg:mr-[6%] lg:-mt-44",
   },
   {
-    src: "/images/interiors/room-5.jpg",
-    alt: "Guests at Sweet1NE",
+    src: "/images/interiors/room-5.webp",
+    alt: "The dining room, wide view",
     from: "left",
     distance: 0.5,
     drift: 0.06,

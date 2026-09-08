@@ -138,7 +138,7 @@ export function OrderChoice() {
             className="group relative aspect-[4/5] overflow-hidden text-left sm:aspect-[16/10] lg:aspect-[4/5]"
           >
             <Image
-              src="/images/interiors/order-dine-in.jpg"
+              src="/images/interiors/order-dine-in.webp"
               alt=""
               fill
               sizes="(max-width: 1024px) 100vw, 50vw"

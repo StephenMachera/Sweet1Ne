@@ -20,7 +20,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      {/* Browser extensions (Grammarly, Bitdefender, etc.) inject their own
+          attributes onto <body> before React hydrates, which React reports
+          as a hydration mismatch even though nothing is actually wrong.
+          suppressHydrationWarning only silences that on this exact element —
+          it doesn't recurse to children, so a real mismatch anywhere else
+          in the tree still surfaces normally. */}
+      <body className="antialiased" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

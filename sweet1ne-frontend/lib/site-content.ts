@@ -105,9 +105,9 @@ export const LOCATIONS: Location[] = [
     blurb:
       "Our first proper restaurant, opened in 2023 after three years of building a following. A room made for the night people were already turning it into — louder after eight, shisha out the back, the full menu until late.",
     images: [
-      "/images/interiors/lewisham-1.jpg",
-      "/images/interiors/lewisham-2.jpg",
-      "/images/interiors/lewisham-3.jpg",
+      "/images/interiors/lewisham-1.webp",
+      "/images/interiors/lewisham-2.webp",
+      "/images/interiors/lewisham-3.webp",
     ],
     opened: "2023",
   },
@@ -134,9 +134,9 @@ export const LOCATIONS: Location[] = [
     blurb:
       "The homecoming — back to East London, closer to where Sweet1NE started. Same kitchen, same standards, a room of its own.",
     images: [
-      "/images/interiors/chingford-1.jpg",
-      "/images/interiors/chingford-2.jpg",
-      "/images/interiors/chingford-3.jpg",
+      "/images/interiors/chingford-1.webp",
+      "/images/interiors/chingford-2.webp",
+      "/images/interiors/chingford-3.webp",
     ],
     opened: "2025",
   },
