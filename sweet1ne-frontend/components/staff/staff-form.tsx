@@ -17,6 +17,7 @@ export type StaffMember = {
   hire_date: string | null;
   is_active: boolean;
   role_name: string;
+  role_id?: string | null;
   is_super_admin: boolean;
   branch_id: string | null;
   branch_slug: string | null;
