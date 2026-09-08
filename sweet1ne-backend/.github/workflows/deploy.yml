@@ -60,7 +60,7 @@ jobs:
         with:
           context: sweet1ne-backend
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/sweet1ne-api:latest
+          tags: ghcr.io/stephenmachera/sweet1ne-api:latest
 
   deploy:
     needs: build-and-push
