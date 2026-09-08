@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { trackConversion } from "./analytics";
+import { RESERVATION_URL } from "@/lib/site-content";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -249,7 +250,10 @@ export function EnquiryForm() {
         <p className="mt-4 text-sm text-[var(--muted)]">
           Booking a table? The{" "}
           
-          <a  href="/reservations"
+          <a
+            href={RESERVATION_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="border-b border-[var(--ivory)]/30 hover:border-[var(--gold)] hover:text-[var(--gold)]"
           >
             reservations page

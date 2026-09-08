@@ -7,13 +7,14 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowUpRight } from "lucide-react";
 import { NewsletterForm } from "./newsletter-form";
+import { RESERVATION_URL } from "@/lib/site-content";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const EXPLORE = [
   { href: "/menu", label: "Menu" },
   { href: "/order", label: "Order" },
-  { href: "/reservations", label: "Book" },
+  { href: RESERVATION_URL, label: "Book", external: true },
   { href: "/events", label: "Events" },
   { href: "/story", label: "Story" },
   { href: "/locations", label: "Locations" },
@@ -102,12 +103,23 @@ export function SiteFooter() {
               <ul className="space-y-4">
                 {EXPLORE.map((item) => (
                   <li key={item.href} className="footer-left">
-                    <Link
-                      href={item.href}
-                      className="font-display text-xl text-[var(--ivory)]"
-                    >
-                      {item.label}
-                    </Link>
+                    {item.external ? (
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-display text-xl text-[var(--ivory)]"
+                      >
+                        {item.label}
+                      </a>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        className="font-display text-xl text-[var(--ivory)]"
+                      >
+                        {item.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -189,12 +201,23 @@ export function SiteFooter() {
             <ul className="space-y-3">
               {EXPLORE.map((item) => (
                 <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="text-sm text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
-                  >
-                    {item.label}
-                  </Link>
+                  {item.external ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
+                    >
+                      {item.label}
+                    </a>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      className="text-sm text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
+                    >
+                      {item.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

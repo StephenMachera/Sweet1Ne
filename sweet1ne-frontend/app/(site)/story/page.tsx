@@ -5,6 +5,7 @@ import { Eyebrow, Heading } from "@/components/site/section";
 import { MaskReveal } from "@/components/site/motion/mask-reveal";
 import { Parallax } from "@/components/site/motion/parallax";
 import { SplitReveal } from "@/components/site/motion/split-reveal";
+import { RESERVATION_URL } from "@/lib/site-content";
 
 export const metadata: Metadata = {
   title: "Our Story",
@@ -180,7 +181,9 @@ export default function StoryPage() {
 
         <div className="mt-10 flex flex-wrap justify-center gap-4">
           <Link
-            href="/reservations"
+            href={RESERVATION_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="bg-[var(--gold)] px-8 py-4 text-sm font-semibold text-[#0e0e0e] hover:bg-[var(--gold-deep)]"
             style={{ borderRadius: "4px" }}
           >

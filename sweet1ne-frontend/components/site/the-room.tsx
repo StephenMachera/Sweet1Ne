@@ -7,6 +7,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Eyebrow } from "./section";
 import { SplitReveal } from "./motion/split-reveal";
+import { RESERVATION_URL } from "@/lib/site-content";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -216,7 +217,9 @@ export function TheRoom() {
 
         <div className="mt-14 flex flex-wrap items-center gap-6 lg:mt-16">
           <Link
-            href="/reservations"
+            href={RESERVATION_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="bg-[var(--gold)] px-8 py-4 text-sm font-semibold text-[#0e0e0e] hover:bg-[var(--gold-deep)]"
             style={{ borderRadius: "4px" }}
           >

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowUpRight, Clock, Mail, MapPin, Phone, Train } from "lucide-react";
-import { LOCATIONS, type Location } from "@/lib/site-content";
+import { LOCATIONS, RESERVATION_URL, type Location } from "@/lib/site-content";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -271,7 +271,9 @@ function LocationSection({ location, index }: { location: Location; index: numbe
 
             <div className="loc-line mt-10 flex flex-wrap items-center gap-5">
               <Link
-                href="/reservations"
+                href={RESERVATION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-[var(--gold)] px-7 py-4 text-sm font-semibold text-[#0e0e0e] transition-colors hover:bg-[var(--gold-deep)]"
                 style={{ borderRadius: "4px" }}
               >

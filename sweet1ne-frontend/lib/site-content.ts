@@ -1,5 +1,10 @@
 import type { Dish } from "@/components/site/signature-dishes";
 
+// Every public "Book a table" link goes straight to SevenRooms rather than
+// the site's own /reservations page.
+export const RESERVATION_URL =
+  "https://www.sevenrooms.com/explore/sweet1nerestaurantloungechingfordvenue/reservations/create/search/";
+
 export const SIGNATURE_DISHES: Dish[] = [
   {
     id: "seafood-boil",

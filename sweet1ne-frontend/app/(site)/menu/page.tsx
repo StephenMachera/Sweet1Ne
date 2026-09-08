@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Eyebrow, Heading } from "@/components/site/section";
 import { MenuGrid } from "@/components/site/menu-grid";
+import { RESERVATION_URL } from "@/lib/site-content";
 
 export const metadata: Metadata = {
   title: "Menu",
@@ -42,7 +43,9 @@ export default function MenuPage() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-4">
             <Link
-              href="/reservations"
+              href={RESERVATION_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="bg-[var(--gold)] px-8 py-4 text-sm font-semibold text-[#0e0e0e] hover:bg-[var(--gold-deep)]"
               style={{ borderRadius: "4px" }}
             >

@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
+import { RESERVATION_URL } from "@/lib/site-content";
 
 const NAV = [
   { href: "/menu", label: "Menu" },
@@ -96,7 +97,9 @@ export function SiteHeader() {
             {/* Visible at every width — booking is the action that matters,
                 so it never hides behind a hamburger. */}
             <Link
-              href="/reservations"
+              href={RESERVATION_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="bg-[var(--gold)] px-5 py-3 text-[13px] font-semibold text-[#0e0e0e] hover:bg-[var(--gold-deep)] sm:px-6 sm:text-sm"
               style={{ borderRadius: "4px" }}
             >
