@@ -36,7 +36,6 @@ export default async function HomePage() {
       <IntroBand />
       <SignatureDishes dishes={SIGNATURE_DISHES} />
       <TheRoom />
-      <StoryStrip />
       <LocationsPreview />
     </>
   );
