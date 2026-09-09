@@ -17,6 +17,16 @@ jobs:
     defaults:
       run:
         working-directory: sweet1ne-backend
+    # Settings() validates these as required at import time, but the suite
+    # never actually calls out to Supabase — get_current_staff is overridden
+    # in conftest.py, and the DB tests run against their own local Postgres
+    # service below, not this DATABASE_URL. Placeholders only, never real
+    # secrets, since nothing here is ever used for a real connection.
+    env:
+      SUPABASE_URL: "https://placeholder.supabase.co"
+      SUPABASE_ANON_KEY: "placeholder"
+      SUPABASE_SERVICE_ROLE_KEY: "placeholder"
+      DATABASE_URL: "postgresql://postgres:testpass@localhost:5433/sweet1ne_test"
     services:
       # The suite needs a real Postgres — the permission and scoping tests
       # run against actual tables, not mocks.
