@@ -16,37 +16,45 @@ export const SOCIAL_LINKS = {
   tiktok: "https://www.tiktok.com/@sweet1ne",
 };
 
+/**
+ * Photography only — the section carries no copy, so `alt` is the sole piece
+ * of text here and exists purely for screen readers and search engines.
+ */
 export const SIGNATURE_DISHES: Dish[] = [
   {
-    id: "seared-loch-duart-salmon",
-    name: "Seared Loch Duart Salmon, Baby Potatoes, Greens",
-    note: "Serves 1",
-    description:
-      "Pan-seared Loch Duart salmon, finished with a glossy pan glaze and served with baby potatoes and charred greens",
-    image: "/images/food/signature1.jpg",
+    id: "sharing-table",
+    alt: "A sharing table laid out at Sweet1NE",
+    image: "/images/signature-dishes/01-sharing-table.webp",
   },
   {
-    id: "big-chopper",
-    name: "The Big Chopper",
-    note: "Serves 4 · The one from TikTok",
-    description:
-      "Lamb chops, oxtail, jollof and mac — the platter people cross London for.",
-    image: "/images/food/big-chopper.jpg",
+    id: "lamb-chops",
+    alt: "Lamb chops",
+    image: "/images/signature-dishes/02-lamb-chops.webp",
   },
   {
-    id: "jerk-wings",
-    name: "Jerk Wings",
-    note: "Serves 1–2",
-    description:
-      "Marinated overnight, grilled hard, finished with scotch bonnet honey.",
-    image: "/images/food/jerk-wings.jpg",
+    id: "pasta-jerk",
+    alt: "Jerk pasta",
+    image: "/images/signature-dishes/03-pasta-jerk.webp",
   },
   {
-    id: "velvet-mojito",
-    name: "Velvet Bubblegum Mojito",
-    note: "Alcohol-free",
-    description: "One of the reasons the room looks like it does on camera.",
-    image: "/images/food/velvet-mojito.jpg",
+    id: "bao",
+    alt: "Bao buns",
+    image: "/images/signature-dishes/04-bao.webp",
+  },
+  {
+    id: "spring-rolls",
+    alt: "Spring rolls",
+    image: "/images/signature-dishes/05-spring-rolls.webp",
+  },
+  {
+    id: "french-toast",
+    alt: "French toast",
+    image: "/images/signature-dishes/06-french-toast.webp",
+  },
+  {
+    id: "seafood",
+    alt: "A seafood platter",
+    image: "/images/signature-dishes/07-seafood.webp",
   },
 ];
 

@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { Eyebrow } from "./section";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -27,12 +26,11 @@ gsap.registerPlugin(ScrollTrigger);
 const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
+/** The photographs carry this section on their own — `alt` is the only text. */
 export type Dish = {
   id: string;
-  name: string;
-  description: string;
+  alt: string;
   image: string;
-  note?: string;
 };
 
 export function SignatureDishes({ dishes }: { dishes: Dish[] }) {
@@ -45,7 +43,7 @@ export function SignatureDishes({ dishes }: { dishes: Dish[] }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Desktop — unchanged                                                 */
+/* Desktop — pinned, one photograph at a time                          */
 /* ------------------------------------------------------------------ */
 
 function DesktopDishes({ dishes }: { dishes: Dish[] }) {
@@ -62,7 +60,6 @@ function DesktopDishes({ dishes }: { dishes: Dish[] }) {
 
     const ctx = gsap.context(() => {
       const layers = gsap.utils.toArray<HTMLElement>(".dish-layer");
-      const texts = gsap.utils.toArray<HTMLElement>(".dish-text");
 
       const timeline = gsap.timeline({
         scrollTrigger: {
@@ -81,7 +78,6 @@ function DesktopDishes({ dishes }: { dishes: Dish[] }) {
 
       layers.forEach((layer, i) => {
         const image = layer.querySelector(".dish-image");
-        const text = texts[i];
 
         timeline
           .fromTo(layer, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, i)
@@ -90,17 +86,10 @@ function DesktopDishes({ dishes }: { dishes: Dish[] }) {
             { filter: "blur(24px)", scale: 1.2 },
             { filter: "blur(0px)", scale: 1, duration: 0.6, ease: "power2.out" },
             i
-          )
-          .fromTo(
-            text,
-            { opacity: 0, y: 30 },
-            { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" },
-            i + 0.25
           );
 
         if (i < layers.length - 1) {
           timeline
-            .to(text, { opacity: 0, y: -30, duration: 0.3 }, i + 0.7)
             .to(image, { filter: "blur(16px)", scale: 0.94, duration: 0.4 }, i + 0.65)
             .to(layer, { opacity: 0, duration: 0.4 }, i + 0.65);
         }
@@ -121,37 +110,19 @@ function DesktopDishes({ dishes }: { dishes: Dish[] }) {
           <div className="dish-image absolute inset-0">
             <Image
               src={dish.image}
-              alt={dish.name}
+              alt={dish.alt}
               fill
               priority={i === 0}
               sizes="100vw"
               className="object-cover"
             />
           </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0e0e0e] via-[#0e0e0e]/40 to-[#0e0e0e]/60" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/70 via-transparent to-transparent" />
+
+          {/* Only as much scrim as the progress rule and link below need —
+              with no copy to carry, the photograph should stay lit. */}
+          <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#0e0e0e] to-transparent" />
         </div>
       ))}
-
-      <div className="glow left-[15%] top-1/3 h-[520px] w-[520px]" />
-
-      <div className="relative z-10 mx-auto flex h-full max-w-[1440px] flex-col justify-center px-12">
-        <Eyebrow>What people come for</Eyebrow>
-
-        <div className="relative h-64">
-          {dishes.map((dish) => (
-            <div key={dish.id} className="dish-text absolute inset-0" style={{ opacity: 0 }}>
-              {dish.note && <p className="label-caps mb-4 text-[var(--gold)]">{dish.note}</p>}
-              <h2 className="max-w-2xl font-display text-[clamp(3rem,6vw,5rem)] leading-[0.95] tracking-[-0.02em]">
-                {dish.name}
-              </h2>
-              <p className="mt-5 max-w-md text-lg leading-relaxed text-[var(--ivory-dim)]">
-                {dish.description}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
 
       <div className="absolute inset-x-0 bottom-10 z-10">
         <div className="mx-auto flex max-w-[1440px] items-center gap-6 px-12">
@@ -178,34 +149,35 @@ function DesktopDishes({ dishes }: { dishes: Dish[] }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Mobile — a horizontal culinary journey                              */
+/* Mobile — an unattended carousel                                     */
 /* ------------------------------------------------------------------ */
 
-/**
- * One dish dominates; the next sits at the edge, inviting the swipe.
- *
- * Horizontal rather than vertical, so it never competes with the page's own
- * scroll — and because sideways movement through a sequence reads as a
- * journey rather than a list.
- */
+/** How long each photograph holds before the rail moves on. */
+const ADVANCE_MS = 4000;
+
+/** A swipe pauses the automatic advance for this long, so the two never
+ *  fight over the same rail. */
+const RESUME_AFTER_MS = 8000;
+
 function MobileDishes({ dishes }: { dishes: Dish[] }) {
   const railRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
 
-  // Which slide is nearest the centre — measured from the rail rather than
-  // tracked in state, so a swipe and a tap can't disagree.
-  const syncActive = useCallback(() => {
+  // A timestamp rather than a boolean: every interaction just pushes the
+  // resume time further out, so there's no paused/unpaused state to leak.
+  const pausedUntil = useRef(0);
+
+  /** Index of the slide nearest the centre, measured from the rail itself so
+   *  a swipe and the timer can never disagree about where we are. */
+  const nearestIndex = useCallback(() => {
     const rail = railRef.current;
-    if (!rail) return;
+    if (!rail) return 0;
 
     const centre = rail.scrollLeft + rail.clientWidth / 2;
     let nearest = 0;
     let smallest = Infinity;
 
-    Array.from(rail.children).forEach((child, i) => {
-      const el = child as HTMLElement;
-      if (!el.dataset.slide) return;
-
+    rail.querySelectorAll<HTMLElement>("[data-slide]").forEach((el) => {
       const slideCentre = el.offsetLeft + el.offsetWidth / 2;
       const distance = Math.abs(slideCentre - centre);
       if (distance < smallest) {
@@ -214,67 +186,128 @@ function MobileDishes({ dishes }: { dishes: Dish[] }) {
       }
     });
 
-    setActive(nearest);
+    return nearest;
   }, []);
 
+  const goTo = useCallback((index: number) => {
+    const rail = railRef.current;
+    const slide = rail?.querySelector<HTMLElement>(`[data-slide="${index}"]`);
+    if (!rail || !slide) return;
+
+    rail.scrollTo({
+      left: slide.offsetLeft - (rail.clientWidth - slide.offsetWidth) / 2,
+      behavior: "smooth",
+    });
+  }, []);
+
+  // Keep the progress rule in step with wherever the rail actually is.
   useEffect(() => {
     const rail = railRef.current;
     if (!rail) return;
 
-    syncActive();
-    rail.addEventListener("scroll", syncActive, { passive: true });
-    window.addEventListener("resize", syncActive);
+    const sync = () => setActive(nearestIndex());
+
+    sync();
+    rail.addEventListener("scroll", sync, { passive: true });
+    window.addEventListener("resize", sync);
 
     return () => {
-      rail.removeEventListener("scroll", syncActive);
-      window.removeEventListener("resize", syncActive);
+      rail.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
     };
-  }, [syncActive]);
+  }, [nearestIndex]);
+
+  // The automatic advance.
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+
+    // Content that moves on its own is exactly what this setting asks us not
+    // to do — leave it as a plain swipeable rail instead.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    // Don't cycle through the whole set while it's off screen; the visitor
+    // would arrive part-way through with no idea they'd missed anything.
+    let onScreen = false;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        onScreen = entry.isIntersecting;
+      },
+      { threshold: 0.4 }
+    );
+    observer.observe(rail);
+
+    const hold = () => {
+      pausedUntil.current = Date.now() + RESUME_AFTER_MS;
+    };
+
+    rail.addEventListener("pointerdown", hold, { passive: true });
+    rail.addEventListener("touchstart", hold, { passive: true });
+    rail.addEventListener("wheel", hold, { passive: true });
+
+    const timer = window.setInterval(() => {
+      if (!onScreen || Date.now() < pausedUntil.current) return;
+      if (document.hidden) return;
+
+      // Read the position off the rail each tick rather than closing over
+      // state, so this can't drift out of sync with a swipe.
+      goTo((nearestIndex() + 1) % dishes.length);
+    }, ADVANCE_MS);
+
+    return () => {
+      window.clearInterval(timer);
+      observer.disconnect();
+      rail.removeEventListener("pointerdown", hold);
+      rail.removeEventListener("touchstart", hold);
+      rail.removeEventListener("wheel", hold);
+    };
+  }, [dishes.length, goTo, nearestIndex]);
 
   return (
     <section className="relative overflow-hidden py-14 lg:hidden">
       <div className="glow left-[-15%] top-1/4 h-[380px] w-[380px] opacity-70" />
 
-      {/* Header */}
-      <div className="relative mb-8 px-5 sm:px-8">
-        <Eyebrow>Signature dishes</Eyebrow>
-        <h2 className="font-display text-[clamp(2rem,9vw,2.75rem)] leading-[1.02] tracking-[-0.02em]">
-          The ones worth
-          <br />
-          <span className="text-[var(--gold)]">the journey.</span>
-        </h2>
-      </div>
-
-      {/* The rail. Native touch scrolling with snap — momentum and physics
-          come free, and it never feels like a JavaScript carousel. */}
+      {/* Native scroll-snap underneath, so a swipe keeps its momentum and the
+          timer is only ever nudging the same rail along. `relative` makes the
+          rail the offsetParent, which the centring maths above relies on. */}
       <div
         ref={railRef}
-        className="flex snap-x snap-mandatory gap-5 overflow-x-auto pb-2 [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden"
+        className="relative flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden"
       >
-        {/* Leading gutter so the first slide sits inset rather than flush. */}
+        {/* Gutters, so the first and last slides sit inset rather than flush. */}
         <div className="w-5 shrink-0 sm:w-8" aria-hidden />
 
         {dishes.map((dish, i) => (
-          <MobileDish
+          <article
             key={dish.id}
-            dish={dish}
-            index={i}
-            total={dishes.length}
-            isActive={i === active}
-          />
+            data-slide={i}
+            className={`relative shrink-0 snap-center transition-opacity duration-500 ${
+              i === active ? "opacity-100" : "opacity-55"
+            }`}
+            style={{ width: "min(82vw, 420px)" }}
+          >
+            {/* One ratio for every slide — the rail's height has to stay put
+                while it advances on its own, or the page jumps underneath. */}
+            <div className="relative aspect-[4/5] overflow-hidden">
+              <Image
+                src={dish.image}
+                alt={dish.alt}
+                fill
+                priority={i === 0}
+                sizes="(max-width: 640px) 82vw, 420px"
+                className="object-cover"
+              />
+
+              {/* Hairline mount, inset — reads as a print rather than a card. */}
+              <span className="pointer-events-none absolute inset-2.5 border border-white/10" />
+            </div>
+          </article>
         ))}
 
-        {/* Trailing gutter lets the last slide reach the same inset. */}
         <div className="w-5 shrink-0 sm:w-8" aria-hidden />
       </div>
 
-      {/* Position and progress — no arrows, no dots. */}
       <div className="relative mt-7 flex items-center gap-5 px-5 sm:px-8">
-        <p className="shrink-0 font-display text-lg tabular-nums text-[var(--gold)]">
-          {String(active + 1).padStart(2, "0")}
-          <span className="text-[var(--muted)]"> / {String(dishes.length).padStart(2, "0")}</span>
-        </p>
-
         <span className="h-px flex-1 bg-white/12">
           <span
             className="block h-full bg-[var(--gold)] transition-all duration-500 ease-out"
@@ -290,137 +323,5 @@ function MobileDishes({ dishes }: { dishes: Dish[] }) {
         </Link>
       </div>
     </section>
-  );
-}
-
-function MobileDish({
-  dish,
-  index,
-  total,
-  isActive,
-}: {
-  dish: Dish;
-  index: number;
-  total: number;
-  isActive: boolean;
-}) {
-  const ref = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    const ctx = gsap.context(() => {
-      // Surfaces on first entry — the same blur-to-focus language as the
-      // desktop section, so the page keeps one motion vocabulary.
-      gsap.fromTo(
-        el.querySelector(".dish-photo"),
-        { filter: "blur(18px)", scale: 1.18 },
-        {
-          filter: "blur(0px)",
-          scale: 1,
-          duration: 1.2,
-          ease: "power3.out",
-          scrollTrigger: { trigger: el, start: "top 85%", once: true },
-        }
-      );
-
-      // Information arrives after the food, staggered rather than together.
-      gsap.fromTo(
-        el.querySelectorAll(".dish-line"),
-        { y: 24, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.7,
-          stagger: 0.08,
-          ease: "power3.out",
-          scrollTrigger: { trigger: el, start: "top 80%", once: true },
-        }
-      );
-    }, el);
-
-    return () => ctx.revert();
-  }, []);
-
-  // Every third slide crops taller and shifts its number — enough variation
-  // that they don't read as one template repeated.
-  const tall = index % 3 === 1;
-
-  return (
-    <article
-      ref={ref}
-      data-slide={index}
-      // 82vw leaves a genuine glimpse of what's next, which is what makes
-      // the swipe discoverable without any instruction.
-      className={`relative shrink-0 snap-center transition-opacity duration-500 ${
-        isActive ? "opacity-100" : "opacity-55"
-      }`}
-      style={{ width: "min(82vw, 420px)" }}
-    >
-      {/* Oversized number, half outside the frame — the deliberate break
-          from a card. */}
-      <span
-        className={`pointer-events-none absolute z-20 font-display leading-none text-[var(--gold)] ${
-          tall ? "-left-1 top-6" : "-left-1 top-4"
-        }`}
-        style={{
-          fontSize: "clamp(3.5rem, 16vw, 5.5rem)",
-          // Outlined rather than filled, so it sits over the photograph
-          // without obscuring it.
-          WebkitTextStroke: "1px currentColor",
-          color: "transparent",
-          opacity: 0.85,
-        }}
-        aria-hidden
-      >
-        {String(index + 1).padStart(2, "0")}
-      </span>
-
-      <div
-        className={`relative overflow-hidden ${tall ? "aspect-[3/4.4]" : "aspect-[3/4]"}`}
-      >
-        <div className="dish-photo absolute inset-0">
-          <Image
-            src={dish.image}
-            alt={dish.name}
-            fill
-            priority={index === 0}
-            sizes="82vw"
-            className="object-cover"
-          />
-        </div>
-
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0e0e0e] via-[#0e0e0e]/10 to-transparent" />
-
-        {/* Hairline mount, inset — reads as a print rather than a card. */}
-        <span className="pointer-events-none absolute inset-2.5 border border-white/10" />
-
-        <p className="dish-line label-caps absolute right-4 top-5 text-[var(--gold)]">
-          Signature
-        </p>
-      </div>
-
-      {/* Text sits below and slightly overlapping, breaking the frame's
-          bottom edge rather than living inside it. */}
-      <div className={`relative z-10 px-1 ${tall ? "-mt-8" : "-mt-10"}`}>
-        <h3 className="dish-line font-display text-[clamp(1.75rem,7.5vw,2.5rem)] leading-[0.98] tracking-[-0.02em]">
-          {dish.name}
-        </h3>
-
-        {dish.note && (
-          <p className="dish-line label-caps mt-3 text-[var(--gold)]">{dish.note}</p>
-        )}
-
-        <p className="dish-line mt-3 text-[15px] leading-relaxed text-[var(--ivory-dim)]">
-          {dish.description}
-        </p>
-
-        <div className="dish-line mt-4 flex items-baseline gap-4">
-          <span className="h-px flex-1 bg-[var(--hairline-faint)]" />
-        </div>
-      </div>
-    </article>
   );
 }

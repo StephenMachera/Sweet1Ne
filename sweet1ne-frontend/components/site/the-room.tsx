@@ -42,9 +42,9 @@ const FRAGMENTS: Fragment[] = [
     from: "left",
     distance: 0.5,
     drift: 0.04,
-    eyebrow: "8pm",
-    headline: "Every table is full and nobody is quiet.",
-    body: "There's a sound a busy room makes. We've never wanted to turn it down.",
+    eyebrow: "Lewisham · Chingford",
+    headline: "Sit down together.",
+    body: "Come and see that we are indeed in the mood for you.",
     className: "aspect-[5/4] w-[68%] lg:w-[44%]",
   },
   {
@@ -200,7 +200,7 @@ export function TheRoom() {
             as="h2"
             className="font-display text-[clamp(2.25rem,6.5vw,4.5rem)] leading-[0.98] tracking-[-0.02em]"
           >
-            {"A night for people you\n actually want to eat with."}
+            {"A night for people you\nactually want to eat with."}
           </SplitReveal>
 
           <p className="mt-7 max-w-md text-lg leading-relaxed text-[var(--ivory-dim)]">
