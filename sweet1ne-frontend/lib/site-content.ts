@@ -18,11 +18,11 @@ export const SOCIAL_LINKS = {
 
 export const SIGNATURE_DISHES: Dish[] = [
   {
-    id: "jerk-glazed-fish",
-    name: "Jerk-Glazed Fish Fillet",
+    id: "seared-loch-duart-salmon",
+    name: "Seared Loch Duart Salmon, Baby Potatoes, Greens",
     note: "Serves 1",
     description:
-      "Pan-seared and finished dark and sticky with jerk spice, served with baby potatoes, charred greens and a chilli pepper sauce.",
+      "Pan-seared Loch Duart salmon, finished with a glossy pan glaze and served with baby potatoes and charred greens",
     image: "/images/food/signature1.jpg",
   },
   {
