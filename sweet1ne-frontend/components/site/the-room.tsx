@@ -200,12 +200,11 @@ export function TheRoom() {
             as="h2"
             className="font-display text-[clamp(2.25rem,6.5vw,4.5rem)] leading-[0.98] tracking-[-0.02em]"
           >
-            {"You don't come here\nfor a quiet night."}
+            {"A night for people you\n actually want to eat with."}
           </SplitReveal>
 
           <p className="mt-7 max-w-md text-lg leading-relaxed text-[var(--ivory-dim)]">
-            Two rooms in London, both full most evenings, both louder than the
-            photographs suggest.
+            {"Two rooms in London — Lewisham or Chingford.\n Same kitchen. Your table."}
           </p>
         </div>
 

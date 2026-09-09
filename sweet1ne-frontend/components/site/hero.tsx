@@ -103,7 +103,7 @@ export function Hero() {
           delay={0.2}
           className="max-w-4xl font-display text-[clamp(2.75rem,8vw,6rem)] leading-[0.95] tracking-[-0.02em]"
         >
-          {"Food you'll\ntravel for."}
+          {"Always in the mood\n for you."}
         </SplitReveal>
 
         <p className="mt-8 max-w-md text-lg leading-relaxed text-[var(--ivory-dim)]">
