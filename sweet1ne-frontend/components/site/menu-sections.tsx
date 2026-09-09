@@ -68,10 +68,39 @@ export function MenuSections() {
           </p>
         </div>
 
-        <div className="grid gap-x-16 gap-y-14 pb-20 lg:grid-cols-2">
-          {drink.map((category) => (
-            <DrinkSection key={category.id} category={category} />
-          ))}
+        {/* Photograph beside the lists rather than stacked above them.
+            minmax(0,…) on both tracks matters: grid columns are auto-sized to
+            their content by default, so one long drink name would otherwise
+            widen the track and push the page into sideways scroll on a
+            phone — the failure this section is most prone to. */}
+        <div className="grid gap-10 pb-20 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.7fr)] lg:items-start lg:gap-16">
+          {/* Sticky so it stays with the lists down a tall desktop column;
+              on narrow screens there is no "side", so it simply leads the
+              section, bled off the left edge like the food photographs. */}
+          <div className="lg:sticky lg:top-36">
+            <div className="relative -ml-5 aspect-[4/5] w-[80%] overflow-hidden sm:-ml-8 sm:w-[60%] lg:ml-0 lg:aspect-[3/4] lg:w-full">
+              <Image
+                src="/images/menu/drinks.webp"
+                alt="A bartender pouring over a foamed cocktail at the Sweet1NE bar"
+                fill
+                sizes="(max-width: 640px) 80vw, (max-width: 1024px) 60vw, 30vw"
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0e0e0e]/60 to-transparent" />
+              <span className="pointer-events-none absolute inset-2 border border-white/[0.07]" />
+            </div>
+          </div>
+
+          {/* The lists keep a two-up arrangement wherever there's width for
+              it, so the photograph doesn't double the section's height. The
+              width available here isn't monotonic — it grows to md, then
+              halves at lg when the photograph claims its column, then grows
+              again — so the column count has to track that, not the viewport. */}
+          <div className="grid gap-x-12 gap-y-14 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+            {drink.map((category) => (
+              <DrinkSection key={category.id} category={category} />
+            ))}
+          </div>
         </div>
       </div>
     </>
