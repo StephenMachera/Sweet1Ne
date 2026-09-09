@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { gsap } from "gsap";
@@ -8,6 +8,24 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Eyebrow } from "./section";
 
 gsap.registerPlugin(ScrollTrigger);
+
+/**
+ * The pinned section below MUST clean up in a layout effect, not useEffect.
+ *
+ * ScrollTrigger's `pin` moves the pinned element into a `.pin-spacer` div it
+ * creates, so the element's real parent is no longer the one React recorded.
+ * React removes DOM nodes in the mutation phase but runs useEffect cleanups
+ * in the later passive phase — so on navigation it would try to remove a
+ * still-pinned node from the wrong parent and throw "removeChild: The node
+ * to be removed is not a child of this node", taking the whole page down.
+ * A layout effect's cleanup runs during the mutation phase instead, so
+ * ctx.revert() unwraps the pin-spacer before React touches the node.
+ *
+ * useLayoutEffect warns when it runs on the server, and client components
+ * are still server-rendered, hence the isomorphic fallback.
+ */
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 export type Dish = {
   id: string;
@@ -34,7 +52,7 @@ function DesktopDishes({ dishes }: { dishes: Dish[] }) {
   const sectionRef = useRef<HTMLElement>(null);
   const [active, setActive] = useState(0);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
 
