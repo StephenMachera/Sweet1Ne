@@ -5,7 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import { RESERVATION_URL } from "@/lib/site-content";
+import { SOCIAL_LINKS } from "@/lib/site-content";
+import { FacebookIcon, InstagramIcon, TikTokIcon } from "./social-icons";
+import { openBookingModal } from "./booking-modal";
 
 const NAV = [
   { href: "/menu", label: "Menu" },
@@ -96,16 +98,15 @@ export function SiteHeader() {
           <div className="flex items-center gap-3">
             {/* Visible at every width — booking is the action that matters,
                 so it never hides behind a hamburger. */}
-            <Link
-              href={RESERVATION_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={openBookingModal}
               className="bg-[var(--gold)] px-5 py-3 text-[13px] font-semibold text-[#0e0e0e] hover:bg-[var(--gold-deep)] sm:px-6 sm:text-sm"
               style={{ borderRadius: "4px" }}
             >
               Book
               <span className="hidden sm:inline"> a table</span>
-            </Link>
+            </button>
 
             <button
               onClick={() => setOpen((v) => !v)}
@@ -158,23 +159,37 @@ export function SiteHeader() {
             100% Halal · Lewisham &amp; Chingford
           </p>
           <div className="flex gap-3">
-            
-            <a  href="https://instagram.com/sweet1necuisine"
+            <a
+              href={SOCIAL_LINKS.instagram}
               target="_blank"
               rel="noreferrer"
-              className="flex-1 border border-[var(--ivory)]/25 py-3.5 text-center text-sm"
+              aria-label="Instagram"
+              className="flex flex-1 items-center justify-center border border-[var(--ivory)]/25 py-3.5"
               style={{ borderRadius: "4px" }}
             >
-              Instagram
+              <InstagramIcon size={20} />
             </a>
-            
-            <a  href="https://tiktok.com/@sweet1necuisine"
+
+            <a
+              href={SOCIAL_LINKS.facebook}
               target="_blank"
               rel="noreferrer"
-              className="flex-1 border border-[var(--ivory)]/25 py-3.5 text-center text-sm"
+              aria-label="Facebook"
+              className="flex flex-1 items-center justify-center border border-[var(--ivory)]/25 py-3.5"
               style={{ borderRadius: "4px" }}
             >
-              TikTok
+              <FacebookIcon size={20} />
+            </a>
+
+            <a
+              href={SOCIAL_LINKS.tiktok}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="TikTok"
+              className="flex flex-1 items-center justify-center border border-[var(--ivory)]/25 py-3.5"
+              style={{ borderRadius: "4px" }}
+            >
+              <TikTokIcon size={20} />
             </a>
           </div>
         </div>

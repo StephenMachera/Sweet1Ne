@@ -5,27 +5,28 @@ import Image from "next/image";
 import Link from "next/link";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ArrowUpRight } from "lucide-react";
 import { NewsletterForm } from "./newsletter-form";
-import { RESERVATION_URL } from "@/lib/site-content";
+import { SOCIAL_LINKS } from "@/lib/site-content";
+import { FacebookIcon, InstagramIcon, TikTokIcon } from "./social-icons";
+import { openBookingModal } from "./booking-modal";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const EXPLORE = [
+const EXPLORE: { href: string; label: string; external?: boolean; modal?: boolean }[] = [
   { href: "/menu", label: "Menu" },
   { href: "/order", label: "Order" },
-  { href: RESERVATION_URL, label: "Book", external: true },
+  { href: "", label: "Book", modal: true },
   { href: "/events", label: "Events" },
   { href: "/story", label: "Story" },
   { href: "/locations", label: "Locations" },
 ];
 
-const ELSEWHERE = [
-  { href: "https://instagram.com/sweet1necuisine", label: "Instagram", external: true },
-  { href: "https://tiktok.com/@sweet1necuisine", label: "TikTok", external: true },
-  { href: "https://deliveroo.co.uk", label: "Deliveroo", external: true },
-  { href: "https://ubereats.com", label: "Uber Eats", external: true },
-  { href: "/contact", label: "Contact", external: false },
+const ELSEWHERE = [{ href: "/contact", label: "Contact", external: false }];
+
+const SOCIALS = [
+  { href: SOCIAL_LINKS.instagram, label: "Instagram", Icon: InstagramIcon },
+  { href: SOCIAL_LINKS.facebook, label: "Facebook", Icon: FacebookIcon },
+  { href: SOCIAL_LINKS.tiktok, label: "TikTok", Icon: TikTokIcon },
 ];
 
 export function SiteFooter() {
@@ -102,8 +103,16 @@ export function SiteFooter() {
               <p className="footer-left label-caps mb-5 text-[var(--gold)]">Explore</p>
               <ul className="space-y-4">
                 {EXPLORE.map((item) => (
-                  <li key={item.href} className="footer-left">
-                    {item.external ? (
+                  <li key={item.label} className="footer-left">
+                    {item.modal ? (
+                      <button
+                        type="button"
+                        onClick={openBookingModal}
+                        className="font-display text-xl text-[var(--ivory)]"
+                      >
+                        {item.label}
+                      </button>
+                    ) : item.external ? (
                       <a
                         href={item.href}
                         target="_blank"
@@ -130,27 +139,31 @@ export function SiteFooter() {
               <ul className="space-y-4">
                 {ELSEWHERE.map((item) => (
                   <li key={item.href} className="footer-right">
-                    {item.external ? (
-                      
-                      <a  href={item.href}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 font-display text-xl text-[var(--ivory)]"
-                      >
-                        {item.label}
-                        <ArrowUpRight size={13} strokeWidth={1} className="text-[var(--muted)]" />
-                      </a>
-                    ) : (
-                      <Link
-                        href={item.href}
-                        className="font-display text-xl text-[var(--ivory)]"
-                      >
-                        {item.label}
-                      </Link>
-                    )}
+                    <Link
+                      href={item.href}
+                      className="font-display text-xl text-[var(--ivory)]"
+                    >
+                      {item.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
+
+              <div className="footer-right mt-5 flex justify-end gap-3">
+                {SOCIALS.map(({ href, label, Icon }) => (
+                  <a
+                    key={href}
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={label}
+                    className="flex h-9 w-9 items-center justify-center border border-[var(--ivory)]/25 text-[var(--ivory-dim)] transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)]"
+                    style={{ borderRadius: "4px" }}
+                  >
+                    <Icon size={16} />
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -200,8 +213,16 @@ export function SiteFooter() {
             <p className="label-caps mb-4 text-[var(--gold)]">Explore</p>
             <ul className="space-y-3">
               {EXPLORE.map((item) => (
-                <li key={item.href}>
-                  {item.external ? (
+                <li key={item.label}>
+                  {item.modal ? (
+                    <button
+                      type="button"
+                      onClick={openBookingModal}
+                      className="text-sm text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
+                    >
+                      {item.label}
+                    </button>
+                  ) : item.external ? (
                     <a
                       href={item.href}
                       target="_blank"
@@ -228,26 +249,30 @@ export function SiteFooter() {
             <ul className="space-y-3">
               {ELSEWHERE.map((item) => (
                 <li key={item.href}>
-                  {item.external ? (
-                    
-                    <a href={item.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
-                    >
-                      {item.label}
-                    </a>
-                  ) : (
-                    <Link
-                      href={item.href}
-                      className="text-sm text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
-                    >
-                      {item.label}
-                    </Link>
-                  )}
+                  <Link
+                    href={item.href}
+                    className="text-sm text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
+                  >
+                    {item.label}
+                  </Link>
                 </li>
               ))}
             </ul>
+
+            <div className="mt-5 flex gap-3">
+              {SOCIALS.map(({ href, label, Icon }) => (
+                <a
+                  key={href}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={label}
+                  className="flex h-8 w-8 items-center justify-center text-[var(--ivory-dim)] transition-colors hover:text-[var(--gold)]"
+                >
+                  <Icon size={16} />
+                </a>
+              ))}
+            </div>
           </div>
 
           <div>

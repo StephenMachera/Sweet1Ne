@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Eyebrow, Heading } from "@/components/site/section";
 import { MenuGrid } from "@/components/site/menu-grid";
-import { RESERVATION_URL } from "@/lib/site-content";
+import { BookTableButton } from "@/components/site/booking-modal";
 
 export const metadata: Metadata = {
   title: "Menu",
@@ -42,15 +42,12 @@ export default function MenuPage() {
             Book a table, or order for collection.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-4">
-            <Link
-              href={RESERVATION_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <BookTableButton
               className="bg-[var(--gold)] px-8 py-4 text-sm font-semibold text-[#0e0e0e] hover:bg-[var(--gold-deep)]"
               style={{ borderRadius: "4px" }}
             >
               Book a table
-            </Link>
+            </BookTableButton>
             <Link
               href="/order"
               className="border border-[var(--ivory)]/40 px-8 py-4 text-sm font-semibold hover:border-[var(--gold)] hover:text-[var(--gold)]"

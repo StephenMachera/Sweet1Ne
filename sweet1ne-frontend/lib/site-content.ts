@@ -1,19 +1,29 @@
 import type { Dish } from "@/components/site/signature-dishes";
 
-// Every public "Book a table" link goes straight to SevenRooms rather than
-// the site's own /reservations page.
-export const RESERVATION_URL =
-  "https://www.sevenrooms.com/explore/sweet1nerestaurantloungechingfordvenue/reservations/create/search/";
+// Every public "Book a table" trigger opens a modal asking which branch,
+// then goes straight to that branch's SevenRooms page rather than the
+// site's own /reservations page. Keyed to match LOCATIONS' slugs.
+export const RESERVATION_URLS: Record<"lewisham" | "chingford", string> = {
+  lewisham:
+    "https://www.sevenrooms.com/explore/sweet1nerestaurantloungelewisham/reservations/create/search/",
+  chingford:
+    "https://www.sevenrooms.com/explore/sweet1nerestaurantloungechingfordvenue/reservations/create/search/",
+};
+
+export const SOCIAL_LINKS = {
+  instagram: "https://www.instagram.com/ssweet1ne/",
+  facebook: "https://www.facebook.com/sweet1ne",
+  tiktok: "https://www.tiktok.com/@sweet1ne",
+};
 
 export const SIGNATURE_DISHES: Dish[] = [
   {
-    id: "seafood-boil",
-    name: "Seafood Boil",
-    note: "Serves 2–4 · Poured at the table",
+    id: "jerk-glazed-fish",
+    name: "Jerk-Glazed Fish Fillet",
+    note: "Serves 1",
     description:
-      "Crab, prawns, mussels and corn, tossed in your choice of sauce and served steaming in the bag.",
-    price: "From £45",
-    image: "/images/food/seafood-boil.jpg",
+      "Pan-seared and finished dark and sticky with jerk spice, served with baby potatoes, charred greens and a chilli pepper sauce.",
+    image: "/images/food/signature1.jpg",
   },
   {
     id: "big-chopper",
@@ -21,7 +31,6 @@ export const SIGNATURE_DISHES: Dish[] = [
     note: "Serves 4 · The one from TikTok",
     description:
       "Lamb chops, oxtail, jollof and mac — the platter people cross London for.",
-    price: "£75",
     image: "/images/food/big-chopper.jpg",
   },
   {
@@ -30,7 +39,6 @@ export const SIGNATURE_DISHES: Dish[] = [
     note: "Serves 1–2",
     description:
       "Marinated overnight, grilled hard, finished with scotch bonnet honey.",
-    price: "£12",
     image: "/images/food/jerk-wings.jpg",
   },
   {
@@ -38,7 +46,6 @@ export const SIGNATURE_DISHES: Dish[] = [
     name: "Velvet Bubblegum Mojito",
     note: "Alcohol-free",
     description: "One of the reasons the room looks like it does on camera.",
-    price: "£9",
     image: "/images/food/velvet-mojito.jpg",
   },
 ];
@@ -97,7 +104,7 @@ export const LOCATIONS: Location[] = [
       { days: "Monday – Tuesday", time: "Closed" },
       { days: "Wednesday – Thursday", time: "3pm – 11pm", kitchen: "Kitchen until 9.45pm" },
       { days: "Friday – Saturday", time: "1pm – 11pm", kitchen: "Kitchen until 9.45pm" },
-      { days: "Sunday", time: "1pm – 9pm", kitchen: "Kitchen until 9.45pm" },
+      { days: "Sunday", time: "1pm – 11pm", kitchen: "Kitchen until 9.45pm" },
     ],
     perks: ["Shisha", "Late licence", "Private hire"],
     mapsUrl: "https://maps.google.com/?q=2+Loampit+Hill+London+SE13+7SW",

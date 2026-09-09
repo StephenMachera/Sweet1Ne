@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { SplitReveal } from "./motion/split-reveal";
 import { Magnetic } from "./motion/magnetic";
-import { RESERVATION_URL } from "@/lib/site-content";
+import { openBookingModal } from "./booking-modal";
 
 // The encoded files are already trimmed to 11 seconds, so `loop` on the
 // element does the work — this is here for if the untrimmed footage is ever
@@ -113,15 +113,14 @@ export function Hero() {
 
         <div className="mt-10 flex flex-wrap gap-4">
           <Magnetic>
-            <Link
-              href={RESERVATION_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={openBookingModal}
               className="inline-block bg-[var(--gold)] px-8 py-4 text-sm font-semibold text-[#0e0e0e] hover:bg-[var(--gold-deep)]"
               style={{ borderRadius: "4px" }}
             >
               Book a table
-            </Link>
+            </button>
           </Magnetic>
 
           <Link

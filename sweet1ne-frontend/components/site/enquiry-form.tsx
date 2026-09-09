@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { trackConversion } from "./analytics";
-import { RESERVATION_URL } from "@/lib/site-content";
+import { openBookingModal } from "./booking-modal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -249,15 +249,13 @@ export function EnquiryForm() {
 
         <p className="mt-4 text-sm text-[var(--muted)]">
           Booking a table? The{" "}
-          
-          <a
-            href={RESERVATION_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={openBookingModal}
             className="border-b border-[var(--ivory)]/30 hover:border-[var(--gold)] hover:text-[var(--gold)]"
           >
             reservations page
-          </a>{" "}
+          </button>{" "}
           is quicker.
         </p>
       </div>

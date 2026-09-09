@@ -5,7 +5,8 @@ import { ArrowUpRight, Clock, Mail, MapPin, Phone } from "lucide-react";
 import { Eyebrow } from "@/components/site/section";
 import { SplitReveal } from "@/components/site/motion/split-reveal";
 import { EnquiryForm } from "@/components/site/enquiry-form";
-import { LOCATIONS } from "@/lib/site-content";
+import { LOCATIONS, SOCIAL_LINKS } from "@/lib/site-content";
+import { FacebookIcon, InstagramIcon, TikTokIcon } from "@/components/site/social-icons";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -167,24 +168,35 @@ export default function ContactPage() {
                   info@sweet1ne.com
                 </a>
 
-                <div className="flex flex-wrap gap-5 pt-2">
-                  
-                  <a  href="https://instagram.com/sweet1necuisine"
+                <div className="flex flex-wrap gap-4 pt-2">
+                  <a
+                    href={SOCIAL_LINKS.instagram}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-[var(--ivory-dim)] hover:text-[var(--gold)]"
+                    aria-label="Instagram"
+                    className="text-[var(--ivory-dim)] hover:text-[var(--gold)]"
                   >
-                    Instagram
-                    <ArrowUpRight size={13} strokeWidth={1} />
+                    <InstagramIcon size={18} />
                   </a>
-                  
-                  <a  href="https://tiktok.com/@sweet1necuisine"
+
+                  <a
+                    href={SOCIAL_LINKS.facebook}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-[var(--ivory-dim)] hover:text-[var(--gold)]"
+                    aria-label="Facebook"
+                    className="text-[var(--ivory-dim)] hover:text-[var(--gold)]"
                   >
-                    TikTok
-                    <ArrowUpRight size={13} strokeWidth={1} />
+                    <FacebookIcon size={18} />
+                  </a>
+
+                  <a
+                    href={SOCIAL_LINKS.tiktok}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="TikTok"
+                    className="text-[var(--ivory-dim)] hover:text-[var(--gold)]"
+                  >
+                    <TikTokIcon size={18} />
                   </a>
                 </div>
               </div>

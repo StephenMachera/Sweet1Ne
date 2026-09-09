@@ -6,6 +6,7 @@ import { SmoothScroll } from "@/components/site/motion/smooth-scroll";
 import { EventPopup } from "@/components/site/event-popup";
 import { Analytics } from "@/components/site/analytics";
 import { CookieConsent } from "@/components/site/cookie-consent";
+import { BookingModal } from "@/components/site/booking-modal";
 import "./site.css";
 
 const display = Bodoni_Moda({
@@ -52,6 +53,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       </SmoothScroll>
       <EventPopup />
       <CookieConsent />
+      <BookingModal />
       <Analytics />
     </div>
   );

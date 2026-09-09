@@ -13,7 +13,6 @@ export type Dish = {
   id: string;
   name: string;
   description: string;
-  price: string;
   image: string;
   note?: string;
 };
@@ -131,7 +130,6 @@ function DesktopDishes({ dishes }: { dishes: Dish[] }) {
               <p className="mt-5 max-w-md text-lg leading-relaxed text-[var(--ivory-dim)]">
                 {dish.description}
               </p>
-              <p className="mt-6 font-display text-3xl text-[var(--gold)]">{dish.price}</p>
             </div>
           ))}
         </div>
@@ -402,7 +400,6 @@ function MobileDish({
         </p>
 
         <div className="dish-line mt-4 flex items-baseline gap-4">
-          <p className="font-display text-2xl text-[var(--gold)]">{dish.price}</p>
           <span className="h-px flex-1 bg-[var(--hairline-faint)]" />
         </div>
       </div>

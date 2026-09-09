@@ -3,9 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { Eyebrow, Heading } from "@/components/site/section";
 import { MaskReveal } from "@/components/site/motion/mask-reveal";
-import { Parallax } from "@/components/site/motion/parallax";
 import { SplitReveal } from "@/components/site/motion/split-reveal";
-import { RESERVATION_URL } from "@/lib/site-content";
+import { StoryHeroVideo } from "@/components/site/story-hero-video";
+import { BookTableButton } from "@/components/site/booking-modal";
 
 export const metadata: Metadata = {
   title: "Our Story",
@@ -47,16 +47,7 @@ export default function StoryPage() {
     <>
       {/* Hero */}
       <section className="relative flex min-h-[70svh] items-end overflow-hidden pt-32">
-        <Parallax className="absolute inset-0 h-[120%]" amount={0.08}>
-          <Image
-            src="/images/story/hero.jpg"
-            alt="The kitchen at Sweet1NE"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-          />
-        </Parallax>
+        <StoryHeroVideo />
 
         <div className="absolute inset-0 bg-gradient-to-t from-[#0e0e0e] via-[#0e0e0e]/50 to-[#0e0e0e]/60" />
         <div className="glow left-[15%] top-1/4 h-[400px] w-[400px]" />
@@ -180,15 +171,12 @@ export default function StoryPage() {
         <Heading accent="the next chapter.">Come and be part of</Heading>
 
         <div className="mt-10 flex flex-wrap justify-center gap-4">
-          <Link
-            href={RESERVATION_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+          <BookTableButton
             className="bg-[var(--gold)] px-8 py-4 text-sm font-semibold text-[#0e0e0e] hover:bg-[var(--gold-deep)]"
             style={{ borderRadius: "4px" }}
           >
             Book a table
-          </Link>
+          </BookTableButton>
           <Link
             href="/menu"
             className="border border-[var(--ivory)]/40 px-8 py-4 text-sm font-semibold hover:border-[var(--gold)] hover:text-[var(--gold)]"

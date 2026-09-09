@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarDays, Clock, MapPin } from "lucide-react";
 import { Heading } from "@/components/site/section";
-import { RESERVATION_URL } from "@/lib/site-content";
+import { BookTableButton } from "@/components/site/booking-modal";
 
 type Event = {
   id: string;
@@ -144,15 +144,12 @@ export default async function EventPage({
               </div>
             )}
 
-            <Link
-              href={RESERVATION_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block bg-[var(--gold)] px-6 py-4 text-center text-sm font-semibold text-[#0e0e0e] hover:bg-[var(--gold-deep)]"
+            <BookTableButton
+              className="block w-full bg-[var(--gold)] px-6 py-4 text-center text-sm font-semibold text-[#0e0e0e] hover:bg-[var(--gold-deep)]"
               style={{ borderRadius: "4px" }}
             >
               Book a table
-            </Link>
+            </BookTableButton>
           </div>
 
           {/* Description */}

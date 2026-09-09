@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowUpRight, CalendarDays, MapPin } from "lucide-react";
 import { Eyebrow, Heading } from "@/components/site/section";
 import { SplitReveal } from "@/components/site/motion/split-reveal";
+import { SOCIAL_LINKS } from "@/lib/site-content";
 
 export const metadata: Metadata = {
   title: "Events",
@@ -70,7 +71,8 @@ export default async function EventsPage() {
               list and we'll tell you first.
             </p>
             
-            <a  href="https://instagram.com/sweet1necuisine"
+            <a
+              href={SOCIAL_LINKS.instagram}
               target="_blank"
               rel="noreferrer"
               className="mt-8 inline-flex items-center gap-1.5 border-b border-[var(--ivory)]/30 pb-1 text-sm hover:border-[var(--gold)] hover:text-[var(--gold)]"

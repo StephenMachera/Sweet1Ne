@@ -84,15 +84,16 @@ export function StoryStrip() {
                 room, and marked by a gold rule rather than quotation marks. */}
             <blockquote className="mt-10 border-l border-[var(--hairline)] pl-6 sm:pl-8">
               <p className="font-display text-[clamp(1.375rem,2.5vw,1.875rem)] leading-[1.35] text-[var(--ivory)]">
-                Food people grew up eating, in a room worth eating it in.
+                Always in the mood for you.
               </p>
             </blockquote>
 
             <div className="mt-8 max-w-lg space-y-5 text-lg leading-relaxed text-[var(--ivory-dim)]">
               <p>
-                Sweet1NE started in 2020 as a small takeaway in Ilford —
-                Afro-Caribbean cooking with the heritage of American soul food
-                behind it. Lewisham followed in 2023, and Chingford after that.
+                Sweet1NE started in 2020 as a small restaurant and takeaway in
+                Fairlop, Ilford — Afro-Caribbean cuisine enriched by the
+                heritage of American soul food. Lewisham followed in 2023, and
+                Chingford after that.
               </p>
               <p>
                 Everything on the menu is Halal. Everything on the menu is meant

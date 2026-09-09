@@ -186,31 +186,6 @@ export function OrderChoice() {
             <div className="pointer-events-none absolute inset-0 border border-transparent transition-colors duration-500 group-hover:border-[var(--hairline)]" />
           </button>
         </div>
-
-        {/* Delivery is someone else's job. */}
-        <div className="mt-12 border-t border-[var(--hairline-faint)] pt-8">
-          <p className="text-sm text-[var(--ivory-dim)]">
-            Want it delivered instead?{" "}
-            <a
-              href="https://deliveroo.co.uk"
-              target="_blank"
-              rel="noreferrer"
-              className="border-b border-[var(--ivory)]/30 hover:border-[var(--gold)] hover:text-[var(--gold)]"
-            >
-              Deliveroo
-            </a>{" "}
-            and{" "}
-            
-            <a  href="https://ubereats.com"
-              target="_blank"
-              rel="noreferrer"
-              className="border-b border-[var(--ivory)]/30 hover:border-[var(--gold)] hover:text-[var(--gold)]"
-            >
-              Uber Eats
-            </a>{" "}
-            cover East and South East London.
-          </p>
-        </div>
       </div>
     </section>
   );

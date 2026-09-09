@@ -7,7 +7,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Eyebrow } from "./section";
 import { SplitReveal } from "./motion/split-reveal";
-import { RESERVATION_URL } from "@/lib/site-content";
+import { openBookingModal } from "./booking-modal";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -216,15 +216,14 @@ export function TheRoom() {
         </div>
 
         <div className="mt-14 flex flex-wrap items-center gap-6 lg:mt-16">
-          <Link
-            href={RESERVATION_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={openBookingModal}
             className="bg-[var(--gold)] px-8 py-4 text-sm font-semibold text-[#0e0e0e] hover:bg-[var(--gold-deep)]"
             style={{ borderRadius: "4px" }}
           >
             Get a table
-          </Link>
+          </button>
 
           <Link
             href="/locations"
