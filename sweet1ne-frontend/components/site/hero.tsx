@@ -108,7 +108,7 @@ export function Hero() {
 
         <p className="mt-8 max-w-md text-lg leading-relaxed text-[var(--ivory-dim)]">
           Seafood boils poured straight onto the table. Platters built for
-          sharing. Everything 100% Halal.
+          sharing.
         </p>
 
         <div className="mt-10 flex flex-wrap gap-4">
