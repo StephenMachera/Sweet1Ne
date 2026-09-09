@@ -5,6 +5,7 @@ import { StoryStrip } from "@/components/site/story-strip";
 import { LocationsPreview } from "@/components/site/locations-preview";
 import { SIGNATURE_DISHES } from "@/lib/site-content";
 import { TheRoom } from "@/components/site/the-room";
+import { IntroBand } from "@/components/site/intro-band";
 
 export const metadata: Metadata = {
   // The layout's template appends "· Sweet1NE", so the homepage overrides
@@ -32,6 +33,7 @@ export default async function HomePage() {
   return (
     <>
       <Hero />
+      <IntroBand />
       <SignatureDishes dishes={SIGNATURE_DISHES} />
       <TheRoom />
       <StoryStrip />

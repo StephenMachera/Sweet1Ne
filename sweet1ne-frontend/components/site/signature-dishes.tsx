@@ -156,75 +156,39 @@ function DesktopDishes({ dishes }: { dishes: Dish[] }) {
 const ADVANCE_MS = 4000;
 
 /** A swipe pauses the automatic advance for this long, so the two never
- *  fight over the same rail. */
+ *  fight over the same track. */
 const RESUME_AFTER_MS = 8000;
 
+/** Below this, a touch was a tap or a vertical scroll that drifted — not an
+ *  attempt to change the photograph. */
+const SWIPE_THRESHOLD_PX = 45;
+
 function MobileDishes({ dishes }: { dishes: Dish[] }) {
-  const railRef = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(0);
+  const sectionRef = useRef<HTMLElement>(null);
+  const [index, setIndex] = useState(0);
+  const [animate, setAnimate] = useState(true);
 
   // A timestamp rather than a boolean: every interaction just pushes the
   // resume time further out, so there's no paused/unpaused state to leak.
   const pausedUntil = useRef(0);
+  const touchStartX = useRef(0);
 
-  /** Index of the slide nearest the centre, measured from the rail itself so
-   *  a swipe and the timer can never disagree about where we are. */
-  const nearestIndex = useCallback(() => {
-    const rail = railRef.current;
-    if (!rail) return 0;
+  const count = dishes.length;
 
-    const centre = rail.scrollLeft + rail.clientWidth / 2;
-    let nearest = 0;
-    let smallest = Infinity;
-
-    rail.querySelectorAll<HTMLElement>("[data-slide]").forEach((el) => {
-      const slideCentre = el.offsetLeft + el.offsetWidth / 2;
-      const distance = Math.abs(slideCentre - centre);
-      if (distance < smallest) {
-        smallest = distance;
-        nearest = Number(el.dataset.slide);
-      }
-    });
-
-    return nearest;
+  const hold = useCallback(() => {
+    pausedUntil.current = Date.now() + RESUME_AFTER_MS;
   }, []);
 
-  const goTo = useCallback((index: number) => {
-    const rail = railRef.current;
-    const slide = rail?.querySelector<HTMLElement>(`[data-slide="${index}"]`);
-    if (!rail || !slide) return;
-
-    rail.scrollTo({
-      left: slide.offsetLeft - (rail.clientWidth - slide.offsetWidth) / 2,
-      behavior: "smooth",
-    });
-  }, []);
-
-  // Keep the progress rule in step with wherever the rail actually is.
   useEffect(() => {
-    const rail = railRef.current;
-    if (!rail) return;
-
-    const sync = () => setActive(nearestIndex());
-
-    sync();
-    rail.addEventListener("scroll", sync, { passive: true });
-    window.addEventListener("resize", sync);
-
-    return () => {
-      rail.removeEventListener("scroll", sync);
-      window.removeEventListener("resize", sync);
-    };
-  }, [nearestIndex]);
-
-  // The automatic advance.
-  useEffect(() => {
-    const rail = railRef.current;
-    if (!rail) return;
+    const section = sectionRef.current;
+    if (!section) return;
 
     // Content that moves on its own is exactly what this setting asks us not
-    // to do — leave it as a plain swipeable rail instead.
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // to do — leave it as a plain swipeable strip instead.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setAnimate(false);
+      return;
+    }
 
     // Don't cycle through the whole set while it's off screen; the visitor
     // would arrive part-way through with no idea they'd missed anything.
@@ -235,83 +199,91 @@ function MobileDishes({ dishes }: { dishes: Dish[] }) {
       },
       { threshold: 0.4 }
     );
-    observer.observe(rail);
-
-    const hold = () => {
-      pausedUntil.current = Date.now() + RESUME_AFTER_MS;
-    };
-
-    rail.addEventListener("pointerdown", hold, { passive: true });
-    rail.addEventListener("touchstart", hold, { passive: true });
-    rail.addEventListener("wheel", hold, { passive: true });
+    observer.observe(section);
 
     const timer = window.setInterval(() => {
-      if (!onScreen || Date.now() < pausedUntil.current) return;
-      if (document.hidden) return;
-
-      // Read the position off the rail each tick rather than closing over
-      // state, so this can't drift out of sync with a swipe.
-      goTo((nearestIndex() + 1) % dishes.length);
+      if (!onScreen || document.hidden || Date.now() < pausedUntil.current) return;
+      setIndex((i) => (i + 1) % count);
     }, ADVANCE_MS);
 
     return () => {
       window.clearInterval(timer);
       observer.disconnect();
-      rail.removeEventListener("pointerdown", hold);
-      rail.removeEventListener("touchstart", hold);
-      rail.removeEventListener("wheel", hold);
     };
-  }, [dishes.length, goTo, nearestIndex]);
+  }, [count]);
+
+  // Swipe is settled on release rather than tracked per-frame: dragging the
+  // track live would re-render all seven slides on every touchmove, which is
+  // where a carousel like this starts to stutter on a mid-range phone.
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.changedTouches[0].clientX;
+    hold();
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    hold();
+
+    if (Math.abs(dx) < SWIPE_THRESHOLD_PX) return;
+    setIndex((i) => (dx < 0 ? (i + 1) % count : (i - 1 + count) % count));
+  };
 
   return (
-    <section className="relative overflow-hidden py-14 lg:hidden">
+    <section
+      ref={sectionRef}
+      className="relative overflow-hidden py-14 lg:hidden"
+      aria-roledescription="carousel"
+      aria-label="Signature dishes"
+    >
       <div className="glow left-[-15%] top-1/4 h-[380px] w-[380px] opacity-70" />
 
-      {/* Native scroll-snap underneath, so a swipe keeps its momentum and the
-          timer is only ever nudging the same rail along. `relative` makes the
-          rail the offsetParent, which the centring maths above relies on. */}
-      <div
-        ref={railRef}
-        className="relative flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden"
-      >
-        {/* Gutters, so the first and last slides sit inset rather than flush. */}
-        <div className="w-5 shrink-0 sm:w-8" aria-hidden />
+      {/* A transform on a track, not a scroll position on a rail. The rail
+          version had to drive scrollTo({behavior:"smooth"}) against
+          scroll-snap-type: mandatory, and the snap engine cancels that
+          outright on mobile Safari — so it simply never advanced. */}
+      <div className="relative overflow-hidden">
+        <div
+          className="flex"
+          style={{
+            transform: `translate3d(-${index * 100}%, 0, 0)`,
+            transition: animate ? "transform 700ms cubic-bezier(0.22, 1, 0.36, 1)" : "none",
+          }}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
+          {dishes.map((dish, i) => (
+            <article
+              key={dish.id}
+              className="w-full shrink-0 px-5 sm:px-8"
+              aria-hidden={i !== index}
+            >
+              {/* One ratio for every slide — the track's height has to stay
+                  put while it advances on its own, or the page jumps. */}
+              <div className="relative aspect-[4/5] overflow-hidden">
+                <Image
+                  src={dish.image}
+                  alt={dish.alt}
+                  fill
+                  // The next one is fetched too, so an advance never lands on
+                  // an empty frame.
+                  priority={i <= 1}
+                  sizes="100vw"
+                  className="object-cover"
+                />
 
-        {dishes.map((dish, i) => (
-          <article
-            key={dish.id}
-            data-slide={i}
-            className={`relative shrink-0 snap-center transition-opacity duration-500 ${
-              i === active ? "opacity-100" : "opacity-55"
-            }`}
-            style={{ width: "min(82vw, 420px)" }}
-          >
-            {/* One ratio for every slide — the rail's height has to stay put
-                while it advances on its own, or the page jumps underneath. */}
-            <div className="relative aspect-[4/5] overflow-hidden">
-              <Image
-                src={dish.image}
-                alt={dish.alt}
-                fill
-                priority={i === 0}
-                sizes="(max-width: 640px) 82vw, 420px"
-                className="object-cover"
-              />
-
-              {/* Hairline mount, inset — reads as a print rather than a card. */}
-              <span className="pointer-events-none absolute inset-2.5 border border-white/10" />
-            </div>
-          </article>
-        ))}
-
-        <div className="w-5 shrink-0 sm:w-8" aria-hidden />
+                {/* Hairline mount, inset — reads as a print rather than a card. */}
+                <span className="pointer-events-none absolute inset-2.5 border border-white/10" />
+              </div>
+            </article>
+          ))}
+        </div>
       </div>
 
       <div className="relative mt-7 flex items-center gap-5 px-5 sm:px-8">
         <span className="h-px flex-1 bg-white/12">
           <span
             className="block h-full bg-[var(--gold)] transition-all duration-500 ease-out"
-            style={{ width: `${((active + 1) / dishes.length) * 100}%` }}
+            style={{ width: `${((index + 1) / count) * 100}%` }}
           />
         </span>
 
