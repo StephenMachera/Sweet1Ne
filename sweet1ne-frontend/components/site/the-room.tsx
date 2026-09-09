@@ -53,9 +53,9 @@ const FRAGMENTS: Fragment[] = [
     from: "right",
     distance: 0.6,
     drift: 0.14,
-    eyebrow: "Most nights",
-    headline: "Somebody is turning something.",
-    body: "Twenty-one, thirty, forty. The candles come out more often than you'd think.",
+    eyebrow: "Celebrations",
+    headline: "Tell us what you're marking.",
+    body: "Birthdys,-or non of those. Add a note when you book. We'll have the candles ready.",
     className: "aspect-[3/4] ml-auto w-[52%] lg:w-[26%] lg:-mt-28",
   },
   {
@@ -65,30 +65,9 @@ const FRAGMENTS: Fragment[] = [
     distance: 0.45,
     drift: 0.1,
     eyebrow: "The bar",
-    headline: "Everything is Halal. Nothing tastes like a compromise.",
+    headline: "A proper bar for a table",
+    body: "CockTails, wines or something without alcohol if you'd rather. Whatever the night calls for, we'll have it ready.",
     className: "aspect-square w-[44%] lg:w-[21%] lg:ml-[12%] lg:-mt-14",
-  },
-  {
-    src: "/images/interiors/room-4.webp",
-    alt: "A table set beneath the cherry blossom display",
-    from: "right",
-    distance: 0.55,
-    drift: 0.16,
-    eyebrow: "Two hours",
-    headline: "Long enough for a proper meal. Short enough that everyone gets one.",
-    body: "We turn tables because the alternative is turning people away.",
-    className: "aspect-[4/5] ml-auto w-[56%] lg:w-[27%] lg:mr-[6%] lg:-mt-44",
-  },
-  {
-    src: "/images/interiors/room-5.webp",
-    alt: "The dining room, wide view",
-    from: "left",
-    distance: 0.5,
-    drift: 0.06,
-    eyebrow: "From everywhere",
-    headline: "People come across London for a table here.",
-    body: "Which still surprises us, five years in.",
-    className: "aspect-[16/9] w-[76%] lg:w-[40%] lg:ml-[20%] lg:-mt-24",
   },
 ];
 
@@ -212,24 +191,6 @@ export function TheRoom() {
           {FRAGMENTS.map((fragment, i) => (
             <FragmentBlock key={fragment.src} fragment={fragment} index={i} />
           ))}
-        </div>
-
-        <div className="mt-14 flex flex-wrap items-center gap-6 lg:mt-16">
-          <button
-            type="button"
-            onClick={openBookingModal}
-            className="bg-[var(--gold)] px-8 py-4 text-sm font-semibold text-[#0e0e0e] hover:bg-[var(--gold-deep)]"
-            style={{ borderRadius: "4px" }}
-          >
-            Get a table
-          </button>
-
-          <Link
-            href="/locations"
-            className="border-b border-[var(--ivory)]/30 pb-1 text-sm transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)]"
-          >
-            See both rooms
-          </Link>
         </div>
       </div>
     </section>
