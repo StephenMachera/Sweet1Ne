@@ -82,8 +82,8 @@ export function Hero() {
       >
         {/* Smaller encode first — the browser takes the first source whose
             media query matches, so phones never fetch the large file. */}
-        <source src="/videos/hero-mobile.mp4" type="video/mp4" media="(max-width: 768px)" />
-        <source src="/videos/hero.mp4" type="video/mp4" />
+        <source src="/videos/story-hero-mobile.mp4" type="video/mp4" media="(max-width: 768px)" />
+        <source src="/videos/story-hero.mp4" type="video/mp4" />
       </video>
 
       {/* Two gradients rather than one flat scrim: the food stays lit in the
@@ -95,7 +95,7 @@ export function Hero() {
 
       <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-[1440px] flex-col justify-end px-5 pb-20 sm:px-8 sm:pb-28 lg:px-12">
         <p className="label-caps mb-6 text-[var(--gold)]">
-          Afro-Caribbean fusion · South East London
+          Elevated Afro-Carribean Fusion'
         </p>
 
         <SplitReveal

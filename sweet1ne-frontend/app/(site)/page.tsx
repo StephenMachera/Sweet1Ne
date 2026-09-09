@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/site/hero";
-import { FactStrip } from "@/components/site/fact-strip";
 import { SignatureDishes } from "@/components/site/signature-dishes";
 import { StoryStrip } from "@/components/site/story-strip";
 import { LocationsPreview } from "@/components/site/locations-preview";
@@ -11,7 +10,7 @@ export const metadata: Metadata = {
   // The layout's template appends "· Sweet1NE", so the homepage overrides
   // it with an absolute title rather than repeating the name twice.
   title: {
-    absolute: "Sweet1NE — Afro-Caribbean Fusion, South East London",
+    absolute: "Elevated Afro-Carribean Fusion",
   },
 };
 
@@ -33,7 +32,6 @@ export default async function HomePage() {
   return (
     <>
       <Hero />
-      <FactStrip />
       <SignatureDishes dishes={SIGNATURE_DISHES} />
       <TheRoom />
       <StoryStrip />
