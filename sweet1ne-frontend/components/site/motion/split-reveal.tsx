@@ -39,7 +39,7 @@ export function SplitReveal({
 
     const animation = gsap.fromTo(
       words,
-      { yPercent: 110, opacity: 0 },
+      { yPercent: 135, opacity: 0 },
       {
         yPercent: 0,
         opacity: 1,
@@ -75,7 +75,14 @@ export function SplitReveal({
               key={i}
               // overflow-hidden on the wrapper is what makes the word appear
               // to rise out of nothing rather than sliding in from below.
-              className="inline-block overflow-hidden align-bottom"
+              //
+              // The padding/negative-margin pair widens the *clip* box below
+              // the baseline without moving anything: headlines here run at
+              // leading below 1, so the line box is shorter than Bodoni's
+              // descenders are deep, and the tails of p, y and g were being
+              // sliced off. Margin box height is unchanged, so line spacing
+              // stays exactly as the caller set it.
+              className="inline-block overflow-hidden align-bottom pb-[0.22em] -mb-[0.22em]"
             >
               <span className="split-word inline-block" style={{ opacity: 0 }}>
                 {word}

@@ -173,17 +173,24 @@ export function TheRoom() {
       <div className="glow right-[-8%] bottom-1/3 h-[400px] w-[400px] opacity-50" />
 
       <div className="relative mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
-        <div className="mb-14 max-w-2xl lg:mb-28">
+        <div className="mb-14 max-w-3xl lg:mb-28">
           <Eyebrow>The room</Eyebrow>
+
+          {/* No hard line break. The measure is set in `ch`, so it scales with
+              the type itself and the line count stays roughly constant from
+              phone to desktop — a baked-in break stranded "you" alone on mobile
+              and overflowed the column at full size. `text-balance` then evens
+              the lines so the last one is never left as a single word. */}
           <SplitReveal
             as="h2"
-            className="font-display text-[clamp(2.25rem,6.5vw,4.5rem)] leading-[0.98] tracking-[-0.02em]"
+            className="max-w-[24ch] text-balance font-display text-[clamp(2rem,5.2vw,4rem)] leading-[1.04] tracking-[-0.02em]"
           >
-            {"A night for people you\nactually want to eat with."}
+            {"A night for people you actually want to eat with."}
           </SplitReveal>
 
-          <p className="mt-7 max-w-md text-lg leading-relaxed text-[var(--ivory-dim)]">
-            {"Two rooms in London — Lewisham or Chingford.\n Same kitchen. Your table."}
+          {/* The \n here never did anything — JSX collapses it to a space. */}
+          <p className="mt-7 max-w-md text-pretty text-lg leading-relaxed text-[var(--ivory-dim)]">
+            Two rooms in London — Lewisham or Chingford. Same kitchen. Your table.
           </p>
         </div>
 
