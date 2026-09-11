@@ -1,8 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
+import { RESERVATION_URLS } from "@/lib/site-content";
 
+// Narrowed so a venue can only ever point at a booking URL that exists.
 type Venue = {
-  slug: string;
+  slug: keyof typeof RESERVATION_URLS;
   name: string;
   area: string;
   address: string;
@@ -124,13 +126,17 @@ function VenueCard({ venue }: { venue: Venue }) {
         </ul>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
-          <Link
-            href="/reservations"
+          {/* The card already says which branch, so this skips the modal
+              and goes straight to that branch's SevenRooms page. */}
+          <a
+            href={RESERVATION_URLS[venue.slug]}
+            target="_blank"
+            rel="noreferrer"
             className="inline-block bg-[var(--gold)] px-[1.2rem] py-[0.7rem] text-[0.82rem] font-semibold text-[#0e0e0e] transition-opacity hover:opacity-90"
             style={{ borderRadius: "4px" }}
           >
             Book {venue.name}
-          </Link>
+          </a>
 
           
           <a  href={venue.mapsUrl}

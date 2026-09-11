@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import { BookTableButton } from "./booking-modal";
 
 /**
  * The closing note — the mark, and one thing to do.
@@ -24,13 +24,12 @@ export function Mood() {
         />
       </div>
 
-      <Link
-        href="/reservations"
+      <BookTableButton
         className="inline-block bg-[var(--gold)] px-[1.6rem] py-[0.95rem] text-[0.85rem] font-semibold text-[#0e0e0e] transition-opacity hover:opacity-90"
         style={{ borderRadius: "4px" }}
       >
         Book a table
-      </Link>
+      </BookTableButton>
     </section>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import { openBookingModal } from "./booking-modal";
 import { gsap } from "gsap";
 
 type Panel = {
@@ -209,13 +209,14 @@ export function TheNight() {
         </div>
 
         <p className="mt-6">
-          <Link
-            href="/reservations"
+          <button
+            type="button"
+            onClick={openBookingModal}
             className="inline-block bg-[var(--gold)] px-5 py-3 text-[0.82rem] font-semibold text-[#0e0e0e] transition-colors hover:opacity-90"
             style={{ borderRadius: "4px" }}
           >
             Book a table
-          </Link>
+          </button>
         </p>
       </div>
     </section>

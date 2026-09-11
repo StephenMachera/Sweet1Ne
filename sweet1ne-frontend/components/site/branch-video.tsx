@@ -30,8 +30,19 @@ export function BranchVideo({ poster, src, mobileSrc }: BranchVideoSources) {
     // Anyone who's asked for less motion keeps the poster instead.
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    const onCanPlay = () => setReady(true);
-    video.addEventListener("canplaythrough", onCanPlay);
+    // The source is chosen here rather than with <source media="…">: Chrome
+    // and Firefox ignore `media` on a <source> inside <video> (it only
+    // works inside <picture>), so they'd always take whichever file was
+    // listed first regardless of screen size. Nothing is fetched until
+    // play() is called below, so assigning it up front costs nothing.
+    video.src = window.matchMedia("(max-width: 768px)").matches ? mobileSrc : src;
+
+    // Fade in on `playing`, not `canplaythrough`: iOS Safari doesn't buffer
+    // ahead, so canplaythrough often never fires there and the video would
+    // play on, invisible, behind its own poster. `playing` means frames
+    // are actually being rendered — the only thing worth waiting for.
+    const onPlaying = () => setReady(true);
+    video.addEventListener("playing", onPlaying);
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -49,9 +60,9 @@ export function BranchVideo({ poster, src, mobileSrc }: BranchVideoSources) {
 
     return () => {
       observer.disconnect();
-      video.removeEventListener("canplaythrough", onCanPlay);
+      video.removeEventListener("playing", onPlaying);
     };
-  }, []);
+  }, [src, mobileSrc]);
 
   return (
     <video
@@ -66,10 +77,6 @@ export function BranchVideo({ poster, src, mobileSrc }: BranchVideoSources) {
       className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
         ready ? "opacity-100" : "opacity-0"
       }`}
-    >
-      {/* The browser takes the first source whose media query matches. */}
-      <source src={mobileSrc} type="video/mp4" media="(max-width: 768px)" />
-      <source src={src} type="video/mp4" />
-    </video>
+    />
   );
 }
