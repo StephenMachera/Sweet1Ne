@@ -1,4 +1,4 @@
-import type { Dish } from "@/components/site/signature-dishes";
+import type { BranchVideoSources } from "@/components/site/branch-video";
 
 // Every public "Book a table" trigger opens a modal asking which branch,
 // then goes straight to that branch's SevenRooms page rather than the
@@ -15,48 +15,6 @@ export const SOCIAL_LINKS = {
   facebook: "https://www.facebook.com/sweet1ne",
   tiktok: "https://www.tiktok.com/@sweet1ne",
 };
-
-/**
- * Photography only — the section carries no copy, so `alt` is the sole piece
- * of text here and exists purely for screen readers and search engines.
- */
-export const SIGNATURE_DISHES: Dish[] = [
-  {
-    id: "sharing-table",
-    alt: "A sharing table laid out at Sweet1NE",
-    image: "/images/signature-dishes/01-sharing-table.webp",
-  },
-  {
-    id: "lamb-chops",
-    alt: "Lamb chops",
-    image: "/images/signature-dishes/02-lamb-chops.webp",
-  },
-  {
-    id: "pasta-jerk",
-    alt: "Jerk pasta",
-    image: "/images/signature-dishes/03-pasta-jerk.webp",
-  },
-  {
-    id: "bao",
-    alt: "Bao buns",
-    image: "/images/signature-dishes/04-bao.webp",
-  },
-  {
-    id: "spring-rolls",
-    alt: "Spring rolls",
-    image: "/images/signature-dishes/05-spring-rolls.webp",
-  },
-  {
-    id: "french-toast",
-    alt: "French toast",
-    image: "/images/signature-dishes/06-french-toast.webp",
-  },
-  {
-    id: "seafood",
-    alt: "A seafood platter",
-    image: "/images/signature-dishes/07-seafood.webp",
-  },
-];
 
 export type OpeningDay = {
   days: string;
@@ -88,6 +46,9 @@ export type Location = {
   blurb: string;
   images: string[];
   opened: string;
+  /** Looping background footage for the contact card. Only the branches
+   *  that have been filmed carry one — the others keep their photograph. */
+  video?: BranchVideoSources;
 };
 
 /**
@@ -125,6 +86,11 @@ export const LOCATIONS: Location[] = [
       "/images/interiors/lewisham-3.webp",
     ],
     opened: "2023",
+    video: {
+      poster: "/images/interiors/lewisham-poster.jpg",
+      src: "/videos/lewisham.mp4",
+      mobileSrc: "/videos/lewisham-mobile.mp4",
+    },
   },
   {
     slug: "chingford",

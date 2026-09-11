@@ -64,7 +64,25 @@
     background-color 400ms ease-out,
     border-color 400ms ease-out;
 }
+.site-root {
+  --gold: #f6d24c;
+  --gold-deep: #d8b632;
+  --ivory: #e5e2e1;
+  --ivory-dim: #cfc6af;
+  --hairline: rgba(216, 182, 50, 0.28);
+  --hairline-faint: rgba(216, 182, 50, 0.12);
 
+  position: relative;
+  /* Anchors need to clear both the fixed header and the sticky course nav
+     on the menu page. */
+  scroll-padding-top: 10.5rem;
+}
+
+@media (min-width: 721px) {
+  .site-root {
+    scroll-padding-top: 11rem;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .site-root *,
   .site-root *::before,

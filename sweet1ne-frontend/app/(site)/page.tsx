@@ -1,42 +1,24 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/site/hero";
-import { SignatureDishes } from "@/components/site/signature-dishes";
-import { StoryStrip } from "@/components/site/story-strip";
-import { LocationsPreview } from "@/components/site/locations-preview";
-import { SIGNATURE_DISHES } from "@/lib/site-content";
-import { TheRoom } from "@/components/site/the-room";
-import { IntroBand } from "@/components/site/intro-band";
+import { TheNight } from "@/components/site/the-night";
+import { KitchenBand } from "@/components/site/kitchen-band";
+import { Restaurants } from "@/components/site/restaurants";
+import { Mood } from "@/components/site/mood";
 
 export const metadata: Metadata = {
-  // The layout's template appends "· Sweet1NE", so the homepage overrides
-  // it with an absolute title rather than repeating the name twice.
   title: {
-    absolute: "Elevated Afro-Carribean Fusion",
+    absolute: "Sweet1NE — Afro-Caribbean Fusion, South East London",
   },
 };
 
-async function getLocations() {
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/site/locations`, {
-      next: { revalidate: 300 },
-    });
-    if (!res.ok) return [];
-    return res.json();
-  } catch {
-    return [];
-  }
-}
-
-export default async function HomePage() {
-  const locations = await getLocations();
-
+export default function HomePage() {
   return (
     <>
       <Hero />
-      <IntroBand />
-      <SignatureDishes dishes={SIGNATURE_DISHES} />
-      <TheRoom />
-      <LocationsPreview />
+      <TheNight />
+      <KitchenBand />
+      <Restaurants />
+      <Mood />
     </>
   );
 }

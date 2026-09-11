@@ -5,6 +5,7 @@ import { ArrowUpRight, Clock, Mail, MapPin, Phone } from "lucide-react";
 import { Eyebrow } from "@/components/site/section";
 import { SplitReveal } from "@/components/site/motion/split-reveal";
 import { EnquiryForm } from "@/components/site/enquiry-form";
+import { BranchVideo } from "@/components/site/branch-video";
 import { LOCATIONS, SOCIAL_LINKS } from "@/lib/site-content";
 import { FacebookIcon, InstagramIcon, TikTokIcon } from "@/components/site/social-icons";
 
@@ -47,13 +48,19 @@ export default function ContactPage() {
               style={{ borderRadius: "4px" }}
             >
               <div className="relative aspect-[16/9] overflow-hidden">
+                {/* Where a branch has footage, the still underneath is the
+                    video's own first frame rather than the interior photo —
+                    so it paints instantly and the fade-in is seamless, and
+                    the card looks the same whether or not the video ever
+                    plays. */}
                 <Image
-                  src={branch.images[0]}
+                  src={branch.video ? branch.video.poster : branch.images[0]}
                   alt={branch.name}
                   fill
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   className="object-cover"
                 />
+                {branch.video && <BranchVideo {...branch.video} />}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0e0e0e] to-transparent" />
 
                 <div className="absolute inset-x-0 bottom-0 p-6">

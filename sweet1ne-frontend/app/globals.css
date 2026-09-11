@@ -4,10 +4,16 @@
    element pushing the body past 100vw drags `position: fixed` elements
    (the sidebar's hamburger button) along with it instead of leaving them
    pinned to the viewport. This is the safety net; individual wide elements
-   should still scroll within their own container, not the page. */
+   should still scroll within their own container, not the page.
+
+   `clip`, not `hidden`. Any non-visible overflow value on one axis forces
+   the other axis from `visible` to `auto`, which turns <body> into a scroll
+   container — and `position: sticky` then anchors to <body>, which never
+   moves (the viewport is what scrolls), so nothing on the site could stick.
+   `clip` cuts off overflow without creating a scroll container. */
 html,
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 @theme {
