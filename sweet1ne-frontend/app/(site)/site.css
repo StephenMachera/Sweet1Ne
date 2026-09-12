@@ -207,6 +207,8 @@
 
 .home-gate {
   background: transparent;
+  opacity: 1;
+  transition: opacity 500ms ease;
 }
 
 .home-gate-leaf {
@@ -215,7 +217,7 @@
   bottom: 0;
   width: calc(50% + 1px);
   background: #050505;
-  transition: transform 1.05s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 650ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .home-gate-leaf-left {
@@ -264,6 +266,10 @@
 .home-gate.is-out .home-gate-mark {
   opacity: 0;
   transform: scale(1.03);
+}
+
+.home-gate.is-out {
+  opacity: 0;
 }
 
 .home-gate.is-out .home-gate-leaf-left {

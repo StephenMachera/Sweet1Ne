@@ -36,14 +36,15 @@ const ROOMS: Room[] = [
   },
 ];
 
-const GATE_TIMEOUT_MS = 4800;
+const GATE_TIMEOUT_MS = 0;
+const GATE_EXIT_MS = 500;
 
 /**
  * The homepage: one viewport, two films.
  *
  * A gate holds the page shut while the films buffer — so they start playing
- * rather than stuttering into life. It lifts on a click, a keypress, or
- * after 4.8 seconds, whichever comes first.
+ * rather than stuttering into life. It lifts immediately after the page
+ * mounts, or sooner through a click or keypress.
  */
 export function FilmDeck() {
   const [opened, setOpened] = useState(false);
@@ -66,7 +67,7 @@ export function FilmDeck() {
       if (already) return already;
 
       // Removed from the tree after the fade, so it can't trap focus.
-      setTimeout(() => setGateGone(true), 1100);
+      setTimeout(() => setGateGone(true), GATE_EXIT_MS);
 
       if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         filmsRef.current.forEach((film) => {

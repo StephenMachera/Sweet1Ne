@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { pickVideoSource, pickVideoSourceScript } from "@/lib/video-source";
+import { pickVideoSource } from "@/lib/video-source";
 
 type Room = {
   id: string;
@@ -160,8 +160,6 @@ export function ContactRooms() {
                 } as React.CSSProperties
               }
             />
-            <script dangerouslySetInnerHTML={{ __html: pickVideoSourceScript(room) }} />
-
             <span
               aria-hidden
               className="shade absolute inset-0"
