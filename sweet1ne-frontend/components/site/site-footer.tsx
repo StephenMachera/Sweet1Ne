@@ -60,9 +60,8 @@ export function SiteFooter() {
         This website is powered by
       </p>
        <p className="mt-6 text-[0.45rem] uppercase tracking-[0.18em] text-[rgba(229,226,225,.38)]">
-        This website is powered by
+        Global Solutions x Spectre Limited
       </p>
-      
     </footer>
   );
 }
