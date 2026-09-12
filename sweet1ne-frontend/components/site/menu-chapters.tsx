@@ -1,93 +1,50 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { openBookingModal } from "./booking-modal";
+import { SiteFooter } from "./site-footer";
 import { MENU, MENU_NOTE, type Chapter, type Dish } from "@/lib/menu-content";
 
-/**
- * The menu, chapter by chapter.
- *
- * Two columns on desktop, one on mobile. A featured dish per chapter spans
- * the full width with a circular photograph — the only imagery among the
- * items, which is what makes it read as a highlight rather than a gallery.
- */
 export function MenuChapters() {
   return (
     <>
       <MenuChapter chapter={MENU[0]} />
 
-      {/* An invitation between the first two chapters, so the page pauses
-          before the mains rather than running straight through. */}
-      <div className="px-[1.15rem] pb-5 pt-11 text-center sm:px-6">
-        <p className="mb-4 font-display text-[1.35rem]">
-          The list is the invitation. The table is the night.
-        </p>
-        <BookButton />
-      </div>
-
-      {MENU.slice(1, 4).map((chapter) => (
-        <MenuChapter key={chapter.id} chapter={chapter} />
-      ))}
-
-      <div className="px-[1.15rem] pb-5 pt-11 text-center sm:px-6">
-        <BookButton />
-      </div>
-
-      {MENU.slice(4).map((chapter) => (
-        <MenuChapter key={chapter.id} chapter={chapter} />
-      ))}
-
-      <p className="mx-auto max-w-[1100px] px-[1.15rem] pb-12 text-[0.82rem] text-[var(--ivory-dim)] sm:px-6">
-        {MENU_NOTE}
+      {/* A pause between the first two chapters, so the page doesn't run
+          straight from starters into mains. */}
+      <p className="px-[1.15rem] pb-1.5 pt-9 text-center font-display text-[1.25rem] italic sm:px-6">
+        The list is the invitation. The table is the night.
       </p>
-      {MENU.slice(4).map((chapter) => (
+
+      {MENU.slice(1).map((chapter) => (
         <MenuChapter key={chapter.id} chapter={chapter} />
       ))}
 
-      <p className="mx-auto max-w-[1100px] px-[1.15rem] pb-12 text-[0.82rem] text-[var(--ivory-dim)] sm:px-6">
+      <p className="mx-auto max-w-[1100px] px-[1.15rem] pb-8 pt-6 text-[0.82rem] text-[var(--ivory-dim)] sm:px-6">
         {MENU_NOTE}
       </p>
 
-      {/* A last nudge before the mark. */}
-      <div className="px-[1.15rem] pb-5 pt-11 text-center sm:px-6">
-        <p className="mb-4 font-display text-[1.35rem]">
-          Lewisham or Chingford. Same kitchen.
-        </p>
-        <BookButton />
-      </div>
-
-      {/* The closing mark — quiet, and one thing to do. */}
-      <section className="px-[1.15rem] pb-[5.5rem] pt-20 text-center sm:px-6">
-        <div className="mx-auto mb-7 w-[min(72vw,22rem)]">
-          <Image
-            src="/images/homepage-gallery/story/logo.png"
-            alt="Sweet1NE"
-            width={352}
-            height={352}
-            className="h-auto w-full"
-          />
-        </div>
-
-        <p className="mx-auto mb-6 max-w-[24rem] text-[var(--ivory-dim)]">
-          The table is set. Your night is next.
+      {/* The closing invitation — centred, with room above and below. */}
+      <section
+        id="book"
+        className="border-b border-[rgba(229,226,225,.08)] px-[1.15rem] pb-20 pt-14 text-center sm:px-6 sm:pb-24 sm:pt-16"
+      >
+        <p className="mb-6 font-display text-[clamp(1.4rem,3vw,2rem)] italic leading-tight">
+          Always in the mood for you.
         </p>
 
-        <BookButton />
+        <button
+          type="button"
+          onClick={openBookingModal}
+          className="inline-block border border-[rgba(201,162,74,.9)] px-[1.15rem] py-[0.65rem] text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[var(--gold)] transition-colors hover:bg-[var(--gold)] hover:text-[#0e0e0e]"
+          style={{ borderRadius: "3px" }}
+        >
+          Book a table
+        </button>
       </section>
+      <SiteFooter />
     </>
-  );
-}
-
-function BookButton() {
-  return (
-    <button
-      type="button"
-      onClick={openBookingModal}
-      className="inline-block bg-[var(--gold)] px-[1.2rem] py-[0.7rem] text-[0.85rem] font-semibold text-[#0e0e0e] transition-opacity hover:opacity-90"
-      style={{ borderRadius: "4px" }}
-    >
-      Book a table
-    </button>
   );
 }
 
@@ -95,34 +52,31 @@ function MenuChapter({ chapter }: { chapter: Chapter }) {
   return (
     <section
       id={chapter.id}
-      // scroll-mt clears the fixed header and the sticky course nav when an
-      // anchor lands.
-      className="relative mx-auto max-w-[1100px] scroll-mt-[10.5rem] px-[1.15rem] pb-4 pt-10 sm:px-6 sm:pb-6 sm:pt-14 sm:scroll-mt-[11rem]"
+      // Clears the fixed header and the sticky course rail when an anchor
+      // lands.
+      className="mx-auto max-w-[1100px] scroll-mt-[12.2rem] px-[1.15rem] pb-4 pt-9 sm:px-6 sm:pb-5 sm:pt-[3.2rem] sm:scroll-mt-[13rem]"
     >
       <div
-        className={`mb-8 grid items-center gap-5 ${
-          chapter.mark ? "md:grid-cols-[9.2rem_1fr] md:gap-8" : ""
+        className={`mb-6 grid items-center gap-5 ${
+          chapter.mark ? "md:grid-cols-[8.6rem_1fr] md:gap-8" : ""
         }`}
       >
         {chapter.mark && (
           <div
-            className="relative aspect-square w-[6.6rem] rounded-full sm:w-[9.2rem]"
-            style={{
-              boxShadow: "0 0 0 2px var(--gold), 0 0 0 10px rgba(14,14,14,.92)",
-            }}
+            className="relative aspect-square w-[6.4rem] overflow-hidden rounded-full sm:w-[8.6rem]"
+            style={{ boxShadow: "0 0 0 2px var(--gold)" }}
           >
-            {/* A second ring set outside the first — subtle, and it's what
-                makes the mark feel placed rather than pasted. */}
-            <span
-              aria-hidden
-              className="pointer-events-none absolute -inset-4 rounded-full border border-[rgba(201,162,74,.2)]"
-            />
             <Image
               src={chapter.mark}
               alt=""
               fill
-              sizes="(max-width: 720px) 106px, 147px"
-              className="rounded-full object-cover"
+              sizes="(max-width: 720px) 102px, 138px"
+              className="object-cover"
+              style={
+                chapter.markPosition
+                  ? { objectPosition: chapter.markPosition }
+                  : undefined
+              }
             />
           </div>
         )}
@@ -132,7 +86,7 @@ function MenuChapter({ chapter }: { chapter: Chapter }) {
             {chapter.kicker}
           </p>
 
-          <h2 className="mb-2 font-display text-[clamp(2rem,4vw,3.1rem)] font-medium leading-tight">
+          <h2 className="mb-2 font-display text-[clamp(2rem,4vw,3rem)] font-medium leading-tight tracking-[-0.02em]">
             {chapter.heading}
           </h2>
 
@@ -141,6 +95,38 @@ function MenuChapter({ chapter }: { chapter: Chapter }) {
           )}
         </div>
       </div>
+
+      {/* A full-width band — used where one image says more than a list can. */}
+      {chapter.bleed && (
+        <figure className="mb-6 max-h-[18rem] overflow-hidden sm:max-h-[28rem]">
+          <div className="relative h-[18rem] w-full sm:h-[28rem]">
+            <Image
+              src={chapter.bleed.src}
+              alt={chapter.bleed.alt}
+              fill
+              sizes="100vw"
+              className="object-cover"
+            />
+          </div>
+        </figure>
+      )}
+
+      {/* Three portraits — for a chapter where the drinks are the look. */}
+      {chapter.shots && (
+        <div aria-hidden className="mb-6 grid grid-cols-3 gap-[0.35rem] sm:gap-[0.55rem]">
+          {chapter.shots.map((src) => (
+            <div key={src} className="relative aspect-[3/4] w-full">
+              <Image
+                src={src}
+                alt=""
+                fill
+                sizes="33vw"
+                className="object-cover"
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-2 lg:gap-x-10">
         {chapter.dishes.map((dish) => (
@@ -159,23 +145,15 @@ function DishRow({ dish }: { dish: Dish }) {
           className="relative h-[4.4rem] w-[4.4rem] shrink-0 overflow-hidden rounded-full sm:h-[5.6rem] sm:w-[5.6rem]"
           style={{ boxShadow: "0 0 0 1px rgba(201,162,74,.4)" }}
         >
-          <Image
-            src={dish.image}
-            alt={dish.name}
-            fill
-            sizes="90px"
-            className="object-cover"
-          />
+          <Image src={dish.image} alt={dish.name} fill sizes="90px" className="object-cover" />
         </div>
 
         <div className="min-w-0">
-          <h3 className="font-display text-[1.18rem] font-medium leading-snug">
+          <h3 className="font-display text-[1.15rem] font-medium leading-snug">
             {dish.name}
           </h3>
           {dish.description && (
-            <p className="mt-1 text-[0.9rem] text-[var(--ivory-dim)]">
-              {dish.description}
-            </p>
+            <p className="mt-1 text-[0.9rem] text-[var(--ivory-dim)]">{dish.description}</p>
           )}
         </div>
 
@@ -191,13 +169,9 @@ function DishRow({ dish }: { dish: Dish }) {
   return (
     <article className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1.5 border-b border-[rgba(229,226,225,.08)] py-[1.05rem]">
       <div className="min-w-0">
-        <h3 className="font-display text-[1.18rem] font-medium leading-snug">
-          {dish.name}
-        </h3>
+        <h3 className="font-display text-[1.15rem] font-medium leading-snug">{dish.name}</h3>
         {dish.description && (
-          <p className="mt-1 text-[0.9rem] text-[var(--ivory-dim)]">
-            {dish.description}
-          </p>
+          <p className="mt-1 text-[0.9rem] text-[var(--ivory-dim)]">{dish.description}</p>
         )}
       </div>
 

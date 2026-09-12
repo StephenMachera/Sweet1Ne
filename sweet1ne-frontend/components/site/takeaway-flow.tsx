@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { ArrowLeft, Check, Clock, MapPin, Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { trackConversion } from "./analytics";
@@ -42,22 +42,21 @@ function effectivePrice(item: Item) {
 
 /**
  * Collection times in fifteen-minute steps, starting twenty minutes from now
- * — nothing is ready sooner than that — and stopping at closing.
+ * — nothing is ready sooner — and stopping before the kitchen closes.
  */
 function collectionSlots(closingTime: string | null): string[] {
   const slots: string[] = [];
   const now = new Date();
 
   const start = new Date(now.getTime() + 20 * 60000);
-  // Round up to the next quarter hour.
   start.setMinutes(Math.ceil(start.getMinutes() / 15) * 15, 0, 0);
 
   const end = new Date(now);
   if (closingTime) {
     const [h, m] = closingTime.split(":").map(Number);
     end.setHours(h, m, 0, 0);
-    // The kitchen stops before the venue does — half an hour is a fair guess
-    // until it's configurable.
+    // The kitchen stops before the venue does — half an hour is a fair
+    // guess until it's configurable.
     end.setTime(end.getTime() - 30 * 60000);
   } else {
     end.setHours(22, 0, 0, 0);
@@ -65,17 +64,23 @@ function collectionSlots(closingTime: string | null): string[] {
 
   const cursor = new Date(start);
   while (cursor <= end && slots.length < 40) {
-    slots.push(
-      cursor.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-    );
+    slots.push(cursor.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
     cursor.setMinutes(cursor.getMinutes() + 15);
   }
 
   return slots;
 }
 
-export function TakeawayFlow({ onBack }: { onBack: () => void }) {
-  const [step, setStep] = useState<Step>("branch");
+export function TakeawayFlow({
+  onBack,
+  initialBranchSlug,
+}: {
+  onBack: () => void;
+  /** Supplied when the order page has already asked which restaurant. */
+  initialBranchSlug?: string;
+}) {
+  // Skip the branch step when it's already been answered.
+  const [step, setStep] = useState<Step>(initialBranchSlug ? "menu" : "branch");
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branch, setBranch] = useState<Branch | null>(null);
@@ -106,12 +111,19 @@ export function TakeawayFlow({ onBack }: { onBack: () => void }) {
         setCategories(menu.categories);
         setItems(menu.items);
 
+        // Match the slug the order page passed through, so the flow opens
+        // on the menu rather than asking again.
+        if (initialBranchSlug) {
+          const preset = branchList.find((b: Branch) => b.slug === initialBranchSlug);
+          if (preset) setBranch(preset);
+        }
+
         const mains = menu.categories.filter((c: Category) => c.parent_id === null);
         if (mains.length > 0) setActiveMain(mains[0].id);
       })
       .catch(() => setError("We couldn't load the menu. Try again in a moment."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [initialBranchSlug]);
 
   const mains = useMemo(
     () => categories.filter((c) => c.parent_id === null),
@@ -151,7 +163,7 @@ export function TakeawayFlow({ onBack }: { onBack: () => void }) {
     setError(null);
 
     try {
-      const res = await fetch(`${API_URL}/public/site/collection-orders`, {
+      const res = await fetch(`${API_URL}/public/collection-orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -238,7 +250,7 @@ export function TakeawayFlow({ onBack }: { onBack: () => void }) {
             <p className="mt-6 text-sm text-[var(--muted)]">
               Running late or need to change something? Ring{" "}
               
-            <a href={`tel:${branch.phone.replace(/\s/g, "")}`}
+              <a href={`tel:${branch.phone.replace(/\s/g, "")}`}
                 className="text-[var(--ivory-dim)] underline underline-offset-4"
               >
                 {branch.phone}
@@ -267,7 +279,9 @@ export function TakeawayFlow({ onBack }: { onBack: () => void }) {
             Back
           </button>
 
-          <p className="label-caps text-[var(--gold)]">Collection</p>
+          <p className="text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
+            Collection
+          </p>
           <h1 className="mt-4 font-display text-[clamp(2rem,6vw,3.5rem)] leading-tight">
             Where are you picking up?
           </h1>
@@ -320,7 +334,9 @@ export function TakeawayFlow({ onBack }: { onBack: () => void }) {
             Back to the menu
           </button>
 
-          <p className="label-caps text-[var(--gold)]">Almost there</p>
+          <p className="text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
+            Almost there
+          </p>
           <h1 className="mt-4 font-display text-[clamp(1.75rem,5vw,2.75rem)] leading-tight">
             When shall we have it ready?
           </h1>
@@ -331,10 +347,10 @@ export function TakeawayFlow({ onBack }: { onBack: () => void }) {
             </p>
           )}
 
-          {/* Time — chips rather than a picker, since the choices are few
-              and tapping beats scrolling a wheel. */}
+          {/* Chips rather than a picker — the choices are few, and tapping
+              beats scrolling a wheel. */}
           <div className="mt-8">
-            <label className="label-caps mb-3 block text-[var(--muted)]">
+            <label className="mb-3 block text-[0.72rem] uppercase tracking-[0.2em] text-[var(--muted)]">
               Collection time
             </label>
 
@@ -366,7 +382,10 @@ export function TakeawayFlow({ onBack }: { onBack: () => void }) {
 
           <div className="mt-8 space-y-5">
             <div>
-              <label htmlFor="t-name" className="label-caps mb-2 block text-[var(--muted)]">
+              <label
+                htmlFor="t-name"
+                className="mb-2 block text-[0.72rem] uppercase tracking-[0.2em] text-[var(--muted)]"
+              >
                 Name
               </label>
               <input
@@ -381,7 +400,10 @@ export function TakeawayFlow({ onBack }: { onBack: () => void }) {
             </div>
 
             <div>
-              <label htmlFor="t-phone" className="label-caps mb-2 block text-[var(--muted)]">
+              <label
+                htmlFor="t-phone"
+                className="mb-2 block text-[0.72rem] uppercase tracking-[0.2em] text-[var(--muted)]"
+              >
                 Phone
               </label>
               <input
@@ -397,7 +419,10 @@ export function TakeawayFlow({ onBack }: { onBack: () => void }) {
             </div>
 
             <div>
-              <label htmlFor="t-notes" className="label-caps mb-2 block text-[var(--muted)]">
+              <label
+                htmlFor="t-notes"
+                className="mb-2 block text-[0.72rem] uppercase tracking-[0.2em] text-[var(--muted)]"
+              >
                 Anything else? <span className="normal-case">(optional)</span>
               </label>
               <textarea
@@ -417,7 +442,10 @@ export function TakeawayFlow({ onBack }: { onBack: () => void }) {
             className="mt-8 border border-[var(--hairline-faint)] p-5"
             style={{ borderRadius: "4px" }}
           >
-            <p className="label-caps mb-4 text-[var(--gold)]">Your order</p>
+            <p className="mb-4 text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
+              Your order
+            </p>
+
             <ul className="space-y-2.5">
               {cartLines.map(([id, qty]) => {
                 const item = items.find((i) => i.id === id);
@@ -465,16 +493,22 @@ export function TakeawayFlow({ onBack }: { onBack: () => void }) {
     <section className="relative min-h-[100svh] pt-28 sm:pt-32">
       <div className="mx-auto max-w-[1440px] px-5 pb-32 sm:px-8 lg:px-12">
         <button
-          onClick={() => setStep("branch")}
+          onClick={() => (initialBranchSlug ? onBack() : setStep("branch"))}
           className="mb-6 inline-flex items-center gap-2 text-sm text-[var(--ivory-dim)] hover:text-[var(--gold)]"
         >
           <ArrowLeft size={15} strokeWidth={1} />
-          {branch?.name}
+          {branch?.name ?? "Back"}
         </button>
 
         <h1 className="font-display text-[clamp(1.75rem,5vw,3rem)] leading-tight">
           What are you having?
         </h1>
+
+        {error && (
+          <p className="mt-4 border border-[#ffb4ab]/30 bg-[#ffb4ab]/10 px-4 py-3 text-sm text-[#ffb4ab]">
+            {error}
+          </p>
+        )}
 
         {/* Categories */}
         <div className="sticky top-[73px] z-30 -mx-5 mt-6 bg-[#0e0e0e]/95 px-5 py-4 backdrop-blur sm:-mx-8 sm:px-8 lg:-mx-12 lg:px-12">
@@ -496,87 +530,90 @@ export function TakeawayFlow({ onBack }: { onBack: () => void }) {
           </div>
         </div>
 
-        {/* Items */}
-        <ul className="mt-6 space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0 lg:grid-cols-3">
-          {visibleItems.map((item) => {
-            const qty = cart[item.id] ?? 0;
-            const discounted = item.promo_price != null;
+        {loading ? (
+          <p className="mt-8 text-sm text-[var(--muted)]">Loading the menu…</p>
+        ) : (
+          <ul className="mt-6 space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0 lg:grid-cols-3">
+            {visibleItems.map((item) => {
+              const qty = cart[item.id] ?? 0;
+              const discounted = item.promo_price != null;
 
-            return (
-              <li
-                key={item.id}
-                className="flex gap-3 border border-[var(--hairline-faint)] p-3"
-                style={{ borderRadius: "4px" }}
-              >
-                <div className="relative h-24 w-24 shrink-0 overflow-hidden bg-[#1c1b1b]">
-                  {item.picture && (
-                    <Image
-                      src={item.picture}
-                      alt=""
-                      fill
-                      sizes="96px"
-                      className="object-cover"
-                    />
-                  )}
-                </div>
-
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <h3 className="font-display text-base leading-snug">{item.title}</h3>
-                  {item.description && (
-                    <p className="mt-1 line-clamp-2 text-sm text-[var(--ivory-dim)]">
-                      {item.description}
-                    </p>
-                  )}
-
-                  <div className="mt-auto flex items-center justify-between gap-2 pt-3">
-                    <span className="flex items-baseline gap-2">
-                      <span
-                        className={`font-semibold tabular-nums ${
-                          discounted ? "text-[var(--gold)]" : ""
-                        }`}
-                      >
-                        {gbp.format(effectivePrice(item))}
-                      </span>
-                      {discounted && (
-                        <span className="text-xs tabular-nums text-[var(--muted)] line-through">
-                          {gbp.format(item.price)}
-                        </span>
-                      )}
-                    </span>
-
-                    {qty > 0 ? (
-                      <div className="flex items-center gap-1 border border-[var(--hairline-faint)] p-1">
-                        <button
-                          onClick={() => change(item.id, -1)}
-                          aria-label="One fewer"
-                          className="flex h-7 w-7 items-center justify-center text-[var(--ivory-dim)]"
-                        >
-                          <Minus size={14} />
-                        </button>
-                        <span className="w-5 text-center text-sm tabular-nums">{qty}</span>
-                        <button
-                          onClick={() => change(item.id, 1)}
-                          aria-label="One more"
-                          className="flex h-7 w-7 items-center justify-center bg-[var(--gold)] text-[#0e0e0e]"
-                        >
-                          <Plus size={14} />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => change(item.id, 1)}
-                        className="bg-[var(--gold)] px-4 py-2 text-sm font-medium text-[#0e0e0e]"
-                        style={{ borderRadius: "4px" }}
-                      >
-                        Add
-                      </button>
+              return (
+                <li
+                  key={item.id}
+                  className="flex gap-3 border border-[var(--hairline-faint)] p-3"
+                  style={{ borderRadius: "4px" }}
+                >
+                  <div className="relative h-24 w-24 shrink-0 overflow-hidden bg-[#1c1b1b]">
+                    {item.picture && (
+                      <Image
+                        src={item.picture}
+                        alt=""
+                        fill
+                        sizes="96px"
+                        className="object-cover"
+                      />
                     )}
                   </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <h3 className="font-display text-base leading-snug">{item.title}</h3>
+                    {item.description && (
+                      <p className="mt-1 line-clamp-2 text-sm text-[var(--ivory-dim)]">
+                        {item.description}
+                      </p>
+                    )}
+
+                    <div className="mt-auto flex items-center justify-between gap-2 pt-3">
+                      <span className="flex items-baseline gap-2">
+                        <span
+                          className={`font-semibold tabular-nums ${
+                            discounted ? "text-[var(--gold)]" : ""
+                          }`}
+                        >
+                          {gbp.format(effectivePrice(item))}
+                        </span>
+                        {discounted && (
+                          <span className="text-xs tabular-nums text-[var(--muted)] line-through">
+                            {gbp.format(item.price)}
+                          </span>
+                        )}
+                      </span>
+
+                      {qty > 0 ? (
+                        <div className="flex items-center gap-1 border border-[var(--hairline-faint)] p-1">
+                          <button
+                            onClick={() => change(item.id, -1)}
+                            aria-label="One fewer"
+                            className="flex h-7 w-7 items-center justify-center text-[var(--ivory-dim)]"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <span className="w-5 text-center text-sm tabular-nums">{qty}</span>
+                          <button
+                            onClick={() => change(item.id, 1)}
+                            aria-label="One more"
+                            className="flex h-7 w-7 items-center justify-center bg-[var(--gold)] text-[#0e0e0e]"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => change(item.id, 1)}
+                          className="bg-[var(--gold)] px-4 py-2 text-sm font-medium text-[#0e0e0e]"
+                          style={{ borderRadius: "4px" }}
+                        >
+                          Add
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       {/* Cart bar */}
@@ -593,6 +630,7 @@ export function TakeawayFlow({ onBack }: { onBack: () => void }) {
                       <span className="min-w-0 flex-1 truncate">{item.title}</span>
                       <button
                         onClick={() => change(id, -1)}
+                        aria-label="One fewer"
                         className="flex h-7 w-7 items-center justify-center text-[var(--muted)]"
                       >
                         <Minus size={13} />
@@ -600,6 +638,7 @@ export function TakeawayFlow({ onBack }: { onBack: () => void }) {
                       <span className="w-5 text-center tabular-nums">{qty}</span>
                       <button
                         onClick={() => change(id, 1)}
+                        aria-label="One more"
                         className="flex h-7 w-7 items-center justify-center text-[var(--gold)]"
                       >
                         <Plus size={13} />

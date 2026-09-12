@@ -3,44 +3,24 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-
-type Course = {
-  id: string;
-  label: string;
-  image: string;
-  /** Circular crops are unforgiving, so a couple of images need nudging. */
-  objectPosition?: string;
-};
-
-const COURSES: Course[] = [
-  {
-    id: "starters",
-    label: "Starters",
-    image: "/images/homepage-gallery/menu/course-starters.jpg",
-    objectPosition: "42% 46%",
-  },
-  { id: "mains", label: "Mains", image: "/images/homepage-gallery/menu/course-mains.jpg" },
-  { id: "pasta", label: "Pasta", image: "/images/homepage-gallery/menu/course-pasta.jpg" },
-  { id: "seafood", label: "Seafood", image: "/images/homepage-gallery/menu/course-seafood.jpg" },
-  { id: "desserts", label: "Desserts", image: "/images/homepage-gallery/menu/course-desserts.jpg" },
-  { id: "bar", label: "The bar", image: "/images/homepage-gallery/menu/course-bar.jpg" },
-];
+import { COURSES, MENU } from "@/lib/menu-content";
 
 /**
- * The course navigation — circular emblems rather than text chips, matching
- * the homepage's language.
+ * Circular emblems rather than text chips. Sits below the header and tracks
+ * which chapter you're reading.
  *
- * Sits below the fixed header and tracks which chapter you're reading. Sides
- * and Kids are text links beneath: they're short sections, and giving them
+ * Sides and Kids are text links beneath — short sections, and giving them
  * emblems would imply an equivalence that isn't there.
  */
 export function CourseNav() {
-  const [active, setActive] = useState("starters");
+  const [active, setActive] = useState(COURSES[0]);
   const railRef = useRef<HTMLElement>(null);
 
+  const courses = MENU.filter((chapter) => COURSES.includes(chapter.id));
+
   useEffect(() => {
-    // The band either side means a chapter counts as "current" only once
-    // it's genuinely occupying the middle of the screen.
+    // The band either side means a chapter counts as current only once it's
+    // genuinely occupying the middle of the screen.
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -50,8 +30,8 @@ export function CourseNav() {
       { rootMargin: "-40% 0px -45% 0px", threshold: 0.1 }
     );
 
-    COURSES.forEach((course) => {
-      const el = document.getElementById(course.id);
+    COURSES.forEach((id) => {
+      const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
 
@@ -74,60 +54,54 @@ export function CourseNav() {
   }, [active]);
 
   return (
-    <div
-      className="sticky top-[3.45rem] z-40 border-b border-[rgba(201,162,74,.12)] pb-[0.55rem] pt-[0.7rem] sm:top-[4.2rem]"
-      style={{
-        background:
-          "linear-gradient(to bottom, rgba(14,14,14,.96), rgba(14,14,14,.82))",
-      }}
-    >
+    <div className="sticky top-[3.7rem] z-40 border-b border-[rgba(201,162,74,.14)] bg-[#050505] pb-[0.45rem] pt-[0.55rem] sm:top-[4.15rem]">
       <nav
         ref={railRef}
         aria-label="Courses"
         className="flex gap-3 overflow-x-auto px-[1.15rem] pb-[0.15rem] pt-[0.35rem] sm:gap-4 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {COURSES.map((course) => {
-          const isActive = active === course.id;
+        {courses.map((chapter) => {
+          const isActive = active === chapter.id;
 
           return (
             <Link
-              key={course.id}
-              href={`#${course.id}`}
-              data-course={course.id}
-              className={`w-[4.85rem] shrink-0 text-center text-[0.58rem] uppercase tracking-[0.14em] transition-colors sm:w-[6.1rem] ${
+              key={chapter.id}
+              href={`#${chapter.id}`}
+              data-course={chapter.id}
+              className={`w-[4.7rem] shrink-0 text-center text-[0.58rem] uppercase tracking-[0.14em] transition-colors sm:w-[5.8rem] ${
                 isActive ? "text-[var(--gold)]" : "text-[var(--ivory-dim)]"
               }`}
             >
               <span
-                className="relative mx-auto mb-2 block aspect-square w-full overflow-hidden rounded-full bg-[#1a1814] transition-shadow duration-500"
+                className="relative mx-auto mb-2 block aspect-square w-full overflow-hidden rounded-full bg-[#111] transition-shadow duration-500"
                 style={{
-                  // A thin gold ring, then a thick near-black one that
-                  // separates each emblem from its neighbour.
                   boxShadow: isActive
-                    ? "0 0 0 2px var(--gold), 0 0 0 8px rgba(14,14,14,.94)"
-                    : "0 0 0 1px rgba(201,162,74,.38), 0 0 0 7px rgba(14,14,14,.92)",
+                    ? "0 0 0 2px var(--gold)"
+                    : "0 0 0 1px rgba(201,162,74,.38)",
                 }}
               >
-                <Image
-                  src={course.image}
-                  alt=""
-                  fill
-                  sizes="(max-width: 720px) 78px, 98px"
-                  className="object-cover"
-                  style={
-                    course.objectPosition
-                      ? { objectPosition: course.objectPosition }
-                      : undefined
-                  }
-                />
+                {chapter.mark && (
+                  <Image
+                    src={chapter.mark}
+                    alt=""
+                    fill
+                    sizes="(max-width: 720px) 76px, 93px"
+                    className="object-cover"
+                    style={
+                      chapter.markPosition
+                        ? { objectPosition: chapter.markPosition }
+                        : undefined
+                    }
+                  />
+                )}
               </span>
-              {course.label}
+              {chapter.kicker}
             </Link>
           );
         })}
       </nav>
 
-      <p className="mx-[1.15rem] mt-[0.15rem] text-[0.72rem] uppercase tracking-[0.14em] text-[var(--ivory-dim)] sm:mx-6">
+      <p className="mx-[1.15rem] mt-[0.15rem] text-[0.7rem] uppercase tracking-[0.14em] text-[var(--ivory-dim)] sm:mx-6">
         <Link href="#sides" className="text-[var(--ivory-dim)] transition-colors hover:text-[var(--gold)]">
           Sides
         </Link>

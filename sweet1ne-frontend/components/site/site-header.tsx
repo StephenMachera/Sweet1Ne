@@ -5,16 +5,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import { SOCIAL_LINKS } from "@/lib/site-content";
-import { FacebookIcon, InstagramIcon, TikTokIcon } from "./social-icons";
 import { openBookingModal } from "./booking-modal";
 
 const NAV = [
   { href: "/menu", label: "Menu" },
   { href: "/order", label: "Order" },
   { href: "/story", label: "Our Story" },
+  // The route stays /locations; only the label changed.
+  { href: "/locations", label: "Find Us" },
   { href: "/events", label: "Events" },
-  { href: "/locations", label: "Locations" },
   { href: "/contact", label: "Contact" },
 ];
 
@@ -23,8 +22,7 @@ export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
-  // Transparent over the hero, solid past it — so the video isn't competing
-  // with a bar across the top.
+  // Transparent over the film, solid past it.
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 80);
     onScroll();
@@ -45,7 +43,7 @@ export function SiteHeader() {
     };
   }, [open]);
 
-  // Escape closes it — cheap to support, and expected.
+  // Escape closes it.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -55,16 +53,29 @@ export function SiteHeader() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  const overFilm = !scrolled && !open;
+  const isHome = pathname === "/";
+
   return (
     <>
-      {/* z-[70] puts the header above the takeover, so the logo and close
-          button stay visible over it. */}
+      {/* z-[70] puts the header above the mobile takeover, so the logo and
+          close button stay visible over it. */}
       <header
         className={`fixed inset-x-0 top-0 z-[70] transition-colors duration-500 ${
-          scrolled && !open
-            ? "border-b border-[var(--hairline-faint)] bg-[#0e0e0e]/95 backdrop-blur"
-            : "border-b border-transparent"
+          overFilm || isHome
+            ? `border-b-0${overFilm ? "" : " bg-[#0e0e0e]/95 backdrop-blur"}`
+            : "border-b border-[var(--hairline-faint)] bg-[#0e0e0e]/95 backdrop-blur"
         }`}
+        style={
+          overFilm
+            ? {
+                // A scrim rather than a solid bar — keeps the nav legible
+                // over a bright frame without dimming the film itself.
+                background:
+                  "linear-gradient(to bottom, rgba(14,14,14,.72), transparent)",
+              }
+            : undefined
+        }
       >
         <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-5 py-4 sm:px-8 lg:px-12">
           <Link href="/" className="relative block h-11 w-16 shrink-0 sm:h-12 sm:w-[72px]">
@@ -75,7 +86,7 @@ export function SiteHeader() {
               priority
               // contain, never cover — a logo must not be cropped.
               className="object-contain object-left"
-              sizes="85px"
+              sizes="72px"
             />
           </Link>
 
@@ -84,11 +95,14 @@ export function SiteHeader() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`text-sm ${
+                className={`text-sm transition-colors ${
                   pathname === item.href
                     ? "text-[var(--gold)]"
-                    : "text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
+                    : "text-white hover:text-[var(--gold)]"
                 }`}
+                // Sits over video, so the type needs its own separation from
+                // whatever's behind it.
+                style={{ textShadow: "0 1px 3px rgba(0,0,0,.6)" }}
               >
                 {item.label}
               </Link>
@@ -96,12 +110,12 @@ export function SiteHeader() {
           </nav>
 
           <div className="flex items-center gap-3">
-            {/* Visible at every width — booking is the action that matters,
-                so it never hides behind a hamburger. */}
+            {/* Ghost rather than a solid slab — a filled gold button over
+                film reads as an advert. */}
             <button
               type="button"
               onClick={openBookingModal}
-              className="bg-[var(--gold)] px-5 py-3 text-[13px] font-semibold text-[#0e0e0e] hover:bg-[var(--gold-deep)] sm:px-6 sm:text-sm"
+              className="border border-[var(--gold)] px-5 py-3 text-[13px] font-semibold text-[var(--gold)] transition-colors hover:bg-[var(--gold)] hover:text-[#0e0e0e] sm:px-6 sm:text-sm"
               style={{ borderRadius: "4px" }}
             >
               Book
@@ -112,7 +126,8 @@ export function SiteHeader() {
               onClick={() => setOpen((v) => !v)}
               aria-label={open ? "Close menu" : "Open menu"}
               aria-expanded={open}
-              className="flex h-11 w-11 items-center justify-center text-[var(--ivory)] lg:hidden"
+              className="flex h-11 w-11 items-center justify-center text-white lg:hidden"
+              style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,.6))" }}
             >
               {open ? (
                 <X size={24} strokeWidth={1} />
@@ -124,9 +139,8 @@ export function SiteHeader() {
         </div>
       </header>
 
-      {/* Full-screen takeover. A moment rather than a dropdown — which suits
-          a site this atmospheric, and gives the links room to breathe.
-          Stays mounted so it can fade out as well as in. */}
+      {/* Full-screen takeover. Stays mounted so it can fade out as well as
+          in — a component that unmounts can't animate its exit. */}
       <div
         className={`fixed inset-0 z-50 bg-[#0e0e0e] transition-opacity duration-500 lg:hidden ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
@@ -156,40 +170,26 @@ export function SiteHeader() {
             another nav link. */}
         <div className="absolute inset-x-0 bottom-0 border-t border-[var(--hairline-faint)] px-6 py-6">
           <p className="label-caps mb-3 text-[var(--gold)]">
-            100% Halal · Lewisham &amp; Chingford
+            Lewisham &amp; Chingford
           </p>
           <div className="flex gap-3">
-            <a
-              href={SOCIAL_LINKS.instagram}
+            
+            <a  href="https://instagram.com/sweet1necuisine"
               target="_blank"
               rel="noreferrer"
-              aria-label="Instagram"
-              className="flex flex-1 items-center justify-center border border-[var(--ivory)]/25 py-3.5"
+              className="flex-1 border border-[var(--ivory)]/25 py-3.5 text-center text-sm"
               style={{ borderRadius: "4px" }}
             >
-              <InstagramIcon size={20} />
+              Instagram
             </a>
-
-            <a
-              href={SOCIAL_LINKS.facebook}
+            
+            <a href="https://tiktok.com/@sweet1necuisine"
               target="_blank"
               rel="noreferrer"
-              aria-label="Facebook"
-              className="flex flex-1 items-center justify-center border border-[var(--ivory)]/25 py-3.5"
+              className="flex-1 border border-[var(--ivory)]/25 py-3.5 text-center text-sm"
               style={{ borderRadius: "4px" }}
             >
-              <FacebookIcon size={20} />
-            </a>
-
-            <a
-              href={SOCIAL_LINKS.tiktok}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="TikTok"
-              className="flex flex-1 items-center justify-center border border-[var(--ivory)]/25 py-3.5"
-              style={{ borderRadius: "4px" }}
-            >
-              <TikTokIcon size={20} />
+              TikTok
             </a>
           </div>
         </div>

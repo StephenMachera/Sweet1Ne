@@ -1,18 +1,16 @@
 /**
- * The menu, structured as eight chapters.
+ * The menu, as eight chapters.
  *
- * A placeholder while the real items go into the database. Note this is
- * organised differently from the PDF — salads sit with starters, sides and
- * sauces are one chapter, and everything drinkable is "the bar". Fourteen
- * categories was too many to navigate.
+ * A placeholder while the real items go into the database. Organised
+ * differently from the PDF — salads sit with starters, sides and sauces are
+ * one chapter, and everything drinkable is "the bar".
  */
 
 export type Dish = {
   name: string;
-  /** Absent where the item is a heading for a priced list. */
   price?: string;
   description?: string;
-  /** One dish per chapter gets a photograph and the full width. */
+  /** One dish per chapter gets a circular photograph and the full width. */
   featured?: boolean;
   image?: string;
 };
@@ -22,11 +20,19 @@ export type Chapter = {
   kicker: string;
   heading: string;
   lede?: string;
-  /** Sides and Kids have no emblem — they're short, and giving them one
-   *  would imply an equivalence that isn't there. */
+  /** Sides and Kids have no emblem — they're short sections. */
   mark?: string;
+  /** How the mark and the course disc are framed. Circular crops are
+   *  unforgiving, so most need nudging. */
+  markPosition?: string;
+  /** A full-width band above the list. */
+  bleed?: { src: string; alt: string };
+  /** Three portrait shots above the list. */
+  shots?: string[];
   dishes: Dish[];
 };
+
+const PHOTO = "/images/homepage-gallery/menu";
 
 export const MENU: Chapter[] = [
   {
@@ -34,7 +40,8 @@ export const MENU: Chapter[] = [
     kicker: "Starters",
     heading: "The first bite.",
     lede: "Small plates. Afro-Caribbean heat, London table.",
-    mark: "/images/homepage-gallery/menu/course-starters.jpg",
+    mark: `${PHOTO}/photo-starters.jpg`,
+    markPosition: "48% 38%",
     dishes: [
       {
         name: "Baobun Duo — Prawns or Oxtail",
@@ -42,7 +49,7 @@ export const MENU: Chapter[] = [
         description:
           "Steamed buns. Crispy tempura prawns or slow-braised oxtail, hoisin, pickled slaw.",
         featured: true,
-        image: "/images/homepage-gallery/menu/photo-starters.jpg",
+        image: `${PHOTO}/photo-starters.jpg`,
       },
       {
         name: "Crab Croquettes, Pepper Emulsion",
@@ -118,7 +125,8 @@ export const MENU: Chapter[] = [
     kicker: "Mains",
     heading: "The plate you came for.",
     lede: "Comfort, charcoal, and the kitchen's own sauces.",
-    mark: "/images/homepage-gallery/menu/course-mains.jpg",
+    mark: `${PHOTO}/photo-mains.jpg`,
+    markPosition: "50% 48%",
     dishes: [
       {
         name: "Lamb Cutlets, Plantain Mash",
@@ -126,7 +134,7 @@ export const MENU: Chapter[] = [
         description:
           "Charcoal-grilled. Plantain mash or mashed potato, sauce of your choosing.",
         featured: true,
-        image: "/images/homepage-gallery/menu/photo-mains.jpg",
+        image: `${PHOTO}/photo-mains.jpg`,
       },
       {
         name: "Seared Loch Duart Salmon",
@@ -187,14 +195,15 @@ export const MENU: Chapter[] = [
     kicker: "Pasta",
     heading: "Jerk in the cream.",
     lede: "Rasta pasta — the kitchen's own fusion, not for show.",
-    mark: "/images/homepage-gallery/menu/course-pasta.jpg",
+    mark: `${PHOTO}/photo-pasta.jpg`,
+    markPosition: "50% 46%",
     dishes: [
       {
         name: "Rasta Pasta — Jerk Chicken",
         price: "£18.50",
         description: "Creamy penne, peppers, jerk chicken, garlic bread.",
         featured: true,
-        image: "/images/homepage-gallery/menu/photo-pasta.jpg",
+        image: `${PHOTO}/photo-pasta.jpg`,
       },
       {
         name: "Lobster Tail Pasta",
@@ -223,20 +232,25 @@ export const MENU: Chapter[] = [
     kicker: "Seafood",
     heading: "From the grill, for the table.",
     lede: "Prawns, lobster, a boil if the night is sharing.",
-    mark: "/images/homepage-gallery/menu/course-seafood.jpg",
+    mark: `${PHOTO}/photo-seafood.jpg`,
+    markPosition: "48% 55%",
+    bleed: {
+      src: `${PHOTO}/photo-boil-table.jpg`,
+      alt: "Sweet1ne loaded seafood boil",
+    },
     dishes: [
-      {
-        name: "Grilled Giant Prawns",
-        price: "£22.50",
-        description: "Chargrilled, house sauce, lemon.",
-        featured: true,
-        image: "/images/homepage-gallery/menu/photo-seafood.jpg",
-      },
       {
         name: "Sweet1ne Loaded Seafood Boil",
         price: "£74.99",
         description:
           "Snow crab, lobster, jumbo prawns, mussels, sausage, potatoes, corn, eggs. Cajun garlic butter. For sharing.",
+        featured: true,
+        image: `${PHOTO}/photo-boil-lemon.jpg`,
+      },
+      {
+        name: "Grilled Giant Prawns",
+        price: "£22.50",
+        description: "Chargrilled, house sauce, lemon.",
       },
       {
         name: "Build your boil",
@@ -292,25 +306,22 @@ export const MENU: Chapter[] = [
     kicker: "Desserts",
     heading: "Something sweet.",
     lede: "West African dough, yaji spice, rum toffee.",
-    mark: "/images/homepage-gallery/menu/course-desserts.jpg",
+    mark: `${PHOTO}/photo-desserts.jpg`,
+    markPosition: "40% 58%",
     dishes: [
       {
         name: "Yaji Cinnamon French Toast",
         price: "£9.00",
         description: "Brioche, yaji and cinnamon, zobo berry sauce.",
         featured: true,
-        image: "/images/homepage-gallery/menu/photo-desserts.jpg",
+        image: `${PHOTO}/photo-desserts.jpg`,
       },
       {
         name: "Rum Sticky Toffee Pudding",
         price: "£12.50",
         description: "Dark rum toffee, Madagascan vanilla ice cream.",
       },
-      {
-        name: "Cheesecake",
-        price: "£11.50",
-        description: "Oreo Crumble or Lotus Biscoff.",
-      },
+      { name: "Cheesecake", price: "£11.50", description: "Oreo Crumble or Lotus Biscoff." },
       { name: "Apple Crumble", price: "£10.50", description: "Custard or ice cream." },
       {
         name: "Salted Caramel Puff Puff",
@@ -329,14 +340,21 @@ export const MENU: Chapter[] = [
     kicker: "The bar",
     heading: "A proper bar for the table.",
     lede: "Cocktails, wine, something without alcohol if you'd rather.",
-    mark: "/images/homepage-gallery/menu/course-bar.jpg",
+    mark: `${PHOTO}/photo-bar-globe.jpg`,
+    markPosition: "50% 36%",
+    shots: [
+      `${PHOTO}/photo-bar-globe.jpg`,
+      `${PHOTO}/photo-bar-umbrellas.jpg`,
+      `${PHOTO}/photo-bar-rose.jpg`,
+    ],
     dishes: [
       {
-        name: "Velvet Bubblegum Mojito",
+        name: "Exotic Pina Colada",
         price: "£13.00",
         featured: true,
-        image: "/images/homepage-gallery/menu/photo-bar.jpg",
+        image: `${PHOTO}/photo-bar-globe.jpg`,
       },
+      { name: "Velvet Bubblegum Mojito", price: "£13.00" },
       { name: "Sweet1ne Special", price: "£13.00" },
       { name: "Inferno Spicy Margarita", price: "£13.00" },
       { name: "Moonlight Mojito", price: "£13.00" },
@@ -344,7 +362,6 @@ export const MENU: Chapter[] = [
       { name: "Temptress Martini", price: "£13.00" },
       { name: "Luscious Strawberry Daiquiri", price: "£13.00" },
       { name: "Tahitian Mai Tai", price: "£13.00" },
-      { name: "Exotic Pina Colada", price: "£13.00" },
       { name: "Long Island Blur", price: "£13.00" },
       { name: "Margarita Fiesta", price: "£13.00" },
       { name: "Sapphire Blue Lagoon", price: "£13.00" },
@@ -371,4 +388,7 @@ export const MENU: Chapter[] = [
 ];
 
 export const MENU_NOTE =
-  "Please always inform your server of any allergies or intolerances before placing your order. Not all ingredients are listed on the menu, and we cannot guarantee the total absence of allergens.";
+  "Tell your server about allergies before you order. Not every ingredient is listed. Confirm in the room if you need to.";
+
+/** The six that get an emblem in the course rail. */
+export const COURSES = ["starters", "mains", "pasta", "seafood", "desserts", "bar"];

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sweet1ne homepage gallery</title>
+  <style>
+    body { margin:0; background:#1a1a1a; color:#fffaea; font-family:Georgia,serif; }
+    h1 { font-weight:500; padding:2rem 1.25rem 0; }
+    p { color:rgba(255,250,234,.7); padding:0 1.25rem 1.5rem; max-width:40rem; }
+    .rail { display:flex; gap:1rem; overflow-x:auto; padding:0 1.25rem 3rem; scroll-snap-type:x mandatory; }
+    figure { margin:0; flex:0 0 min(92vw, 960px); scroll-snap-align:start; }
+    img { width:100%; height:auto; display:block; }
+    figcaption { font-size:.8rem; letter-spacing:.08em; text-transform:uppercase; color:#d4af37; padding:.6rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Homepage rotating gallery</h1>
+  <p>16:9, graded to the dark lounge. Drop the web-2560x1440 set into the room carousel. Same order as below.</p>
+  <div class="rail">
+        <figure><img src="web-2560x1440/01-sharing-table.jpg" alt="01-sharing-table" /><figcaption>01-sharing-table</figcaption></figure>
+        <figure><img src="web-2560x1440/02-lamb-chops.jpg" alt="02-lamb-chops" /><figcaption>02-lamb-chops</figcaption></figure>
+        <figure><img src="web-2560x1440/03-pasta-jerk.jpg" alt="03-pasta-jerk" /><figcaption>03-pasta-jerk</figcaption></figure>
+        <figure><img src="web-2560x1440/04-bao.jpg" alt="04-bao" /><figcaption>04-bao</figcaption></figure>
+        <figure><img src="web-2560x1440/05-spring-rolls.jpg" alt="05-spring-rolls" /><figcaption>05-spring-rolls</figcaption></figure>
+        <figure><img src="web-2560x1440/06-french-toast.jpg" alt="06-french-toast" /><figcaption>06-french-toast</figcaption></figure>
+        <figure><img src="web-2560x1440/07-seafood.jpg" alt="07-seafood" /><figcaption>07-seafood</figcaption></figure>
+  </div>
+</body>
+</html>

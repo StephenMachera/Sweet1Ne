@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { Bodoni_Moda, Hanken_Grotesk } from "next/font/google";
 import { SiteHeader } from "@/components/site/site-header";
-import { SiteFooter } from "@/components/site/site-footer";
-import { SmoothScroll } from "@/components/site/motion/smooth-scroll";
+import { BookingModal } from "@/components/site/booking-modal";
 import { EventPopup } from "@/components/site/event-popup";
 import { Analytics } from "@/components/site/analytics";
 import { CookieConsent } from "@/components/site/cookie-consent";
-import { BookingModal } from "@/components/site/booking-modal";
+import { SmoothScroll } from "@/components/site/motion/smooth-scroll";
 import "./site.css";
 
 const display = Bodoni_Moda({
@@ -41,6 +40,10 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * The footer isn't here — pages carry their own, since they differ and some
+ * have none at all.
+ */
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
@@ -48,12 +51,12 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     >
       <SmoothScroll>
         <SiteHeader />
-        <main>{children}</main>
-        <SiteFooter />
+        {children}
       </SmoothScroll>
+
+      <BookingModal />
       <EventPopup />
       <CookieConsent />
-      <BookingModal />
       <Analytics />
     </div>
   );
