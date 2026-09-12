@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { pickVideoSource, pickVideoSourceScript } from "@/lib/video-source";
 
 type Room = {
   id: string;
@@ -118,41 +119,48 @@ export function ContactRooms() {
             onMouseEnter={() => {
               if (window.matchMedia("(hover: hover)").matches) setLead(room.id);
             }}
-            className="panel relative min-h-0 min-w-0 overflow-hidden bg-black md:min-h-[36rem]"
+            // Stacked on a phone, each panel is a block with a real minimum
+            // height — the film is absolutely positioned, so without one the
+            // panel has no content height of its own and collapses to
+            // nothing. The flex sizing only applies once they sit side by
+            // side, which is also the only place hover-to-lead exists.
+            className="panel relative min-h-[26rem] min-w-0 overflow-hidden bg-black md:min-h-[36rem] md:shrink md:basis-0 md:[flex-grow:var(--grow)] md:transition-[flex-grow] md:duration-[850ms] md:ease-[cubic-bezier(0.4,0,0.2,1)]"
             // flex-grow as a number rather than the `flex` shorthand — it
             // interpolates reliably, where the shorthand doesn't.
-            style={{
-              flexGrow: isLead ? 1.4 : 0.8,
-              flexBasis: 0,
-              flexShrink: 1,
-                transition: "flex-grow 850ms cubic-bezier(0.4, 0, 0.2, 1)",
-            }}
+            style={{ "--grow": isLead ? 1.4 : 0.8 } as React.CSSProperties}
           >
             <video
               ref={(el) => {
                 filmsRef.current[i] = el;
+                if (!el) return;
+                el.muted = true;
+                el.defaultMuted = true;
+                // Already set by the inline script on a fresh load; this
+                // is for client-side navigation, where there's no HTML.
+                const wanted = pickVideoSource(room);
+                if (!el.src.endsWith(wanted)) el.src = wanted;
               }}
+              suppressHydrationWarning
               muted
               loop
               playsInline
               preload="auto"
               autoPlay
               poster={room.poster}
-              className="film absolute inset-0 h-full w-full scale-[1.04] object-cover"
-              style={{
-                filter: isLead
-                  ? "brightness(0.5) saturate(0.9)"
-                  : "brightness(0.34) saturate(0.8)",
-                transition: "filter 850ms ease-out",
-              }}
-            >
-              <source
-                src={room.videoMobile}
-                type="video/mp4"
-                media="(max-width: 720px)"
-              />
-              <source src={room.video} type="video/mp4" />
-            </video>
+              // The "stepped back" dimming is a hover effect, so it only
+              // applies where the panels sit side by side. On a phone
+              // there's no hover — Chingford would just be permanently
+              // darker than Lewisham for no reason the visitor can see.
+              className="film absolute inset-0 h-full w-full scale-[1.04] object-cover [filter:brightness(0.5)_saturate(0.9)] md:[filter:var(--film)] md:transition-[filter] md:duration-[850ms] md:ease-out"
+              style={
+                {
+                  "--film": isLead
+                    ? "brightness(0.5) saturate(0.9)"
+                    : "brightness(0.34) saturate(0.8)",
+                } as React.CSSProperties
+              }
+            />
+            <script dangerouslySetInnerHTML={{ __html: pickVideoSourceScript(room) }} />
 
             <span
               aria-hidden
