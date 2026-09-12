@@ -1,3 +1,5 @@
+import type { RESERVATION_URLS } from "@/lib/site-content";
+
 /**
  * The two restaurants, as the Find Us page needs them.
  *
@@ -6,7 +8,8 @@
  */
 
 export type Venue = {
-  id: string;
+  /** Doubles as the key into RESERVATION_URLS, so it must be a real branch. */
+  id: keyof typeof RESERVATION_URLS;
   name: string;
   kicker: string;
   tagline: string;

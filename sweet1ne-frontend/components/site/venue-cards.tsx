@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { openBookingModal } from "./booking-modal";
+import { RESERVATION_URLS } from "@/lib/site-content";
 import { VENUES, type Venue } from "@/lib/venues";
 
 export function VenueCards() {
@@ -60,14 +60,17 @@ function VenueCard({ venue }: { venue: Venue }) {
         {/* The practical half — what someone came here for. */}
         <div className="facts min-w-0 px-5 pb-[2.4rem] pt-5 sm:px-6 lg:flex lg:flex-col lg:justify-center lg:px-[2.4rem] lg:pb-[2.8rem]">
           <p className="cta mb-4">
-            <button
-              type="button"
-              onClick={openBookingModal}
-              className="book w-full border border-[rgba(201,162,74,.9)] px-[1.1rem] py-4 text-[0.8rem] font-semibold uppercase tracking-[0.12em] text-[var(--gold)] transition-colors hover:bg-[var(--gold)] hover:text-[#0e0e0e] lg:inline-block lg:w-auto lg:py-[0.58rem]"
+            {/* This card already names the branch, so asking again in the
+                modal would be redundant — straight to its SevenRooms page. */}
+            <a
+              href={RESERVATION_URLS[venue.id]}
+              target="_blank"
+              rel="noreferrer"
+              className="book block w-full border border-[rgba(201,162,74,.9)] px-[1.1rem] py-4 text-center text-[0.8rem] font-semibold uppercase tracking-[0.12em] text-[var(--gold)] transition-colors hover:bg-[var(--gold)] hover:text-[#0e0e0e] lg:inline-block lg:w-auto lg:py-[0.58rem]"
               style={{ borderRadius: "3px" }}
             >
               Book {venue.name}
-            </button>
+            </a>
           </p>
 
           <div className="quick mb-[1.35rem] grid w-full grid-cols-2 gap-2 lg:max-w-[22rem]">

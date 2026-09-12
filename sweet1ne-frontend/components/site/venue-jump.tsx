@@ -17,7 +17,11 @@ export function VenueJump() {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) setCurrent(entry.target.id);
+          if (!entry.isIntersecting) return;
+          // Only ids that are actually venues — resolving rather than
+          // casting, so the DOM can't feed the state something it isn't.
+          const venue = VENUES.find((v) => v.id === entry.target.id);
+          if (venue) setCurrent(venue.id);
         });
       },
       { rootMargin: "-40% 0px -45% 0px", threshold: 0.15 }
@@ -35,9 +39,10 @@ export function VenueJump() {
   // here with #lewisham and #chingford.
   useEffect(() => {
     const hash = window.location.hash.replace("#", "");
-    if (!hash || !document.getElementById(hash)) return;
+    const venue = VENUES.find((v) => v.id === hash);
+    if (!venue || !document.getElementById(hash)) return;
 
-    setCurrent(hash);
+    setCurrent(venue.id);
     // Twice, because the first attempt can fire before images have settled
     // the layout.
     requestAnimationFrame(() => requestAnimationFrame(() => jumpTo(hash, false)));
