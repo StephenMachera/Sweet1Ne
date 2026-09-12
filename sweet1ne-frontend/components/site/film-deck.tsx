@@ -113,6 +113,7 @@ export function FilmDeck() {
                   filmsRef.current[i] = el;
                 }}
                 muted
+                defaultMuted
                 loop
                 playsInline
                 autoPlay

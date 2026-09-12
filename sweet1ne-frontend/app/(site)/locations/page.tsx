@@ -1,37 +1,27 @@
 import type { Metadata } from "next";
-import { LocationSections } from "@/components/site/location-sections";
-import { Eyebrow } from "@/components/site/section";
-import { SplitReveal } from "@/components/site/motion/split-reveal";
+import { VenueJump } from "@/components/site/venue-jump";
+import { VenueCards } from "@/components/site/venue-cards";
+import { SiteFooter } from "@/components/site/site-footer";
 
 export const metadata: Metadata = {
-  title: "Locations",
+  title: "Find Us",
   description:
-    "Sweet1NE in Lewisham and Chingford — addresses, opening hours and how to find us.",
+    "Sweet1NE in Lewisham and Chingford — addresses, opening hours and how to get there.",
 };
 
-export default function LocationsPage() {
+export default function FindUsPage() {
   return (
     <>
-      <section className="relative border-b border-[var(--hairline-faint)] pt-32 sm:pt-40">
-        <div className="glow left-1/4 top-0 h-[400px] w-[400px]" />
+      <VenueJump />
+      <VenueCards />
 
-        <div className="relative mx-auto max-w-[1440px] px-5 pb-12 sm:px-8 sm:pb-16 lg:px-12">
-          <Eyebrow>Two rooms in London</Eyebrow>
-          <SplitReveal
-            as="h1"
-            className="font-display text-[clamp(2.5rem,6vw,4.5rem)] leading-[0.95] tracking-[-0.02em]"
-          >
-            {"Come and\nfind us."}
-          </SplitReveal>
-
-          <p className="mt-6 max-w-lg text-lg leading-relaxed text-[var(--ivory-dim)]">
-            Both closed Monday and Tuesday. Both busy the rest of the week —
-            booking ahead is the surest way in.
-          </p>
-        </div>
+      <section className="px-[1.15rem] pb-12 pt-6 text-center sm:px-6">
+        <p className="font-display text-[clamp(1.4rem,3vw,2rem)] italic">
+          Always in the mood for you.
+        </p>
       </section>
 
-      <LocationSections />
+      <SiteFooter />
     </>
   );
 }

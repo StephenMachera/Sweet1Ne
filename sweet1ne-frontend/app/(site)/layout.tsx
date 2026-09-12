@@ -51,7 +51,9 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     >
       <SmoothScroll>
         <SiteHeader />
-        {children}
+        {/* A full-width block so pages can centre their own containers —
+            without it, mx-auto has nothing to centre within. */}
+        <main className="w-full">{children}</main>
       </SmoothScroll>
 
       <BookingModal />
