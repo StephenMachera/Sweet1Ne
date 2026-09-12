@@ -111,9 +111,26 @@ export function FilmDeck() {
               <video
                 ref={(el) => {
                   filmsRef.current[i] = el;
+                  if (!el) return;
+
+                  // Both set here as DOM properties. React's `muted` prop
+                  // only sets the property, not the attribute, and
+                  // `defaultMuted` isn't a React prop at all — but the
+                  // browser's own autoplay check wants the element muted
+                  // before it tries, which is earlier than any effect.
+                  el.muted = true;
+                  el.defaultMuted = true;
+
+                  // Chosen here rather than with <source media="…">: Chrome
+                  // and Firefox ignore `media` on a <source> inside <video>
+                  // (it only works inside <picture>), so they'd always take
+                  // the first file listed regardless of screen size.
+                  const wanted = window.matchMedia("(max-width: 720px)").matches
+                    ? room.videoMobile
+                    : room.video;
+                  if (!el.src.endsWith(wanted)) el.src = wanted;
                 }}
                 muted
-                defaultMuted
                 loop
                 playsInline
                 autoPlay
@@ -127,17 +144,7 @@ export function FilmDeck() {
                     : "brightness(0.62) saturate(0.92)",
                   transition: "filter 850ms ease-out",
                 }}
-              >
-                {/* Smaller encode first — the browser takes the first source
-                    whose media query matches, so phones never fetch the
-                    large file. */}
-                <source
-                  src={room.videoMobile}
-                  type="video/mp4"
-                  media="(max-width: 720px)"
-                />
-                <source src={room.video} type="video/mp4" />
-              </video>
+              />
 
               {/* A gentle lift at the foot so the place name stays readable
                   over a bright frame. */}
