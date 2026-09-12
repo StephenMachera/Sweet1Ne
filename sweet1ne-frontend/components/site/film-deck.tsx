@@ -36,15 +36,15 @@ const ROOMS: Room[] = [
   },
 ];
 
-const GATE_TIMEOUT_MS = 0;
+const GATE_TIMEOUT_MS = 1000;
 const GATE_EXIT_MS = 500;
 
 /**
  * The homepage: one viewport, two films.
  *
  * A gate holds the page shut while the films buffer — so they start playing
- * rather than stuttering into life. It lifts immediately after the page
- * mounts, or sooner through a click or keypress.
+ * rather than stuttering into life. It lifts after a short hold, or sooner
+ * through a click or keypress.
  */
 export function FilmDeck() {
   const [opened, setOpened] = useState(false);
