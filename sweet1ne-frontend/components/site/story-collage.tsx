@@ -76,7 +76,7 @@ export function StoryCollage() {
   return (
     <section
       aria-label="The table now"
-      className="w-full py-[2.6rem]"
+      className="story-now w-full py-[2.6rem]"
     >
       <p className="mb-4 px-[1.15rem] text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)] sm:px-6">
         The table now
@@ -86,7 +86,7 @@ export function StoryCollage() {
         A cycling collage of the kitchen, the plates, and people at the table.
       </p>
 
-      <div className="grid grid-cols-[1.15fr_0.85fr_0.85fr] grid-rows-[minmax(14rem,34svh)_minmax(14rem,34svh)] gap-[5px] bg-black max-[720px]:grid-cols-2 max-[720px]:grid-rows-none">
+      <div className="story-collage grid grid-cols-[1.15fr_0.85fr_0.85fr] grid-rows-[minmax(14rem,34svh)_minmax(14rem,34svh)] gap-[5px] bg-black max-[720px]:grid-cols-2 max-[720px]:grid-rows-none">
         {TILES.map((tile, i) => (
           <CyclingTile key={tile.id} tile={tile} index={i} />
         ))}
@@ -123,7 +123,7 @@ function CyclingTile({ tile, index }: { tile: Tile; index: number }) {
 
   return (
     <div
-      className={`relative overflow-hidden bg-[#0a0a0a] ${tile.area} ${tile.aspect} ${
+      className={`story-tile relative overflow-hidden bg-[#0a0a0a] ${tile.area} ${tile.aspect} ${
         tile.id === "people"
           ? "max-[720px]:col-span-full max-[720px]:row-auto max-[720px]:h-[42svh] max-[720px]:min-h-[14rem]"
           : "max-[720px]:h-[28svh] max-[720px]:min-h-[11rem]"

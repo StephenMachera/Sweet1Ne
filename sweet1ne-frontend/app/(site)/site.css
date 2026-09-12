@@ -5,12 +5,12 @@
  */
 
 .site-root {
-  --gold: #f6d24c;
-  --gold-deep: #d8b632;
+  --gold: #c9a24a;
+  --gold-deep: #a88735;
   --ivory: #e5e2e1;
-  --ivory-dim: #cfc6af;
-  --hairline: rgba(216, 182, 50, 0.28);
-  --hairline-faint: rgba(216, 182, 50, 0.12);
+  --ivory-dim: rgba(229, 226, 225, 0.68);
+  --hairline: rgba(201, 162, 74, 0.28);
+  --hairline-faint: rgba(201, 162, 74, 0.12);
 
   position: relative;
 }
@@ -33,6 +33,124 @@
 
 .font-body {
   font-family: var(--font-body), system-ui, sans-serif;
+}
+
+.story-page {
+  overflow-x: hidden;
+  scroll-padding-top: 8.2rem;
+}
+
+.story-hero h1 {
+  text-shadow: none;
+}
+
+.story-jump {
+  scroll-margin-top: 8.2rem;
+}
+
+.story-beat-inner {
+  min-height: 52svh;
+}
+
+.story-stage {
+  height: 52svh;
+  min-height: 18rem;
+}
+
+.story-stage img {
+  object-fit: cover;
+}
+
+.story-beat-inner article[data-stop="fairlop"] .story-stage img,
+.story-page article[data-stop="fairlop"] .story-stage img {
+  object-fit: contain;
+  object-position: center;
+}
+
+.story-page article[data-stop="lewisham"] .story-stage img {
+  object-position: 48% 50%;
+}
+
+.story-page article[data-stop="chingford"] .story-stage img {
+  object-position: 50% 55%;
+}
+
+.story-collage {
+  min-height: 28rem;
+}
+
+.story-tile {
+  min-height: 14rem;
+}
+
+@media (min-width: 900px) {
+  .story-hero {
+    padding-top: 6.2rem;
+    padding-bottom: 1.8rem;
+  }
+
+  .story-beat-inner {
+    min-height: 0;
+  }
+
+  .story-stage {
+    height: auto;
+    min-height: 28rem;
+    max-height: 44rem;
+  }
+
+  .story-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 2.4rem;
+    padding-bottom: 2.4rem;
+  }
+
+  .story-now {
+    padding-top: 1.1rem;
+    padding-bottom: 0.6rem;
+  }
+
+  .story-follow {
+    padding-top: 3.2rem;
+    padding-bottom: 0.6rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .story-page {
+    scroll-padding-top: 7.4rem;
+  }
+
+  .story-hero {
+    padding-top: 4.8rem;
+    padding-bottom: 1.1rem;
+  }
+
+  .story-hero h1 {
+    font-size: clamp(1.85rem, 9vw, 2.35rem);
+  }
+
+  .story-jump {
+    scroll-margin-top: 7.4rem;
+  }
+
+  .story-collage {
+    min-height: 0;
+  }
+
+  .story-tile {
+    min-height: 11rem;
+    height: 28svh;
+  }
+
+  .story-tile:first-child {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    height: 42svh;
+    min-height: 14rem;
+  }
 }
 
 /* Small caps metadata — "DOORS OPEN", "100% HALAL". */
@@ -64,25 +182,146 @@
     background-color 400ms ease-out,
     border-color 400ms ease-out;
 }
+/* Anchors need to clear both the fixed header and the sticky course nav. */
 .site-root {
-  --gold: #f6d24c;
-  --gold-deep: #d8b632;
-  --ivory: #e5e2e1;
-  --ivory-dim: #cfc6af;
-  --hairline: rgba(216, 182, 50, 0.28);
-  --hairline-faint: rgba(216, 182, 50, 0.12);
-
-  position: relative;
-  /* Anchors need to clear both the fixed header and the sticky course nav
-     on the menu page. */
   scroll-padding-top: 10.5rem;
 }
 
+/* The gate's content rises as it arrives — a beat of movement so the splash
+   doesn't just sit there. */
+@keyframes gate-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 @media (min-width: 721px) {
   .site-root {
     scroll-padding-top: 11rem;
   }
 }
+
+.home-gate {
+  background: transparent;
+}
+
+.home-gate-leaf {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc(50% + 1px);
+  background: #050505;
+  transition: transform 1.05s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.home-gate-leaf-left {
+  left: 0;
+}
+
+.home-gate-leaf-right {
+  right: 0;
+}
+
+.home-gate-mark {
+  max-width: min(90vw, 28rem);
+  transition: opacity 400ms ease, transform 400ms ease;
+}
+
+.home-gate-mark img {
+  opacity: 0;
+  transform: scale(0.94);
+  animation: gate-logo 1.15s ease 120ms forwards;
+  filter: drop-shadow(0 8px 28px rgba(0, 0, 0, 0.55));
+}
+
+.home-gate-mark hr {
+  width: 2.4rem;
+  height: 1px;
+  margin: 1.2rem auto 0;
+  border: 0;
+  background: var(--gold);
+  opacity: 0;
+  animation: gate-fade 700ms ease 1.2s forwards;
+}
+
+.home-gate-mark p {
+  margin: 0.95rem 0 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.2rem, 3.2vw, 1.85rem);
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.75);
+  opacity: 0;
+  animation: gate-fade 900ms ease 1.55s forwards;
+}
+
+.home-gate.is-out .home-gate-mark {
+  opacity: 0;
+  transform: scale(1.03);
+}
+
+.home-gate.is-out .home-gate-leaf-left {
+  transform: translateX(-100%);
+}
+
+.home-gate.is-out .home-gate-leaf-right {
+  transform: translateX(100%);
+}
+
+@keyframes gate-logo {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes gate-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 720px) {
+  .home-gate-leaf {
+    right: 0;
+    left: 0;
+    width: 100%;
+    height: 50%;
+  }
+
+  .home-gate-leaf-left {
+    top: 0;
+    bottom: auto;
+  }
+
+  .home-gate-leaf-right {
+    top: auto;
+    bottom: 0;
+  }
+
+  .home-gate.is-out .home-gate-leaf-left {
+    transform: translateY(-100%);
+  }
+
+  .home-gate.is-out .home-gate-leaf-right {
+    transform: translateY(100%);
+  }
+
+  .home-gate-mark img {
+    width: min(62vw, 210px);
+  }
+
+  .home-gate-mark p {
+    font-size: 1.12rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .site-root *,
   .site-root *::before,

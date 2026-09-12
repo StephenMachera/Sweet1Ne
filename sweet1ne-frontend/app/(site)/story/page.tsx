@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 
 export default function StoryPage() {
   return (
-    <>
-      <section className="w-full px-[1.15rem] pb-[1.6rem] pt-[6.2rem] text-left sm:px-6 sm:pt-[7.4rem]">
+    <div className="story-page">
+      <section className="story-hero w-full px-[1.15rem] pb-[1.4rem] pt-[5.6rem] text-left sm:px-8 sm:pt-[6.2rem]">
         <p className="mb-[0.55rem] text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
           Our story
         </p>
@@ -36,6 +36,6 @@ export default function StoryPage() {
       <StoryCollage />
       <StoryFollow />
       <SiteFooter />
-    </>
+    </div>
   );
 }

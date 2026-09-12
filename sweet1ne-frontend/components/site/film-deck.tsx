@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 
 type Room = {
@@ -35,14 +36,18 @@ const ROOMS: Room[] = [
   },
 ];
 
+const GATE_TIMEOUT_MS = 4800;
+
 /**
- * The homepage is one viewport and two films.
+ * The homepage: one viewport, two films.
  *
- * No sections, no scrolling, no cards. Hovering a panel gives it the room —
- * it expands while the other dims and steps back. On a phone they stack and
- * share the height, since there's no hover to respond to.
+ * A gate holds the page shut while the films buffer — so they start playing
+ * rather than stuttering into life. It lifts on a click, a keypress, or
+ * after 4.8 seconds, whichever comes first.
  */
 export function FilmDeck() {
+  const [opened, setOpened] = useState(false);
+  const [gateGone, setGateGone] = useState(false);
   const [lead, setLead] = useState<string>("lewisham");
   const [paused, setPaused] = useState(false);
   const filmsRef = useRef<(HTMLVideoElement | null)[]>([]);
@@ -56,17 +61,53 @@ export function FilmDeck() {
     };
   }, []);
 
-  // Autoplay needs muted set on the element before play() is called — the
-  // attribute alone isn't always enough once React has hydrated.
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const openHouse = useCallback(() => {
+    setOpened((already) => {
+      if (already) return already;
 
-    filmsRef.current.forEach((film) => {
-      if (!film) return;
-      film.muted = true;
-      film.play().catch(() => {});
+      // Removed from the tree after the fade, so it can't trap focus.
+      setTimeout(() => setGateGone(true), 1100);
+
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        filmsRef.current.forEach((film) => {
+          if (!film) return;
+          film.muted = true;
+          film.play().catch(() => {});
+        });
+      }
+
+      return true;
     });
   }, []);
+
+  // Reduced motion skips the gate entirely — it's a flourish, and someone
+  // who's asked for less of that shouldn't be made to wait.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      openHouse();
+      const timer = setTimeout(() => setGateGone(true), 0);
+      return () => clearTimeout(timer);
+    }
+
+    const timer = setTimeout(openHouse, GATE_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [openHouse]);
+
+  // Enter or Space opens it too — the gate is a button in everything but
+  // markup, so it should behave like one.
+  useEffect(() => {
+    if (opened) return;
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
+        e.preventDefault();
+        openHouse();
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [opened, openHouse]);
 
   function togglePause() {
     const next = !paused;
@@ -81,8 +122,8 @@ export function FilmDeck() {
 
   return (
     <>
-      {/* fixed inset-0 rather than a height — the films sit behind the
-          header entirely, so no layout flow can leave a seam. */}
+      {/* The films sit fixed behind everything, so no layout flow can leave
+          a seam under the header. */}
       <div className="fixed inset-0 z-0 flex flex-col gap-[5px] bg-black sm:flex-row sm:gap-[6px]">
         {ROOMS.map((room, i) => {
           const isLead = lead === room.id;
@@ -98,9 +139,6 @@ export function FilmDeck() {
                 if (window.matchMedia("(hover: hover)").matches) setLead(room.id);
               }}
               className="relative block min-w-0 overflow-hidden bg-black"
-              // The property and its transition live together inline:
-              // flex-grow is a single animatable number, where the `flex`
-              // shorthand interpolates unreliably across browsers.
               style={{
                 flexGrow: isLead ? 1.45 : 0.72,
                 flexBasis: 0,
@@ -111,29 +149,12 @@ export function FilmDeck() {
               <video
                 ref={(el) => {
                   filmsRef.current[i] = el;
-                  if (!el) return;
-
-                  // Both set here as DOM properties. React's `muted` prop
-                  // only sets the property, not the attribute, and
-                  // `defaultMuted` isn't a React prop at all — but the
-                  // browser's own autoplay check wants the element muted
-                  // before it tries, which is earlier than any effect.
-                  el.muted = true;
-                  el.defaultMuted = true;
-
-                  // Chosen here rather than with <source media="…">: Chrome
-                  // and Firefox ignore `media` on a <source> inside <video>
-                  // (it only works inside <picture>), so they'd always take
-                  // the first file listed regardless of screen size.
-                  const wanted = window.matchMedia("(max-width: 720px)").matches
-                    ? room.videoMobile
-                    : room.video;
-                  if (!el.src.endsWith(wanted)) el.src = wanted;
                 }}
                 muted
                 loop
                 playsInline
-                autoPlay
+                // auto rather than metadata — the whole point of the gate is
+                // giving these time to buffer.
                 preload="auto"
                 poster={room.poster}
                 className="block h-full w-full object-cover"
@@ -144,10 +165,15 @@ export function FilmDeck() {
                     : "brightness(0.62) saturate(0.92)",
                   transition: "filter 850ms ease-out",
                 }}
-              />
+              >
+                <source
+                  src={room.videoMobile}
+                  type="video/mp4"
+                  media="(max-width: 720px)"
+                />
+                <source src={room.video} type="video/mp4" />
+              </video>
 
-              {/* A gentle lift at the foot so the place name stays readable
-                  over a bright frame. */}
               <span
                 aria-hidden
                 className="pointer-events-none absolute inset-0"
@@ -168,8 +194,8 @@ export function FilmDeck() {
         })}
       </div>
 
-      {/* Film grain, over everything. Overlay blending lifts the highlights
-          rather than just greying the picture. */}
+      {/* Film grain. Overlay blending lifts the highlights rather than just
+          greying the picture. */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 z-[60] opacity-[0.12] mix-blend-overlay motion-reduce:hidden"
@@ -180,9 +206,12 @@ export function FilmDeck() {
         }}
       />
 
-      {/* The slogan belongs to the pair, not either room — so it sits over
-          both rather than inside one. */}
-      <div className="pointer-events-none fixed bottom-[1.15rem] left-1/2 z-[70] max-w-[min(90vw,28rem)] -translate-x-1/2 text-center sm:bottom-[2.2rem]">
+      {/* Everything below waits for the gate — the page should arrive whole
+          rather than in pieces. */}
+      <div
+        className="pointer-events-none fixed bottom-[1.15rem] left-1/2 z-[70] max-w-[min(90vw,28rem)] -translate-x-1/2 text-center transition-opacity duration-700 sm:bottom-[2.2rem]"
+        style={{ opacity: opened ? 1 : 0 }}
+      >
         <p
           className="m-0 font-display text-[1.12rem] font-medium italic leading-[1.15] tracking-[-0.02em] sm:text-[clamp(1.25rem,3vw,2rem)]"
           style={{ textShadow: "0 2px 18px rgba(0,0,0,.75)" }}
@@ -195,12 +224,19 @@ export function FilmDeck() {
         type="button"
         onClick={togglePause}
         aria-label={paused ? "Play films" : "Pause films"}
-        className="fixed bottom-[1.15rem] right-[0.85rem] z-[80] grid h-[2.35rem] w-[2.35rem] place-items-center rounded-full border border-[rgba(201,162,74,.55)] bg-[rgba(5,5,5,.4)] text-[0.68rem] text-[var(--ivory)] transition-colors hover:border-[var(--gold)] motion-reduce:hidden sm:bottom-[2.2rem] sm:right-5"
+        className="fixed bottom-[1.15rem] right-[0.85rem] z-[80] grid h-[2.35rem] w-[2.35rem] place-items-center rounded-full border border-[rgba(201,162,74,.55)] bg-[rgba(5,5,5,.4)] text-[0.68rem] text-[var(--ivory)] transition-all duration-700 hover:border-[var(--gold)] motion-reduce:hidden sm:bottom-[2.2rem] sm:right-5"
+        style={{
+          opacity: opened ? 1 : 0,
+          pointerEvents: opened ? "auto" : "none",
+        }}
       >
         {paused ? "▶" : "II"}
       </button>
 
-      <p className="fixed bottom-[0.55rem] left-[1.1rem] z-[80] hidden text-[0.62rem] tracking-[0.06em] text-[rgba(229,226,225,.42)] sm:block">
+      <p
+        className="fixed bottom-[0.55rem] left-[1.1rem] z-[80] hidden text-[0.62rem] tracking-[0.06em] text-[rgba(229,226,225,.42)] transition-opacity duration-700 sm:block"
+        style={{ opacity: opened ? 1 : 0 }}
+      >
         <Link href="/privacy" className="text-inherit transition-colors hover:text-[var(--gold)]">
           Privacy
         </Link>
@@ -209,6 +245,39 @@ export function FilmDeck() {
           Terms
         </Link>
       </p>
+
+      {/* The gate. Removed from the tree once it's faded, so it can't trap
+          focus or intercept clicks. */}
+      {!gateGone && (
+        <div
+          onClick={openHouse}
+          role="button"
+          tabIndex={0}
+          aria-label="Step inside"
+          className={`home-gate fixed inset-0 z-[100] grid cursor-pointer place-items-center text-center ${
+            opened ? "is-out" : ""
+          }`}
+          style={{
+            pointerEvents: opened ? "none" : "auto",
+          }}
+        >
+          <span aria-hidden className="home-gate-leaf home-gate-leaf-left" />
+          <span aria-hidden className="home-gate-leaf home-gate-leaf-right" />
+
+          <div className="home-gate-mark relative z-[2] px-5">
+            <Image
+              src="/images/brand/logo.png"
+              alt="Sweet1NE"
+              width={268}
+              height={268}
+              priority
+              className="mx-auto h-auto w-[min(58vw,268px)]"
+            />
+            <hr aria-hidden />
+            <p>Always in the mood for you.</p>
+          </div>
+        </div>
+      )}
     </>
   );
 }

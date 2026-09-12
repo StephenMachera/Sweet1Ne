@@ -71,7 +71,7 @@ export function StoryJump() {
     <nav
       ref={barRef}
       aria-label="The journey"
-      className="sticky top-[3.7rem] z-30 flex gap-[1.15rem] overflow-x-auto border-b border-[rgba(201,162,74,.14)] bg-[#050505] px-[1.15rem] py-[0.7rem] sm:top-[4.15rem] sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="story-jump sticky top-[3.7rem] z-30 grid grid-cols-3 border-b border-[rgba(201,162,74,.14)] bg-[#050505] sm:top-[4.15rem]"
     >
       {STOPS.map((stop) => {
         const isOn = current === stop.id;
@@ -82,9 +82,9 @@ export function StoryJump() {
             type="button"
             onClick={() => jumpTo(stop.id)}
             aria-current={isOn ? "location" : undefined}
-            className={`shrink-0 whitespace-nowrap text-[0.68rem] uppercase tracking-[0.16em] transition-colors ${
+            className={`min-w-0 px-[0.4rem] py-[0.95rem] text-center text-[0.68rem] uppercase tracking-[0.14em] transition-colors sm:py-[0.85rem] ${
               isOn
-                ? "text-[var(--gold)]"
+                ? "text-[var(--gold)] shadow-[inset_0_-2px_0_var(--gold)]"
                 : "text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
             }`}
           >

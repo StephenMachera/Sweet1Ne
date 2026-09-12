@@ -55,12 +55,12 @@ export function StoryBeats() {
           className="py-0"
         >
           <div
-            className={`grid w-full items-center gap-0 ${
+            className={`story-beat-inner grid w-full items-center gap-0 ${
               beat.flip ? "lg:grid-cols-[0.8fr_1.2fr]" : "lg:grid-cols-[1.2fr_0.8fr]"
             }`}
           >
             <figure
-              className={`relative z-10 m-0 aspect-[20/9] w-full bg-[#161412] ${
+              className={`story-stage relative z-10 m-0 w-full overflow-hidden bg-[#0a0a0a] ${
                 beat.flip ? "lg:order-2" : ""
               }`}
             >
@@ -73,7 +73,7 @@ export function StoryBeats() {
               />
             </figure>
 
-            <div className={`px-[1.15rem] sm:px-6 lg:px-[8vw] ${beat.flip ? "lg:order-1" : ""}`}>
+            <div className={`story-copy px-[1.15rem] py-[1.35rem] sm:px-6 lg:px-[8vw] ${beat.flip ? "lg:order-1" : ""}`}>
               <p className="mb-3 text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
                 {beat.kicker}
               </p>
