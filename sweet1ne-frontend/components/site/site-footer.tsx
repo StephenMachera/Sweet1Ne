@@ -56,7 +56,7 @@ export function SiteFooter() {
         ))}
       </div>
 
-      <p className="mt-6 text-[0.62rem] uppercase tracking-[0.18em] text-[rgba(229,226,225,.38)]">
+      <p className="mt-6 text-[0.50rem] uppercase tracking-[0.18em] text-[rgba(229,226,225,.38)]">
         This website is powered by
       </p>
       <p className="mt-1 font-display text-[0.75rem] italic text-[var(--gold)]">
