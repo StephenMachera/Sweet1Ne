@@ -191,32 +191,34 @@ export function OrderChoice() {
         hidden={chosen === null}
         className="mx-auto max-w-[40rem] scroll-mt-28 px-[1.15rem] pb-12 text-center sm:px-6"
       >
-        <p className="mb-5 text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
-          Which restaurant?
-        </p>
+        {chosen === "away" ? (
+          <p className="text-[1.15rem] text-[var(--ivory-dim)]">
+            This service is currently unavailable.
+          </p>
+        ) : (
+          <>
+            <p className="mb-5 text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
+              Which restaurant?
+            </p>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-          {LOCATIONS.map((location) => (
-            <button
-              key={location.slug}
-              type="button"
-              onClick={() => chooseBranch(location.slug)}
-              className="flex-1 border border-[rgba(201,162,74,.45)] px-6 py-5 font-display text-[1.25rem] font-medium transition-colors hover:border-[var(--gold)] hover:bg-[var(--gold)] hover:text-[#0e0e0e]"
-              style={{ borderRadius: "4px" }}
-            >
-              {location.shortName}
-              <small className="mt-1 block text-[0.66rem] font-normal uppercase tracking-[0.14em] opacity-70">
-                {/* The second line changes with the path — same card, the
-                    context it's in decides what it says. */}
-                {chosen === "away"
-                  ? "Collection"
-                  : location.slug === "lewisham"
-                    ? "Flagship"
-                    : location.area}
-              </small>
-            </button>
-          ))}
-        </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+              {LOCATIONS.map((location) => (
+                <button
+                  key={location.slug}
+                  type="button"
+                  onClick={() => chooseBranch(location.slug)}
+                  className="flex-1 border border-[rgba(201,162,74,.45)] px-6 py-5 font-display text-[1.25rem] font-medium transition-colors hover:border-[var(--gold)] hover:bg-[var(--gold)] hover:text-[#0e0e0e]"
+                  style={{ borderRadius: "4px" }}
+                >
+                  {location.shortName}
+                  <small className="mt-1 block text-[0.66rem] font-normal uppercase tracking-[0.14em] opacity-70">
+                    {location.slug === "lewisham" ? "Flagship" : location.area}
+                  </small>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       {/* The newsletter, which lost its home when the footer changed. */}
