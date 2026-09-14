@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
-import { FilmDeck } from "@/components/site/film-deck";
+import { HomeShell } from "@/components/site/home-shell";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "Sweet1NE — Lewisham & Chingford",
+    absolute: "Sweet1NE — Elevated Afro-Caribbean Fusion, London",
   },
-  description: "Always in the mood for you. Lewisham and Chingford.",
+  description:
+    "A culinary adventure for all the senses. African, Caribbean and American soul food, at Lewisham and Chingford.",
 };
 
 export default function HomePage() {
-  return <FilmDeck />;
+  return <HomeShell />;
 }

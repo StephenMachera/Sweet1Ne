@@ -20,6 +20,7 @@ const NAV = [
 export function SiteHeader() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
+  const [isPage, setIsPage] = useState(false);
   const [open, setOpen] = useState(false);
 
   // Transparent over the film, solid past it.
@@ -29,6 +30,21 @@ export function SiteHeader() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    if (pathname !== "/") return;
+
+    const cinema = document.querySelector("[data-cinema]");
+    if (!cinema || !("IntersectionObserver" in window)) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsPage(!entry.isIntersecting),
+      { threshold: 0.48 }
+    );
+    observer.observe(cinema);
+
+    return () => observer.disconnect();
+  }, [pathname]);
 
   // Close on navigation.
   useEffect(() => {
@@ -61,13 +77,17 @@ export function SiteHeader() {
       {/* z-[70] puts the header above the mobile takeover, so the logo and
           close button stay visible over it. */}
       <header
-        className={`fixed inset-x-0 top-0 z-[70] transition-colors duration-500 ${
-          overFilm || isHome
-            ? `border-b-0${overFilm ? "" : " bg-[#0e0e0e]/95 backdrop-blur"}`
-            : "border-b border-[var(--hairline-faint)] bg-[#0e0e0e]/95 backdrop-blur"
+        className={`site-header fixed inset-x-0 top-0 z-[70] transition-colors duration-500 ${
+          isHome ? "is-home" : ""
+        } ${
+          isHome && isPage
+            ? "is-page border-b-0 bg-[#050505]"
+            : overFilm || isHome
+              ? "border-b-0"
+              : "border-b border-[var(--hairline-faint)] bg-[#0e0e0e]/95 backdrop-blur"
         }`}
         style={
-          overFilm
+          overFilm && !isPage
             ? {
                 // A scrim rather than a solid bar — keeps the nav legible
                 // over a bright frame without dimming the film itself.

@@ -56,10 +56,10 @@ export function SiteFooter() {
         ))}
       </div>
 
-      <p className="mt-6 text-[0.45rem] uppercase tracking-[0.18em] text-[rgba(229,226,225,.38)]">
+      <p className="mt-5 text-[0.4rem] uppercase tracking-[0.16em] text-[rgba(229,226,225,.22)]">
         This website is powered by
       </p>
-       <p className="mt-6 text-[0.45rem] uppercase tracking-[0.18em] text-[rgba(229,226,225,.38)]">
+      <p className="mt-1 text-[0.4rem] uppercase tracking-[0.16em] text-[rgba(229,226,225,.22)]">
         Global Solutions x Spectre Limited
       </p>
     </footer>

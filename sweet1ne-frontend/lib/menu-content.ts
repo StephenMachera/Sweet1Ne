@@ -38,8 +38,7 @@ export const MENU: Chapter[] = [
   {
     id: "starters",
     kicker: "Starters",
-    heading: "The first bite.",
-    lede: "Small plates. Afro-Caribbean heat, London table.",
+    heading: "Small plates.",
     mark: `${PHOTO}/photo-starters.jpg`,
     markPosition: "48% 38%",
     dishes: [
@@ -195,7 +194,7 @@ export const MENU: Chapter[] = [
     kicker: "Pasta",
     heading: "Jerk in the cream.",
     lede: "Rasta pasta — the kitchen's own fusion, not for show.",
-    mark: `${PHOTO}/photo-pasta.jpg`,
+    mark: `${PHOTO}/photo-pasta-prawns.jpg`,
     markPosition: "50% 46%",
     dishes: [
       {
