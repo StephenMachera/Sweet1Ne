@@ -45,15 +45,13 @@ function VenueCard({ venue }: { venue: Venue }) {
           />
 
           <div className="stage-copy absolute inset-x-0 bottom-0 z-[1] px-[1.15rem] pb-[1.35rem] pt-5 sm:px-6">
-            <p className="mb-1.5 text-[0.66rem] uppercase tracking-[0.18em] text-[var(--gold)]">
+            <p className="mb-1.5 max-w-[22rem] text-[0.66rem] uppercase tracking-[0.18em] text-[var(--gold)]">
               {venue.kicker}
             </p>
 
-            <h2 className="mb-1 font-display text-[clamp(1.9rem,4vw,2.7rem)] font-medium leading-none tracking-[-0.02em]">
+            <h2 className="font-display text-[clamp(2.2rem,8vw,3.6rem)] font-medium leading-none tracking-[-0.02em] [text-shadow:0_2px_18px_rgba(0,0,0,0.65)]">
               {venue.name}
             </h2>
-
-            <p className="text-[0.92rem] text-[var(--ivory-dim)]">{venue.tagline}</p>
           </div>
         </div>
 
@@ -103,7 +101,7 @@ function VenueCard({ venue }: { venue: Venue }) {
 
               return (
                 <div key={row.days} className="contents">
-                  <dt className="text-[0.68rem] uppercase tracking-[0.12em] text-[var(--gold)]">
+                  <dt className="whitespace-nowrap text-[0.68rem] font-medium text-[var(--ivory)]">
                     {row.days}
                   </dt>
                   <dd
@@ -120,7 +118,7 @@ function VenueCard({ venue }: { venue: Venue }) {
             {venue.chips.map((chip) => (
               <li
                 key={chip}
-                className="border border-[rgba(229,226,225,.18)] px-2 py-1 text-[0.64rem] uppercase tracking-[0.12em] text-[var(--ivory-dim)]"
+                className="border border-[rgba(201,162,74,.28)] px-2 py-1 text-[0.64rem] uppercase tracking-[0.12em] text-[var(--ivory-dim)]"
               >
                 {chip}
               </li>

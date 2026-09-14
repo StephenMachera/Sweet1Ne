@@ -107,7 +107,7 @@ export function ContactRooms() {
   return (
     <div
       aria-label="How to reach each room"
-      className="relative flex min-h-0 flex-col gap-[5px] bg-black pb-[0.8rem] md:flex-row md:gap-[5px] md:pb-[0.8rem]"
+      className="deck relative flex min-h-0 flex-col gap-[5px] bg-black md:flex-row md:gap-[5px]"
     >
       {ROOMS.map((room, i) => {
         const isLead = lead === room.id;
@@ -124,7 +124,7 @@ export function ContactRooms() {
             // panel has no content height of its own and collapses to
             // nothing. The flex sizing only applies once they sit side by
             // side, which is also the only place hover-to-lead exists.
-            className="panel relative min-h-[26rem] min-w-0 overflow-hidden bg-black md:min-h-[36rem] md:shrink md:basis-0 md:[flex-grow:var(--grow)] md:transition-[flex-grow] md:duration-[850ms] md:ease-[cubic-bezier(0.4,0,0.2,1)]"
+            className="panel relative min-h-[28rem] min-w-0 overflow-hidden bg-black md:min-h-[36rem] md:shrink md:basis-0 md:[flex-grow:var(--grow)] md:transition-[flex-grow] md:duration-[850ms] md:ease-[cubic-bezier(0.4,0,0.2,1)]"
             // flex-grow as a number rather than the `flex` shorthand — it
             // interpolates reliably, where the shorthand doesn't.
             style={{ "--grow": isLead ? 1.4 : 0.8 } as React.CSSProperties}
@@ -151,7 +151,7 @@ export function ContactRooms() {
               // applies where the panels sit side by side. On a phone
               // there's no hover — Chingford would just be permanently
               // darker than Lewisham for no reason the visitor can see.
-              className="film absolute inset-0 h-full w-full scale-[1.04] object-cover [filter:brightness(0.5)_saturate(0.9)] md:[filter:var(--film)] md:transition-[filter] md:duration-[850ms] md:ease-out"
+              className="film absolute inset-0 h-full w-full max-w-none scale-[1.04] object-cover [filter:brightness(0.42)_saturate(0.88)] md:[filter:var(--film)] md:transition-[filter] md:duration-[850ms] md:ease-out"
               style={
                 {
                   "--film": isLead
@@ -165,12 +165,12 @@ export function ContactRooms() {
               className="shade absolute inset-0"
               style={{
                 background:
-                  "linear-gradient(to top, rgba(5,5,5,.92) 0%, rgba(5,5,5,.35) 55%, rgba(5,5,5,.15) 100%)",
+                  "linear-gradient(to top, rgba(5,5,5,.94) 0%, rgba(5,5,5,.62) 38%, rgba(5,5,5,.34) 72%, rgba(5,5,5,.45) 100%)",
               }}
             />
 
-            <div className="card relative z-[2] px-[1.05rem] pb-[1.35rem] pt-[6.5rem] sm:px-[1.4rem] sm:pb-[1.45rem] sm:pt-[7.5rem]">
-              <p className="mb-1.5 text-[0.66rem] uppercase tracking-[0.18em] text-[var(--gold)]">
+            <div className="card relative z-[2] px-[1.15rem] pb-[1.4rem] pt-[7.2rem] text-shadow-[0_2px_16px_rgba(0,0,0,0.55)] max-[720px]:px-[1.05rem] max-[720px]:pb-[1.35rem] max-[720px]:pt-[6.5rem] sm:px-[1.4rem] sm:pb-[1.45rem] sm:pt-[7.5rem]">
+              <p className="kicker mb-[0.35rem] text-[0.66rem] uppercase tracking-[0.18em] text-[var(--gold)]">
                 {room.kicker}
               </p>
 

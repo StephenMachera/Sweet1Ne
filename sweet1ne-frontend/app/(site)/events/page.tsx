@@ -12,11 +12,11 @@ export const metadata: Metadata = {
 
 export default function EventsPage() {
   return (
-    <>
+    <div className="events-page bg-black">
       <EventsHero />
       <EventsPaths />
       <EventsNext />
       <SiteFooter />
-    </>
+    </div>
   );
 }

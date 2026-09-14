@@ -18,6 +18,14 @@ export function CourseNav() {
 
   const courses = MENU.filter((chapter) => COURSES.includes(chapter.id));
 
+  function jumpTo(id: string) {
+    const target = document.getElementById(id);
+    if (!target) return;
+
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.history.replaceState(null, "", `#${id}`);
+  }
+
   useEffect(() => {
     // The band either side means a chapter counts as current only once it's
     // genuinely occupying the middle of the screen.
@@ -54,11 +62,11 @@ export function CourseNav() {
   }, [active]);
 
   return (
-    <div className="sticky top-[3.7rem] z-40 border-b border-[rgba(201,162,74,.14)] bg-[#050505] pb-[0.45rem] pt-[0.55rem] sm:top-[4.15rem]">
+    <div className="courses-wrap">
       <nav
         ref={railRef}
         aria-label="Courses"
-        className="flex gap-3 overflow-x-auto px-[1.15rem] pb-[0.15rem] pt-[0.35rem] sm:gap-4 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="courses"
       >
         {courses.map((chapter) => {
           const isActive = active === chapter.id;
@@ -68,18 +76,13 @@ export function CourseNav() {
               key={chapter.id}
               href={`#${chapter.id}`}
               data-course={chapter.id}
-              className={`w-[4.7rem] shrink-0 text-center text-[0.58rem] uppercase tracking-[0.14em] transition-colors sm:w-[5.8rem] ${
-                isActive ? "text-[var(--gold)]" : "text-[var(--ivory-dim)]"
-              }`}
+              onClick={(event) => {
+                event.preventDefault();
+                jumpTo(chapter.id);
+              }}
+              className={`course course-${chapter.id} ${isActive ? "is-on" : ""}`}
             >
-              <span
-                className="relative mx-auto mb-2 block aspect-square w-full overflow-hidden rounded-full bg-[#111] transition-shadow duration-500"
-                style={{
-                  boxShadow: isActive
-                    ? "0 0 0 2px var(--gold)"
-                    : "0 0 0 1px rgba(201,162,74,.38)",
-                }}
-              >
+              <span className="disc">
                 {chapter.mark && (
                   <Image
                     src={chapter.mark}
@@ -101,12 +104,24 @@ export function CourseNav() {
         })}
       </nav>
 
-      <p className="mx-[1.15rem] mt-[0.15rem] text-[0.7rem] uppercase tracking-[0.14em] text-[var(--ivory-dim)] sm:mx-6">
-        <Link href="#sides" className="text-[var(--ivory-dim)] transition-colors hover:text-[var(--gold)]">
+      <p className="course-more">
+        <Link
+          href="#sides"
+          onClick={(event) => {
+            event.preventDefault();
+            jumpTo("sides");
+          }}
+        >
           Sides
         </Link>
         {" · "}
-        <Link href="#kids" className="text-[var(--ivory-dim)] transition-colors hover:text-[var(--gold)]">
+        <Link
+          href="#kids"
+          onClick={(event) => {
+            event.preventDefault();
+            jumpTo("kids");
+          }}
+        >
           Kids
         </Link>
       </p>

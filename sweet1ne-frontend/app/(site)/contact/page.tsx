@@ -11,27 +11,12 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
   return (
-    <>
-      <section className="w-full px-[1.15rem] pb-[1.15rem] pt-[5.4rem] text-left sm:px-6 sm:pt-[5.8rem]">
-        <p className="mb-[0.55rem] text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
-          Contact
-        </p>
-
-        <h1 className="mb-[0.65rem] font-display text-[clamp(2.2rem,6vw,3.9rem)] font-medium leading-[1.04] tracking-[-0.02em]">
-          Ring us, write.
-        </h1>
-
-        <p className="max-w-[40rem] text-[1.02rem] text-[var(--ivory-dim)]">
-          The phone is quickest during opening hours. Hire, press, or a
-          question — the form reaches the same people.
-        </p>
-      </section>
-
+    <div className="contact-page bg-black">
       <ContactRooms />
 
       <section
         id="write"
-        className="mx-auto max-w-[40rem] scroll-mt-28 px-[1.15rem] py-8 sm:px-6 sm:py-[2.6rem]"
+        className="write mx-auto max-w-[40rem] scroll-mt-28 px-[1.15rem] pb-[3.2rem] pt-8 sm:px-6 sm:pb-[3.6rem] sm:pt-[2.6rem]"
       >
         <p className="mb-[0.55rem] text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
           Write
@@ -41,9 +26,9 @@ export default function ContactPage() {
           Send a message.
         </h2>
 
-        <p className="mb-4 max-w-[36rem] text-[var(--ivory-dim)]">
-          Private hire, press, or a question about the menu. It reaches the same
-          people.
+        <p className="mb-[0.85rem] max-w-[28rem] text-[var(--ivory-dim)]">
+          Private hire, press, or a question about the menu. It reaches the
+          same people.
         </p>
 
         
@@ -56,13 +41,13 @@ export default function ContactPage() {
         <ContactForm />
       </section>
 
-      <section className="px-[1.15rem] pb-12 pt-4 text-center sm:px-6">
+      <section className="mood px-[1.15rem] pb-16 pt-6 text-center sm:px-6">
         <p className="font-display text-[clamp(1.4rem,3vw,2rem)] italic">
           Always in the mood for you.
         </p>
       </section>
 
       <SiteFooter />
-    </>
+    </div>
   );
 }

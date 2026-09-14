@@ -8,13 +8,12 @@ import { Menu, X } from "lucide-react";
 import { openBookingModal } from "./booking-modal";
 
 const NAV = [
-  { href: "/menu", label: "Menu" },
-  { href: "/order", label: "Order" },
-  { href: "/story", label: "Our Story" },
-  // The route stays /locations; only the label changed.
-  { href: "/locations", label: "Find Us" },
-  { href: "/events", label: "Events" },
-  { href: "/contact", label: "Contact" },
+  { href: "/menu", label: "MENU" },
+  { href: "/order", label: "ORDER" },
+  { href: "/story", label: "OUR STORY" },
+  { href: "/events", label: "EVENTS" },
+  { href: "/locations", label: "FIND US" },
+  { href: "/contact", label: "CONTACT" },
 ];
 
 export function SiteHeader() {
@@ -46,11 +45,6 @@ export function SiteHeader() {
     return () => observer.disconnect();
   }, [pathname]);
 
-  // Close on navigation.
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
-
   // Stop the page scrolling behind the takeover.
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -71,34 +65,43 @@ export function SiteHeader() {
 
   const overFilm = !scrolled && !open;
   const isHome = pathname === "/";
+  const isMenu = pathname === "/menu";
+  const isEvents = pathname === "/events";
+  const isContact = pathname === "/contact";
 
   return (
     <>
       {/* z-[70] puts the header above the mobile takeover, so the logo and
           close button stay visible over it. */}
       <header
-        className={`site-header fixed inset-x-0 top-0 z-[70] transition-colors duration-500 ${
-          isHome ? "is-home" : ""
+        className={`site-header fixed inset-x-0 top-0 z-[70] font-body transition-colors duration-500 ${
+          isHome ? "is-home" : "is-page"
         } ${
           isHome && isPage
             ? "is-page border-b-0 bg-[#050505]"
-            : overFilm || isHome
+            : isHome && !isPage
               ? "border-b-0"
-              : "border-b border-[var(--hairline-faint)] bg-[#0e0e0e]/95 backdrop-blur"
+              : "border-b border-[rgba(201,162,74,.14)] bg-[#050505]/96 backdrop-blur"
         }`}
         style={
-          overFilm && !isPage
+          overFilm && !isPage && !isMenu && !isEvents && !isContact
             ? {
                 // A scrim rather than a solid bar — keeps the nav legible
                 // over a bright frame without dimming the film itself.
                 background:
                   "linear-gradient(to bottom, rgba(14,14,14,.72), transparent)",
               }
-            : undefined
+            : isMenu || isEvents || isContact
+              ? { background: "#000" }
+              : undefined
         }
       >
         <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-5 py-4 sm:px-8 lg:px-12">
-          <Link href="/" className="relative block h-11 w-16 shrink-0 sm:h-12 sm:w-[72px]">
+          <Link
+            href="/"
+            onClick={() => setOpen(false)}
+            className="relative block h-11 w-16 shrink-0 sm:h-12 sm:w-[72px]"
+          >
             <Image
               src="/images/brand/logo.png"
               alt="Sweet1NE"
@@ -115,6 +118,7 @@ export function SiteHeader() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setOpen(false)}
                 className={`text-sm transition-colors ${
                   pathname === item.href
                     ? "text-[var(--gold)]"
@@ -135,7 +139,7 @@ export function SiteHeader() {
             <button
               type="button"
               onClick={openBookingModal}
-              className="border border-[var(--gold)] px-5 py-3 text-[13px] font-semibold text-[var(--gold)] transition-colors hover:bg-[var(--gold)] hover:text-[#0e0e0e] sm:px-6 sm:text-sm"
+              className="border border-[rgba(201,162,74,.9)] px-5 py-3 text-[13px] font-semibold text-[var(--gold)] transition-colors hover:bg-[var(--gold)] hover:text-[#0e0e0e] sm:px-6 sm:text-sm"
               style={{ borderRadius: "4px" }}
             >
               Book
@@ -162,7 +166,7 @@ export function SiteHeader() {
       {/* Full-screen takeover. Stays mounted so it can fade out as well as
           in — a component that unmounts can't animate its exit. */}
       <div
-        className={`fixed inset-0 z-50 bg-[#0e0e0e] transition-opacity duration-500 lg:hidden ${
+        className={`fixed inset-0 z-50 ${isHome || isMenu || isEvents || isContact ? "bg-black" : "bg-[#0e0e0e]"} transition-opacity duration-500 lg:hidden ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       >
@@ -173,6 +177,7 @@ export function SiteHeader() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setOpen(false)}
               className={`border-b border-white/[0.06] py-4 font-display text-[2rem] leading-tight transition-all duration-500 last:border-0 ${
                 pathname === item.href ? "text-[var(--gold)]" : "text-[var(--ivory)]"
               } ${open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}

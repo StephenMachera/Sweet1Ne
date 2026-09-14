@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function FindUsPage() {
   return (
-    <>
+    <div className="find-us-page bg-black">
       <VenueJump />
       <VenueCards />
 
@@ -22,6 +22,6 @@ export default function FindUsPage() {
       </section>
 
       <SiteFooter />
-    </>
+    </div>
   );
 }

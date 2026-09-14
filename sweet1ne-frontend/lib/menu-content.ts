@@ -198,21 +198,21 @@ export const MENU: Chapter[] = [
     markPosition: "50% 46%",
     dishes: [
       {
+        name: "Chef's Special — Prawns & Chicken",
+        price: "£28.00",
+        description: "Prawns, jerk chicken, smoked turkey sausage.",
+        featured: true,
+        image: `${PHOTO}/photo-pasta-prawns.jpg`,
+      },
+      {
         name: "Rasta Pasta — Jerk Chicken",
         price: "£18.50",
         description: "Creamy penne, peppers, jerk chicken, garlic bread.",
-        featured: true,
-        image: `${PHOTO}/photo-pasta.jpg`,
       },
       {
         name: "Lobster Tail Pasta",
         price: "£35.50",
         description: "Jerk-spiced cream, micro coriander.",
-      },
-      {
-        name: "Chef's Special — Prawns & Chicken",
-        price: "£28.00",
-        description: "Prawns, jerk chicken, smoked turkey sausage.",
       },
       {
         name: "Seafood Linguine",

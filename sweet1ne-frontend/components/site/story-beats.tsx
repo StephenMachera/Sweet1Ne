@@ -16,7 +16,7 @@ const BEATS: Beat[] = [
     id: "fairlop",
     kicker: "2019 · Fairlop",
     heading: "The first table.",
-    body: "A small restaurant and takeaway in Ilford. The kitchen that started everything — plates meant to be shared, a room that wasn't yet the flagship.",
+    body: "A small restaurant and takeaway in Ilford. The kitchen that started everything — plates meant to be shared.",
     image: "/images/homepage-gallery/story/vignette-fairlop.jpg",
     alt: "The first room in Fairlop, drawn",
   },
@@ -24,7 +24,7 @@ const BEATS: Beat[] = [
     id: "lewisham",
     kicker: "2023 · Flagship",
     heading: "The flagship.",
-    body: "The food had outgrown the first room. Lewisham became the flagship restaurant — operating since 2019. A table for people you actually want to eat with.",
+    body: "The food had outgrown Fairlop. Lewisham became the flagship restaurant — operating since 2019.",
     image: "/images/homepage-gallery/story/vignette-lewisham.jpg",
     alt: "Lewisham flagship restaurant, drawn — navy booths, blossom, gold slats",
     flip: true,
@@ -32,8 +32,8 @@ const BEATS: Beat[] = [
   {
     id: "chingford",
     kicker: "2025 · Chingford",
-    heading: "Closer to home.",
-    body: "East London again. A second room, nearer where it began. Circular mirrors, a peach banquette, teal chairs. The path was never a straight line.",
+    heading: "",
+    body: "",
     image: "/images/homepage-gallery/story/vignette-chingford.jpg",
     alt: "Chingford room, drawn — teal chairs, circular mirrors",
   },
@@ -52,11 +52,15 @@ export function StoryBeats() {
           key={beat.id}
           id={beat.id}
           data-stop={beat.id}
-          className="py-0"
+          className={`beat py-0 ${beat.flip ? "flip" : ""} ${beat.id === "chingford" ? "is-quiet" : ""}`}
         >
           <div
             className={`story-beat-inner grid w-full items-center gap-0 ${
-              beat.flip ? "lg:grid-cols-[0.8fr_1.2fr]" : "lg:grid-cols-[1.2fr_0.8fr]"
+              beat.id === "chingford"
+                ? ""
+                : beat.flip
+                  ? "lg:grid-cols-[0.8fr_1.2fr]"
+                  : "lg:grid-cols-[1.2fr_0.8fr]"
             }`}
           >
             <figure
@@ -74,15 +78,17 @@ export function StoryBeats() {
             </figure>
 
             <div className={`story-copy px-[1.15rem] py-[1.35rem] sm:px-6 lg:px-[8vw] ${beat.flip ? "lg:order-1" : ""}`}>
-              <p className="mb-3 text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
+              <p className="mb-3 text-[0.72rem] uppercase tracking-[0.2em] text-[var(--grey)]">
                 {beat.kicker}
               </p>
 
-              <h2 className="mb-3.5 font-display text-[clamp(1.9rem,4vw,3rem)] font-medium leading-[1.12] tracking-[-0.02em]">
-                {beat.heading}
-              </h2>
+              {beat.heading && (
+                <h2 className="mb-3.5 font-display text-[clamp(1.9rem,4vw,3rem)] font-medium leading-[1.12] tracking-[-0.02em]">
+                  {beat.heading}
+                </h2>
+              )}
 
-              <p className="text-[var(--ivory-dim)]">{beat.body}</p>
+              {beat.body && <p className="text-[var(--ivory-dim)]">{beat.body}</p>}
             </div>
           </div>
         </article>

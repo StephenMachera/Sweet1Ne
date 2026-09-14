@@ -15,14 +15,20 @@
   position: relative;
 }
 
+/* `clip`, never `hidden`, on html/body/page wrappers. A non-visible
+   overflow on one axis forces the other to `auto`, which turns the element
+   into a scroll container — and `position: sticky` then anchors to it
+   rather than the viewport, so nothing on the site can stick (the menu's
+   course nav was the first casualty). `clip` cuts off sideways overflow
+   without creating a scroll container. */
 html {
   scroll-behavior: smooth;
-  overflow-x: hidden;
+  overflow-x: clip;
   scroll-padding-top: 4.6rem;
 }
 
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body.is-gated {
@@ -32,6 +38,11 @@ body.is-gated {
 
 .site-header.is-home.is-page {
   background: #050505;
+}
+
+.site-header.is-page {
+  border-bottom: 1px solid rgba(201, 162, 74, 0.14);
+  background: rgba(5, 5, 5, 0.96);
 }
 
 .site-header,
@@ -77,8 +88,459 @@ body.is-gated .pause {
   font-family: var(--font-body), system-ui, sans-serif;
 }
 
+.menu-page {
+  --bg: #000;
+  background: #000;
+}
+
+.home-page {
+  background: #000;
+}
+
+.events-page > footer {
+  border-top-color: rgba(107, 127, 94, 0.72);
+}
+
+.menu-page .hero {
+  position: relative;
+  height: 100svh;
+  display: grid;
+  overflow: hidden;
+  background: #000;
+}
+
+.menu-page .hero-frame {
+  position: absolute;
+  inset: 0;
+}
+
+.menu-page .hero-media {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: 64% 28%;
+}
+
+.menu-page .hero-veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(5, 5, 5, 0.92) 0%, rgba(5, 5, 5, 0.18) 46%, rgba(5, 5, 5, 0.4) 100%);
+}
+
+.menu-page .hero-desktop-fade {
+  display: none;
+}
+
+.menu-page .hero-copy {
+  position: relative;
+  z-index: 1;
+  align-self: end;
+  padding: 0 1.5rem 3.2rem;
+  max-width: 38rem;
+}
+
+.menu-page .hero h1 {
+  margin: 0 0 0.85rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(2.6rem, 7vw, 4.6rem);
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.65);
+}
+
+.menu-page .hero .dek {
+  max-width: 26rem;
+  margin: 0 0 1.2rem;
+  color: var(--ivory-dim);
+}
+
+.menu-page .ghost {
+  padding-bottom: 0.12rem;
+  border-bottom: 1px solid rgba(201, 162, 74, 0.7);
+  color: var(--ivory);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.menu-page .courses-wrap {
+  position: sticky;
+  top: 4.15rem;
+  z-index: 40;
+  padding: 0.55rem 0 0.45rem;
+  border-bottom: 1px solid rgba(201, 162, 74, 0.14);
+  background: #000;
+}
+
+.menu-page .courses {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 0.35rem 1.5rem 0.15rem;
+  scrollbar-width: none;
+}
+
+.menu-page .courses::-webkit-scrollbar {
+  display: none;
+}
+
+.menu-page .course {
+  flex: 0 0 auto;
+  width: 5.8rem;
+  color: var(--ivory-dim);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.menu-page .course .disc {
+  /* The photo inside is a Next <Image fill>, which is position: absolute.
+     Without this it anchors to the sticky wrap instead — sticky counts as
+     positioned — and every emblem's photo paints over the whole bar. */
+  position: relative;
+  display: block;
+  width: 5.8rem;
+  aspect-ratio: 1;
+  margin: 0 auto 0.5rem;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #111;
+  box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.38);
+}
+
+.menu-page .course.is-on {
+  color: var(--gold);
+}
+
+.menu-page .course.is-on .disc {
+  box-shadow: 0 0 0 2px var(--gold);
+}
+
+.menu-page .course img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.menu-page .course-starters img { object-position: 48% 38%; }
+.menu-page .course-mains img { object-position: 50% 48%; }
+.menu-page .course-pasta img { object-position: 50% 46%; }
+.menu-page .course-seafood img { object-position: 48% 55%; }
+.menu-page .course-desserts img { object-position: 40% 58%; }
+.menu-page .course-bar img { object-position: 50% 36%; }
+
+.menu-page .course-more {
+  margin: 0.15rem 1.5rem 0;
+  color: var(--ivory-dim);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.menu-page .course-more a {
+  color: var(--ivory-dim);
+}
+
+.menu-page .chapter {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 3.2rem 1.5rem 1.2rem;
+  scroll-margin-top: 13rem;
+}
+
+.menu-page .chapter-head {
+  display: grid;
+  gap: 1.25rem;
+  margin-bottom: 1.6rem;
+  align-items: center;
+}
+
+.menu-page .chapter-mark {
+  position: relative;
+  width: 8.6rem;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--gold);
+}
+
+.menu-page .chapter-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.menu-page .chapter h2 {
+  margin: 0 0 0.45rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.menu-page .chapter .lede {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--ivory-dim);
+}
+
+.menu-page .bleed {
+  max-height: 28rem;
+  margin: 0 0 1.6rem;
+  overflow: hidden;
+}
+
+.menu-page .bleed > div,
+.menu-page .bleed img {
+  width: 100%;
+  height: 28rem;
+  object-fit: cover;
+}
+
+.menu-page .bleed > div,
+.menu-page .shots > div,
+.menu-page .dish-image {
+  position: relative;
+}
+
+.menu-page .shots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+  margin: 0 0 1.6rem;
+}
+
+.menu-page .shots > div,
+.menu-page .shots img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+}
+
+.menu-page .list {
+  display: grid;
+  gap: 0;
+}
+
+.menu-page .dish {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.4rem 1rem;
+  padding: 1.05rem 0;
+  border-bottom: 1px solid rgba(229, 226, 225, 0.08);
+}
+
+.menu-page .dish h3 {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.menu-page .dish p {
+  margin: 0.25rem 0 0;
+  color: var(--ivory-dim);
+  font-size: 0.9rem;
+}
+
+.menu-page .dish .price {
+  margin: 0;
+  color: var(--gold);
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+
+.menu-page .dish.is-feat {
+  grid-column: 1 / -1;
+  grid-template-columns: 5.6rem 1fr auto;
+  gap: 1rem 1.1rem;
+  align-items: center;
+}
+
+.menu-page .dish-image {
+  width: 5.6rem;
+  height: 5.6rem;
+  overflow: hidden;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.4);
+}
+
+.menu-page .dish-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.menu-page .mid {
+  padding: 2.4rem 1.5rem 0.4rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.25rem;
+  font-style: italic;
+  text-align: center;
+}
+
+.menu-page .note {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 2rem;
+  color: var(--ivory-dim);
+  font-size: 0.82rem;
+}
+
+.menu-page .mood {
+  padding: 3.5rem 1.5rem 5rem;
+  border-bottom: 1px solid rgba(201, 162, 74, 0.42);
+  text-align: center;
+}
+
+.menu-page .slogan {
+  position: sticky;
+  top: 3.7rem;
+  z-index: 30;
+  background: #000;
+}
+
+.menu-page .mood p {
+  margin: 0 0 1.3rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-style: italic;
+}
+
+.menu-page .slogan-button {
+  display: inline-block;
+  padding: 0.65rem 1.15rem;
+  border: 1px solid rgba(201, 162, 74, 0.9);
+  border-radius: 3px;
+  color: var(--gold);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.menu-page .slogan-button:hover {
+  background: var(--gold);
+  color: #0e0e0e;
+}
+
+@media (min-width: 800px) {
+  .menu-page .chapter-head.has-mark {
+    grid-template-columns: 8.6rem 1fr;
+    gap: 2rem;
+  }
+}
+
+@media (min-width: 721px) {
+  .menu-page .slogan {
+    top: 4.15rem;
+  }
+}
+
+@media (min-width: 900px) {
+  .menu-page .hero {
+    grid-template-columns: minmax(22rem, 0.88fr) 1.12fr;
+    grid-template-rows: 1fr;
+  }
+
+  .menu-page .hero-frame {
+    position: relative;
+    inset: auto;
+    grid-column: 2;
+    grid-row: 1;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .menu-page .hero-desktop-fade {
+    position: absolute;
+    inset: 0;
+    display: block;
+    background: linear-gradient(to right, var(--bg) 0%, transparent 22%);
+    pointer-events: none;
+  }
+
+  .menu-page .hero-media {
+    object-position: 62% 18%;
+  }
+
+  .menu-page .hero-veil {
+    display: none;
+  }
+
+  .menu-page .hero-copy {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    max-width: 28rem;
+    padding: 5.5rem 2.2rem 2rem 2rem;
+  }
+
+  .menu-page .list {
+    grid-template-columns: 1fr 1fr;
+    column-gap: 2.5rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .menu-page .hero-copy {
+    padding: 0 1.15rem 2.2rem;
+  }
+
+  .menu-page .courses-wrap {
+    top: 3.7rem;
+  }
+
+  .menu-page .courses {
+    gap: 0.75rem;
+    padding-left: 1.15rem;
+  }
+
+  .menu-page .course,
+  .menu-page .course .disc {
+    width: 4.7rem;
+  }
+
+  .menu-page .course-more {
+    margin-left: 1.15rem;
+  }
+
+  .menu-page .chapter {
+    padding: 2.4rem 1.15rem 1rem;
+    scroll-margin-top: 12.2rem;
+  }
+
+  .menu-page .chapter-mark {
+    width: 6.4rem;
+  }
+
+  .menu-page .bleed > div,
+  .menu-page .bleed img {
+    height: 18rem;
+  }
+
+  .menu-page .shots {
+    gap: 0.35rem;
+  }
+
+  .menu-page .dish.is-feat {
+    grid-template-columns: 4.4rem 1fr auto;
+  }
+
+  .menu-page .dish-image {
+    width: 4.4rem;
+    height: 4.4rem;
+  }
+}
+
 .story-page {
-  overflow-x: hidden;
+  overflow-x: clip;
   scroll-padding-top: 8.2rem;
 }
 
@@ -101,6 +563,14 @@ body.is-gated .pause {
 
 .story-stage img {
   object-fit: cover;
+}
+
+.story-page .beat.is-quiet .story-beat-inner {
+  display: block;
+}
+
+.story-page .beat.is-quiet .story-copy {
+  padding: 1rem 1.15rem 2rem;
 }
 
 .story-beat-inner article[data-stop="fairlop"] .story-stage img,
@@ -141,12 +611,22 @@ body.is-gated .pause {
     max-height: 44rem;
   }
 
+  .story-page .beat.is-quiet .story-stage {
+    height: 58svh;
+    min-height: 28rem;
+    max-height: 44rem;
+  }
+
   .story-copy {
     display: flex;
     flex-direction: column;
     justify-content: center;
     padding-top: 2.4rem;
     padding-bottom: 2.4rem;
+  }
+
+  .story-page .beat.is-quiet .story-copy {
+    padding: 1.15rem 2rem 2.4rem;
   }
 
   .story-now {

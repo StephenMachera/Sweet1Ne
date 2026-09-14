@@ -16,7 +16,11 @@ const STOPS = [
  * on one or the other.
  */
 export function StoryJump() {
-  const [current, setCurrent] = useState(STOPS[0].id);
+  const [current, setCurrent] = useState(() => {
+    if (typeof window === "undefined") return STOPS[0].id;
+    const hash = window.location.hash.replace("#", "");
+    return STOPS.some((stop) => stop.id === hash) ? hash : STOPS[0].id;
+  });
   const barRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -43,7 +47,6 @@ export function StoryJump() {
     const hash = window.location.hash.replace("#", "");
     if (!hash || !document.getElementById(hash)) return;
 
-    setCurrent(hash);
     requestAnimationFrame(() => requestAnimationFrame(() => jumpTo(hash, false)));
   }, []);
 

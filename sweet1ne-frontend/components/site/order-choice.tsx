@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { QrScanner, scannerSupported } from "./qr-scanner";
@@ -39,15 +39,11 @@ export function OrderChoice() {
   const router = useRouter();
   const picksRef = useRef<HTMLElement>(null);
 
-  const [lead, setLead] = useState<Path | null>(null);
+  const [lead, setLead] = useState<Path | null>("here");
   const [chosen, setChosen] = useState<Path | null>(null);
   const [stage, setStage] = useState<Stage>("choosing");
   const [branchSlug, setBranchSlug] = useState<string | null>(null);
-  const [canScan, setCanScan] = useState(false);
-
-  useEffect(() => {
-    setCanScan(scannerSupported());
-  }, []);
+  const [canScan] = useState(scannerSupported);
 
   function choosePath(path: Path) {
     setLead(path);
@@ -109,17 +105,17 @@ export function OrderChoice() {
   }
 
   return (
-    <>
-      <section className="mx-auto max-w-[54rem] px-[1.15rem] pb-6 pt-[6.5rem] text-center sm:px-6 sm:pt-[7.5rem]">
+    <div className="order-page">
+      <section className="hero-copy mx-auto max-w-[54rem] px-[1.15rem] pb-[0.4rem] pt-[5.6rem] text-center sm:px-8 sm:pt-[6.2rem]">
         <p className="mb-3 text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
           Order
         </p>
 
-        <h1 className="mb-3.5 font-display text-[clamp(2.2rem,6vw,3.6rem)] font-medium leading-[1.05] tracking-[-0.02em]">
+        <h1 className="mb-3.5 font-display text-[clamp(2.2rem,6vw,3.6rem)] font-medium leading-[1.05] tracking-[-0.02em] [text-shadow:none] max-[720px]:text-[clamp(1.85rem,9vw,2.35rem)]">
           Where are you eating.
         </h1>
 
-        <p className="mx-auto max-w-[28rem] text-[var(--ivory-dim)]">
+        <p className="dek mx-auto max-w-[22rem] text-[var(--ivory-dim)]">
           At the table, or taking it away.
           <br />
           Lewisham or Chingford.
@@ -128,10 +124,7 @@ export function OrderChoice() {
 
       {/* The two paths. Offset slightly on desktop so they sit off-axis
           rather than level — the detail that stops them reading as buttons. */}
-      <div
-        aria-label="How you're ordering"
-        className="mx-auto flex max-w-[54rem] flex-col items-center gap-[0.7803rem] px-[1.15rem] pb-10 sm:px-6 md:flex-row md:items-start md:justify-center md:gap-[0.7803rem]"
-      >
+      <div aria-label="How you're ordering" className="paths mx-auto flex max-w-[54rem] items-end justify-center gap-x-[1.1rem] gap-y-[0.4rem] px-[1.15rem] pb-[0.6rem] pt-[1.4rem] max-[720px]:flex-col max-[720px]:items-center max-[720px]:gap-y-[1.8rem] max-[720px]:pt-[1.2rem] sm:gap-x-[2.2rem] sm:px-8 sm:pb-[0.8rem] sm:pt-8">
         {PATHS.map((path, i) => {
           const isLead = lead === path.id;
 
@@ -143,23 +136,10 @@ export function OrderChoice() {
                 if (window.matchMedia("(hover: hover)").matches) setLead(path.id);
               }}
               onClick={() => choosePath(path.id)}
-              className={`w-full max-w-[20rem] cursor-pointer border-0 bg-transparent p-0 text-center transition-opacity duration-[650ms] md:max-w-none md:flex-1 ${
-                isLead ? "opacity-100" : "opacity-60 hover:opacity-85"
-              } ${lead !== null ? (i === 0 ? "md:translate-y-[0.7rem]" : "md:-translate-y-[0.35rem]") : ""}`}
+              className={`emblem group min-w-0 max-w-[22rem] flex-[1_1_42%] cursor-pointer border-0 bg-transparent p-0 text-center text-inherit transition-[flex,transform,opacity] duration-[850ms] ease-[cubic-bezier(0.4,0,0.2,1)] md:max-w-none ${isLead ? "flex-[1.2_1_52%] opacity-100 md:translate-y-0 md:scale-[1.02]" : "flex-[0.82_1_38%] opacity-70 hover:opacity-100"} ${!isLead && lead !== null ? (i === 0 ? "md:translate-y-[0.7rem]" : "md:-translate-y-[0.35rem]") : ""} max-[720px]:w-full max-[720px]:max-w-none max-[720px]:flex-none max-[720px]:translate-y-0 max-[720px]:opacity-100`}
             >
               <span
-                className={`relative mx-auto block aspect-square overflow-hidden rounded-full transition-all duration-[650ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
-                  lead === null
-                    ? "w-[18.876rem] sm:w-[23.232rem] md:w-[26.136rem]"
-                    : isLead
-                      ? "w-[18.876rem] sm:w-[23.232rem] md:w-[26.136rem]"
-                      : "w-[15.972rem] sm:w-[19.602rem] md:w-[23.232rem]"
-                }`}
-                style={{
-                  boxShadow: isLead
-                    ? "0 0 0 2px var(--gold)"
-                    : "0 0 0 1px rgba(201,162,74,.35)",
-                }}
+                className={`disc relative mx-auto mb-4 block aspect-square w-full max-w-[22rem] overflow-hidden rounded-full bg-[#111] transition-[box-shadow,transform] duration-[850ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${isLead ? "scale-[1.03] shadow-[0_0_0_2px_var(--gold)]" : "shadow-[0_0_0_1px_rgba(201,162,74,0.42)] group-hover:scale-[1.03]"} max-[720px]:w-[min(86vw,22rem)]`}
               >
                 <Image
                   src={path.image}
@@ -168,15 +148,16 @@ export function OrderChoice() {
                   sizes="(max-width: 640px) 302px, (max-width: 768px) 372px, 418px"
                   quality={100}
                   unoptimized
-                  className="object-cover"
+                  className={`object-cover transition-transform duration-[1150ms] ease-out ${isLead ? "scale-[1.07]" : "group-hover:scale-[1.07]"}`}
+                  style={{ objectPosition: path.id === "here" ? "50% 48%" : "50% 42%" }}
                 />
               </span>
 
-              <h2 className="mt-5 font-display text-[1.35rem] font-medium leading-tight sm:text-[1.6rem]">
+              <h2 className="font-display text-[clamp(1.55rem,4.6vw,2.35rem)] font-medium leading-[1.08] tracking-[-0.02em]">
                 {path.heading}
               </h2>
 
-              <p className="mx-auto mt-2 max-w-[18rem] text-[0.92rem] leading-relaxed text-[var(--ivory-dim)]">
+              <p className="mx-auto max-w-[16rem] text-[0.95rem] text-[var(--ivory-dim)]">
                 {path.body}
               </p>
             </button>
@@ -189,29 +170,28 @@ export function OrderChoice() {
         ref={picksRef}
         id="go"
         hidden={chosen === null}
-        className="mx-auto max-w-[40rem] scroll-mt-28 px-[1.15rem] pb-12 text-center sm:px-6"
+        className="picks mx-auto max-w-[34rem] scroll-mt-28 px-[1.15rem] pb-[0.4rem] pt-[1.1rem] text-center sm:px-8 sm:pb-[0.6rem] sm:pt-[1.4rem]"
       >
         {chosen === "away" ? (
-          <p className="text-[1.15rem] text-[var(--ivory-dim)]">
-            This service is currently unavailable.
+          <p className="font-display text-[1.35rem] italic text-[var(--ivory-dim)]">
+            Coming soon...
           </p>
         ) : (
           <>
-            <p className="mb-5 text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
+            <p className="kicker mb-[0.85rem] text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
               Which restaurant?
             </p>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <div className="pick-row mx-auto grid max-w-[28rem] grid-cols-2 gap-[0.55rem]">
               {LOCATIONS.map((location) => (
                 <button
                   key={location.slug}
                   type="button"
                   onClick={() => chooseBranch(location.slug)}
-                  className="flex-1 border border-[rgba(201,162,74,.45)] px-6 py-5 font-display text-[1.25rem] font-medium transition-colors hover:border-[var(--gold)] hover:bg-[var(--gold)] hover:text-[#0e0e0e]"
-                  style={{ borderRadius: "4px" }}
+                  className="pick block border border-[rgba(201,162,74,.45)] px-[0.7rem] py-[1.05rem] font-display text-[1.35rem] tracking-[-0.02em] transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)] max-[720px]:flex max-[720px]:min-h-[4.2rem] max-[720px]:flex-col max-[720px]:justify-center"
                 >
                   {location.shortName}
-                  <small className="mt-1 block text-[0.66rem] font-normal uppercase tracking-[0.14em] opacity-70">
+                  <small className="mt-1 block font-body text-[0.62rem] font-normal uppercase tracking-[0.16em] text-[var(--ivory-dim)]">
                     {location.slug === "lewisham" ? "Flagship" : location.area}
                   </small>
                 </button>
@@ -222,30 +202,30 @@ export function OrderChoice() {
       </section>
 
       {/* The newsletter, which lost its home when the footer changed. */}
-      <section className="mx-auto max-w-[34rem] border-t border-[rgba(229,226,225,.08)] px-[1.15rem] py-14 text-center sm:px-6">
+      <section className="know mx-auto max-w-[34rem] px-[1.15rem] pb-[0.4rem] pt-[2.6rem] text-center sm:px-8 sm:pb-[0.6rem] sm:pt-12">
         <p className="mb-3 text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
           Stay close
         </p>
 
-        <h2 className="mb-3 font-display text-[clamp(1.6rem,4vw,2.3rem)] font-medium leading-tight">
+        <h2 className="mb-[0.55rem] font-display text-[clamp(1.7rem,5vw,2.5rem)] font-medium leading-[1.08] tracking-[-0.02em]">
           Know before everyone else.
         </h2>
 
-        <p className="mx-auto mb-7 max-w-[26rem] text-[var(--ivory-dim)]">
-          New dishes, event nights and the odd thing we don't put on Instagram.
+        <p className="dek mx-auto mb-[1.2rem] max-w-[24rem] text-[var(--ivory-dim)]">
+          New dishes, event nights and the odd thing we don&apos;t put on Instagram.
         </p>
 
-        <NewsletterForm />
+        <NewsletterForm variant="order" />
       </section>
 
-      <section id="book" className="px-[1.15rem] pb-16 pt-4 text-center sm:px-6">
+      <section id="book" className="mood px-[1.15rem] pb-16 pt-4 text-center sm:px-6">
         <p className="font-display text-[clamp(1.4rem,3vw,2rem)] italic">
           Always in the mood for you.
         </p>
       </section>
 
       <SiteFooter />
-    </>
+    </div>
   );
 }
 
@@ -261,16 +241,16 @@ function ScanPrompt({ onBack }: { onBack: () => void }) {
       </p>
 
       <h1 className="mb-4 font-display text-[clamp(1.9rem,6vw,2.6rem)] font-medium leading-tight">
-        There's a code on your table.
+        There&apos;s a code on your table.
       </h1>
 
       <p className="mb-8 leading-relaxed text-[var(--ivory-dim)]">
-        Open your phone's camera and point it at the code. A link will pop up —
+        Open your phone&apos;s camera and point it at the code. A link will pop up —
         tap it and the menu opens with your table already set.
       </p>
 
       <p className="mb-8 text-[0.9rem] text-[var(--muted)]">
-        Can't find it? Ask any member of staff.
+        Can&apos;t find it? Ask any member of staff.
       </p>
 
       <button

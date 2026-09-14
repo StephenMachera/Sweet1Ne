@@ -10,7 +10,11 @@ import { VENUES } from "@/lib/venues";
  * header and this bar are different heights on a phone.
  */
 export function VenueJump() {
-  const [current, setCurrent] = useState(VENUES[0].id);
+  const [current, setCurrent] = useState(() => {
+    if (typeof window === "undefined") return VENUES[0].id;
+    const hash = window.location.hash.replace("#", "");
+    return VENUES.some((venue) => venue.id === hash) ? hash : VENUES[0].id;
+  });
   const barRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -42,7 +46,6 @@ export function VenueJump() {
     const venue = VENUES.find((v) => v.id === hash);
     if (!venue || !document.getElementById(hash)) return;
 
-    setCurrent(venue.id);
     // Twice, because the first attempt can fire before images have settled
     // the layout.
     requestAnimationFrame(() => requestAnimationFrame(() => jumpTo(hash, false)));

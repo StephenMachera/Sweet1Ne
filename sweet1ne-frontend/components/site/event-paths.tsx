@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -34,9 +33,6 @@ const PATHS = [
  * they lead somewhere rather than revealing a next step.
  */
 export function EventsPaths() {
-  const [current, setCurrent] = useState("#table");
-  const [lead, setLead] = useState<string>("table");
-
   return (
     <>
       <nav
@@ -44,19 +40,11 @@ export function EventsPaths() {
         className="sticky top-[3.7rem] z-30 grid w-full grid-cols-3 border-b border-[rgba(201,162,74,.14)] bg-[rgba(5,5,5,.96)] sm:top-[4.15rem]"
       >
         {JUMPS.map((jump) => {
-          const isOn = current === jump.href;
-
           return (
             <a
               key={jump.href}
               href={jump.href}
-              onClick={() => setCurrent(jump.href)}
-              aria-current={isOn ? "location" : undefined}
-              className={`min-w-0 px-[0.4rem] py-[0.95rem] text-center text-[0.68rem] uppercase tracking-[0.14em] transition-colors sm:py-[0.85rem] ${
-                isOn
-                  ? "text-[var(--gold)] shadow-[inset_0_-2px_0_var(--gold)]"
-                  : "text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
-              }`}
+              className="min-w-0 px-[0.4rem] py-[0.95rem] text-center text-[0.68rem] uppercase tracking-[0.14em] text-[var(--ivory-dim)] transition-colors hover:text-[var(--ivory)] sm:py-[0.85rem]"
             >
               {jump.label}
             </a>
@@ -68,32 +56,17 @@ export function EventsPaths() {
         id="table"
         className="flex flex-col items-center gap-[1.8rem] px-[1.15rem] py-[2.4rem] sm:px-6 lg:flex-row lg:items-end lg:justify-center lg:gap-[2.2rem] lg:px-8"
       >
-        {PATHS.map((path, i) => {
-          const isLead = lead === path.id;
-
-          return (
+        {PATHS.map((path, i) => (
             <Link
               key={path.id}
               // The second emblem carries the #hire anchor the jump bar
               // points at.
               id={path.id === "hire" ? "hire" : undefined}
               href={path.href}
-              onMouseEnter={() => {
-                if (window.matchMedia("(hover: hover)").matches) setLead(path.id);
-              }}
-              className={`block w-full max-w-[22rem] scroll-mt-32 text-center transition-opacity duration-[650ms] lg:max-w-[22rem] lg:flex-1 ${
-                isLead ? "opacity-100" : "opacity-60 hover:opacity-85"
-              } ${i === 0 ? "md:translate-y-[0.7rem]" : "md:-translate-y-[0.35rem]"}`}
+              className={`emblem block w-full max-w-[22rem] scroll-mt-32 text-center text-inherit lg:max-w-[22rem] lg:flex-1 ${i === 0 ? "lg:translate-y-[0.7rem]" : "lg:-translate-y-[0.35rem]"}`}
             >
               <span
-                className={`relative mx-auto block aspect-square overflow-hidden rounded-full transition-all duration-[650ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
-                  isLead ? "w-[min(86vw,22rem)] lg:w-full" : "w-[min(86vw,22rem)] lg:w-full"
-                }`}
-                style={{
-                  boxShadow: isLead
-                    ? "0 0 0 2px var(--gold)"
-                    : "0 0 0 1px rgba(201,162,74,.35)",
-                }}
+                className="disc relative mx-auto mb-4 block aspect-square w-[min(86vw,22rem)] max-w-[22rem] overflow-hidden rounded-full bg-[#111] shadow-[0_0_0_1px_rgba(201,162,74,0.42)] transition-[box-shadow,transform] duration-[450ms] ease-out hover:scale-[1.03] hover:shadow-[0_0_0_2px_var(--gold)] lg:w-full"
               >
                 <Image
                   src={path.image}
@@ -101,7 +74,8 @@ export function EventsPaths() {
                   fill
                   sizes="(max-width: 720px) 86vw, 352px"
                   quality={100}
-                  className="object-cover"
+                  className="object-cover transition-transform duration-[1150ms] ease-out hover:scale-[1.07]"
+                  style={{ objectPosition: path.id === "table" ? "48% 32%" : "50% 48%" }}
                 />
               </span>
 
@@ -113,8 +87,7 @@ export function EventsPaths() {
                 {path.body}
               </p>
             </Link>
-          );
-        })}
+        ))}
       </div>
     </>
   );

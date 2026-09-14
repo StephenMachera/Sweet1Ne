@@ -11,10 +11,10 @@ export const metadata: Metadata = {
 
 export default function MenuPage() {
   return (
-    <>
+    <div className="menu-page">
       <MenuHero />
       <CourseNav />
       <MenuChapters />
-    </>
+    </div>
   );
 }

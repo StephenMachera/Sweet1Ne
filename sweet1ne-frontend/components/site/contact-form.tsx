@@ -90,7 +90,7 @@ export function ContactForm() {
         <h3 className="mt-6 font-display text-2xl">Message sent</h3>
 
         <p className="mx-auto mt-3 max-w-sm leading-relaxed text-[var(--ivory-dim)]">
-          We've got it, and we've emailed you a copy. Someone will come back to
+          We&apos;ve got it, and we&apos;ve emailed you a copy. Someone will come back to
           you — usually within a day.
         </p>
 
@@ -113,7 +113,7 @@ export function ContactForm() {
       )}
 
       <label className="block">
-        <span className={labelClass}>What's it about?</span>
+        <span className={labelClass}>What&apos;s it about?</span>
         <select
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
@@ -209,7 +209,7 @@ export function ContactForm() {
           >
             Find Us
           </Link>{" "}
-          — that's quicker than a message.
+          — that&apos;s quicker than a message.
         </p>
       </div>
     </form>

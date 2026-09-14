@@ -64,7 +64,7 @@ export const VENUES: Venue[] = [
     ],
     chips: ["Shisha", "Kids' menu", "Private hire"],
     transport: "Chingford Overground · Bus 97, 179, 212",
-    image: "/images/homepage-gallery/interiors/chingford-room.jpg",
-    alt: "Sweet1NE Chingford — neon cranes, navy booths, blossom",
+    image: "/images/homepage-gallery/interiors/chingford-mirrors.jpg",
+    alt: "Sweet1NE Chingford — circular mirrors, peach banquette, navy chairs",
   },
 ];

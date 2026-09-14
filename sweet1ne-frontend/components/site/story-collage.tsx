@@ -28,8 +28,8 @@ const TILES: Tile[] = [
     area: "",
     aspect: "",
     frames: [
-      "/images/homepage-gallery/menu/photo-pasta.jpg",
-      "/images/homepage-gallery/order/emblem-aways.jpg",
+          "/images/homepage-gallery/menu/photo-pasta-prawns.jpg",
+          "/images/homepage-gallery/order/emblem-aways.jpg",
       "/images/homepage-gallery/menu/photo-starters.jpg",
       "/images/homepage-gallery/web-2560x1440/07-seafood.jpg",
     ],
@@ -76,7 +76,7 @@ export function StoryCollage() {
   return (
     <section
       aria-label="The table now"
-      className="story-now w-full py-[2.6rem]"
+      className="story-now w-full pb-[0.6rem] pt-[1.1rem]"
     >
       <p className="mb-4 px-[1.15rem] text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)] sm:px-6">
         The table now

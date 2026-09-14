@@ -21,7 +21,7 @@ export function EventsNext() {
       <section
         id="next"
         aria-label="What's next"
-        className="relative mt-[2.2rem] min-h-[22rem] scroll-mt-32 overflow-hidden bg-[#0a0a0a]"
+        className="next relative mt-[2.2rem] min-h-[22rem] scroll-mt-32 overflow-hidden bg-[#0a0a0a]"
       >
         <Image
           src="/images/homepage-gallery/events/poster-events.jpg"
@@ -42,11 +42,11 @@ export function EventsNext() {
 
         <div className="relative z-[1] mx-auto max-w-[34rem] px-[1.15rem] py-[5.5rem] text-center sm:px-6 sm:py-[6rem]">
           <p className="mb-[0.55rem] text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
-            What's next
+            What&apos;s next
           </p>
 
-          <h2 className="mb-[0.65rem] font-display text-[clamp(1.9rem,4.5vw,3rem)] font-medium leading-[1.08] tracking-[-0.02em]">
-            The next night isn't listed yet.
+          <h2 className="mb-[0.7rem] font-display text-[clamp(1.9rem,6vw,3rem)] font-medium leading-[1.08] tracking-[-0.02em]">
+            The next night isn&apos;t listed yet.
           </h2>
 
           <p className="mx-auto mb-8 max-w-[32rem] text-[1.02rem] text-[var(--ivory-dim)]">
@@ -85,10 +85,10 @@ export function EventsNext() {
         </h2>
 
         <p className="mx-auto mb-7 max-w-[26rem] text-[var(--ivory-dim)]">
-          New dishes, event nights and the odd thing we don't put on Instagram.
+          New dishes, event nights and the odd thing we don&apos;t put on Instagram.
         </p>
 
-        <NewsletterForm />
+        <NewsletterForm variant="order" />
       </section>
 
       <section id="book" className="px-[1.15rem] pb-12 pt-2 text-center sm:px-6">

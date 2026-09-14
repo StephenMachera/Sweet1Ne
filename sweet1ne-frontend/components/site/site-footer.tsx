@@ -21,7 +21,7 @@ const LEGAL = [
  */
 export function SiteFooter() {
   return (
-    <footer className="border-t border-[rgba(229,226,225,.08)] px-[1.15rem] pb-10 pt-12 text-center sm:px-6 sm:pt-14">
+    <footer className="border-t border-[rgba(107,127,94,0.72)] px-[1.15rem] pb-10 pt-12 text-center sm:px-6 sm:pt-14">
       <div className="mb-6 flex justify-center gap-2.5">
         {SOCIALS.map(({ href, label, Icon }) => (
           
@@ -39,7 +39,7 @@ export function SiteFooter() {
       </div>
 
       <p className="text-[0.78rem] text-[var(--ivory-dim)]">
-        © {new Date().getFullYear()} Sweet1NE Cuisine. All rights reserved.
+        © 2026 Sweet1NE Cuisine. All rights reserved.
       </p>
 
       {/* A rule beneath the links rather than around them — inline-flex so
@@ -56,10 +56,10 @@ export function SiteFooter() {
         ))}
       </div>
 
-      <p className="mt-5 text-[0.4rem] uppercase tracking-[0.16em] text-[rgba(229,226,225,.22)]">
-        This website is powered by
+      <p className="mt-5 text-[0.4rem] uppercase tracking-[0.16em] text-[rgba(229,226,225,0.18)]">
+        This website is Powered By
       </p>
-      <p className="mt-1 text-[0.4rem] uppercase tracking-[0.16em] text-[rgba(229,226,225,.22)]">
+      <p className="mt-1 text-[0.4rem] uppercase tracking-[0.16em] text-[rgba(229,226,225,0.18)]">
         Global Solutions x Spectre Limited
       </p>
     </footer>

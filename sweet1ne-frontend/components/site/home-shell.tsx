@@ -30,13 +30,13 @@ export function HomeShell() {
   }, [gated]);
 
   return (
-    <>
+    <div className="home-page">
       <Cinema gated={gated} />
       <House />
       <Plates />
       <SiteFooter />
 
       <Gate onOpen={() => setGated(false)} />
-    </>
+    </div>
   );
 }
