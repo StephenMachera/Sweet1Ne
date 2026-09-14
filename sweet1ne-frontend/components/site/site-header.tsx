@@ -119,7 +119,7 @@ export function SiteHeader() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className={`text-sm transition-colors ${
+                className={`text-xs transition-colors ${
                   pathname === item.href
                     ? "text-[var(--gold)]"
                     : "text-white hover:text-[var(--gold)]"
@@ -194,9 +194,6 @@ export function SiteHeader() {
             came from Instagram — giving them a way back is more useful than
             another nav link. */}
         <div className="absolute inset-x-0 bottom-0 border-t border-[var(--hairline-faint)] px-6 py-6">
-          <p className="label-caps mb-3 text-[var(--gold)]">
-            Lewisham &amp; Chingford
-          </p>
           <div className="flex gap-3">
             
             <a  href="https://instagram.com/sweet1necuisine"

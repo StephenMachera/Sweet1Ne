@@ -23,8 +23,12 @@ export default function StoryPage() {
           Our journey <br /> began.
         </h1>
 
-        <p className="max-w-[40rem] text-[1.02rem] text-[var(--ivory-dim)]">
-          With a passion for bringing people together over dishes<br /> that resonate
+        {/* No forced break: a <br> lands in the wrong place at every width
+            but the one it was tuned for. The measure is set in ch so it
+            scales with the type, and text-pretty keeps the last line from
+            being a lone word. */}
+        <p className="max-w-[52ch] text-pretty text-[clamp(0.95rem,0.85rem+0.4vw,1.1rem)] leading-relaxed text-[var(--ivory-dim)]">
+          With a passion for bringing people together over dishes that resonate
           with history, culture and heart.
         </p>
       </section>

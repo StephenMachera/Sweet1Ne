@@ -20,10 +20,7 @@ const BEATS: Beat[] = [
   {
     id: "room",
     poster: "/images/homepage-gallery/cinematic/poster-chingford-open.jpg",
-    sources: [
-      { src: "/videos/film-chingford-mobile.mp4", media: "(max-width: 720px)" },
-      { src: "/videos/film-chingford.mp4" },
-    ],
+    sources: [{ src: "/videos/film-chingford.mp4" }],
     objectPosition: "58% center",
   },
 ];

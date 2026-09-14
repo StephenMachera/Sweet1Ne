@@ -25,13 +25,6 @@ export default function ContactPage() {
         <h2 className="mb-[0.65rem] font-display text-[clamp(1.9rem,4vw,2.8rem)] font-medium leading-[1.08] tracking-[-0.02em]">
           Send a message.
         </h2>
-
-        <p className="mb-[0.85rem] max-w-[28rem] text-[var(--ivory-dim)]">
-          Private hire, press, or a question about the menu. It reaches the
-          same people.
-        </p>
-
-        
         <a  href="mailto:info@sweet1ne.com"
           className="mb-7 inline-block border-b border-[rgba(201,162,74,.55)] pb-[0.12rem] text-[var(--ivory)] transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)]"
         >
