@@ -197,6 +197,10 @@ export function Cinema({ gated }: { gated: boolean }) {
             preload="auto"
             poster={POSTER_NIGHT}
           >
+            {/* WebM first: a third fewer bytes to the first frame. The browser
+                takes the first source whose type it can play, so anything
+                without VP9 (older iOS) falls through to the MP4. */}
+            <source src="/videos/film-events.webm" type="video/webm" />
             <source src="/videos/film-events.mp4" type="video/mp4" />
           </video>
         </div>
