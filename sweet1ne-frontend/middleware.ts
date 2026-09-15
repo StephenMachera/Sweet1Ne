@@ -29,9 +29,28 @@ function isAllowedHost(host: string) {
 }
 
 export async function middleware(request: NextRequest) {
+  const host = request.headers.get("host") ?? "";
+
+  // Temporary — the block isn't firing, so this prints what actually
+  // arrives. A proxy may be forwarding its own hostname rather than passing
+  // the original through, in which case the allowlist never sees the domain
+  // we're trying to refuse. Read it in Vercel's Logs, then remove.
+  console.log(
+    JSON.stringify({
+      host,
+      forwardedHost: request.headers.get("x-forwarded-host"),
+      // Cloudflare adds these; their presence tells us a proxy is involved.
+      cfRay: request.headers.get("cf-ray"),
+      cfHost: request.headers.get("cf-connecting-ip"),
+      origin: request.headers.get("origin"),
+      referer: request.headers.get("referer"),
+      path: request.nextUrl.pathname,
+      allowed: isAllowedHost(host),
+    })
+  );
+
   // Checked before anything else — no session work, no rendering, nothing
   // for an unrecognised host.
-  const host = request.headers.get("host") ?? "";
   if (!isAllowedHost(host)) {
     return new NextResponse(null, { status: 403 });
   }
