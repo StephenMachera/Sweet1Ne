@@ -10,6 +10,14 @@ export const RESERVATION_URLS: Record<"lewisham" | "chingford", string> = {
     "https://www.sevenrooms.com/explore/sweet1nerestaurantloungechingfordvenue/reservations/create/search/",
 };
 
+// Collection orders are taken by Toast, per branch. The Order page's
+// "Taking it away" path links straight here once a branch is chosen — no
+// in-house flow in between.
+export const COLLECTION_URLS: Record<"lewisham" | "chingford", string> = {
+  lewisham: "https://order.toasttab.com/online/sweet-1ne-lewisham-2-loampit-hill-se137sw",
+  chingford: "https://order.toasttab.com/online/sweet-1ne-waltham-abbey-164-station-road",
+};
+
 export const SOCIAL_LINKS = {
   instagram: "https://www.instagram.com/ssweet1ne/",
   facebook: "https://www.facebook.com/sweet1ne",

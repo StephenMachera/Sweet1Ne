@@ -4,13 +4,12 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { QrScanner, scannerSupported } from "./qr-scanner";
-import { TakeawayFlow } from "./takeaway-flow";
 import { NewsletterForm } from "./newsletter-form";
 import { SiteFooter } from "./site-footer";
-import { LOCATIONS } from "@/lib/site-content";
+import { COLLECTION_URLS, LOCATIONS } from "@/lib/site-content";
 
 type Path = "here" | "away";
-type Stage = "choosing" | "scan-prompt" | "scanning" | "takeaway";
+type Stage = "choosing" | "scan-prompt" | "scanning";
 
 const PATHS = [
   {
@@ -42,7 +41,6 @@ export function OrderChoice() {
   const [lead, setLead] = useState<Path | null>("here");
   const [chosen, setChosen] = useState<Path | null>(null);
   const [stage, setStage] = useState<Stage>("choosing");
-  const [branchSlug, setBranchSlug] = useState<string | null>(null);
   const [canScan] = useState(scannerSupported);
 
   function choosePath(path: Path) {
@@ -61,16 +59,11 @@ export function OrderChoice() {
     });
   }
 
-  function chooseBranch(slug: string) {
-    setBranchSlug(slug);
-
-    if (chosen === "away") {
-      setStage("takeaway");
-    } else {
-      // Dine-in: scan if the browser can, otherwise tell them to use their
-      // own camera.
-      setStage(canScan ? "scanning" : "scan-prompt");
-    }
+  // Dine-in only — the takeaway buttons are plain links out to Toast. The
+  // branch isn't needed here either: the QR code carries it.
+  function chooseBranch() {
+    // Scan if the browser can, otherwise tell them to use their own camera.
+    setStage(canScan ? "scanning" : "scan-prompt");
   }
 
   function handleScan(value: string) {
@@ -89,15 +82,6 @@ export function OrderChoice() {
 
   if (stage === "scanning") {
     return <QrScanner onDetected={handleScan} onClose={() => setStage("choosing")} />;
-  }
-
-  if (stage === "takeaway") {
-    return (
-      <TakeawayFlow
-        initialBranchSlug={branchSlug ?? undefined}
-        onBack={() => setStage("choosing")}
-      />
-    );
   }
 
   if (stage === "scan-prompt") {
@@ -173,9 +157,30 @@ export function OrderChoice() {
         className="picks mx-auto max-w-[34rem] scroll-mt-28 px-[1.15rem] pb-[0.4rem] pt-[1.1rem] text-center sm:px-8 sm:pb-[0.6rem] sm:pt-[1.4rem]"
       >
         {chosen === "away" ? (
-          <p className="font-display text-[1.35rem] italic text-[var(--ivory-dim)]">
-            Coming soon...
-          </p>
+          <>
+            <p className="kicker mb-[0.85rem] text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
+              Which restaurant?
+            </p>
+
+            {/* Straight out to that branch's Toast page — the card already
+                says which restaurant, so there's nothing left to ask. */}
+            <div className="pick-row mx-auto grid max-w-[28rem] grid-cols-2 gap-[0.55rem]">
+              {LOCATIONS.map((location) => (
+                <a
+                  key={location.slug}
+                  href={COLLECTION_URLS[location.slug as keyof typeof COLLECTION_URLS]}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="pick block border border-[rgba(201,162,74,.45)] px-[0.7rem] py-[1.05rem] font-display text-[1.35rem] tracking-[-0.02em] transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)] max-[720px]:flex max-[720px]:min-h-[4.2rem] max-[720px]:flex-col max-[720px]:justify-center"
+                >
+                  {location.shortName}
+                  <small className="mt-1 block font-body text-[0.62rem] font-normal uppercase tracking-[0.16em] text-[var(--ivory-dim)]">
+                    Collection
+                  </small>
+                </a>
+              ))}
+            </div>
+          </>
         ) : (
           <>
             <p className="kicker mb-[0.85rem] text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
@@ -187,7 +192,7 @@ export function OrderChoice() {
                 <button
                   key={location.slug}
                   type="button"
-                  onClick={() => chooseBranch(location.slug)}
+                  onClick={chooseBranch}
                   className="pick block border border-[rgba(201,162,74,.45)] px-[0.7rem] py-[1.05rem] font-display text-[1.35rem] tracking-[-0.02em] transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)] max-[720px]:flex max-[720px]:min-h-[4.2rem] max-[720px]:flex-col max-[720px]:justify-center"
                 >
                   {location.shortName}
