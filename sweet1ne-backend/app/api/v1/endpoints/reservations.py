@@ -76,16 +76,7 @@ async def create_reservation(
     if is_enquiry and not payload.notes:
         raise HTTPException(status_code=400, detail="Please tell us what you'd like to ask.")
 
-    # The marketing site is hardcoded and only knows slugs; the reservation
-    # form sends a UUID. Accept either.
-    branch = None
-    try:
-        branch = db.get(Branch, uuid.UUID(payload.branch))
-    except ValueError:
-        branch = db.execute(
-            select(Branch).where(Branch.slug == payload.branch)
-        ).scalars().first()
-
+    branch = db.get(Branch, payload.branch_id)
     if branch is None or not branch.is_active:
         raise HTTPException(status_code=404, detail="Branch not found")
 

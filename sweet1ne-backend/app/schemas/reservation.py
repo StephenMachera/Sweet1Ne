@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class ReservationIn(BaseModel):
-    branch: str
+    branch_id: uuid.UUID
     name: str
     email: EmailStr
     phone: str
