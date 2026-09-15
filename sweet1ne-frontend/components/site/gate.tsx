@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
+/** The sting's own length. */
 const TIMEOUT_MS = 1600;
+
+/** If the film hasn't started by then, the sting stays up until it has —
+ *  the visitor should never see the page open onto a still. This is the
+ *  longest it will wait before opening regardless. */
+const MAX_WAIT_MS = 4500;
 
 /**
  * A short hold before the page opens.
@@ -39,8 +45,29 @@ export function Gate({ onOpen }: { onOpen: () => void }) {
       return;
     }
 
-    const timer = setTimeout(open, TIMEOUT_MS);
-    return () => clearTimeout(timer);
+    // Open at 1.6s if the film is moving by then; otherwise hold, and open
+    // the moment it starts (or at the ceiling). The sting is translucent,
+    // so the film is seen starting underneath it rather than after it.
+    const film = document.querySelector<HTMLVideoElement>(".cinema .beat.is-on video");
+    const playing = () => !!film && !film.paused && film.currentTime > 0;
+
+    let ceiling: number | undefined;
+    const onPlaying = () => open();
+
+    const timer = window.setTimeout(() => {
+      if (!film || playing()) {
+        open();
+        return;
+      }
+      film.addEventListener("playing", onPlaying, { once: true });
+      ceiling = window.setTimeout(open, MAX_WAIT_MS - TIMEOUT_MS);
+    }, TIMEOUT_MS);
+
+    return () => {
+      window.clearTimeout(timer);
+      if (ceiling !== undefined) window.clearTimeout(ceiling);
+      film?.removeEventListener("playing", onPlaying);
+    };
   }, [open]);
 
   useEffect(() => {

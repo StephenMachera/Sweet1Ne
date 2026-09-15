@@ -2,170 +2,265 @@
 
 import { useEffect, useRef, useState } from "react";
 
-type Beat = {
-  id: string;
-  poster: string;
-  sources: { src: string; media?: string }[];
-  /** The films are cropped hard, so each needs its own framing. */
-  objectPosition: string;
-};
+/**
+ * Two films, crossfading — built to the locked home.html.
+ *
+ * Night (the Events dancer) starts on; the Chingford room sits underneath
+ * and dissolves in every nine seconds. The rules that make it autoplay on a
+ * phone, in order of how easy they are to break:
+ *
+ *  - Every film ships autoplay / muted / playsinline / webkit-playsinline
+ *    in the served HTML, so a phone doesn't wait for React.
+ *  - A small inline script directly under the cinema kicks the visible film
+ *    the moment the parser reaches it — before hydration.
+ *  - On a phone only the visible beat plays; the film underneath is paused.
+ *    Two simultaneous play() calls are what stop an iPhone.
+ *  - play() is re-kicked on canplay, pointerdown, touchstart, pageshow and
+ *    on the tab becoming visible again. Nothing ever calls load().
+ *  - Below 720px the room beat swaps to a separate mobile-encode <video>
+ *    via CSS display, not <source media> (Chrome ignores that in <video>).
+ */
 
-const BEATS: Beat[] = [
-  {
-    id: "night",
-    poster: "/images/homepage-gallery/events/poster-events.jpg",
-    sources: [{ src: "/videos/film-events.mp4" }],
-    objectPosition: "50% 16%",
-  },
-  {
-    id: "room",
-    poster: "/images/homepage-gallery/cinematic/poster-chingford-open.jpg",
-    sources: [{ src: "/videos/film-chingford.mp4" }],
-    objectPosition: "58% center",
-  },
-];
+const POSTER_NIGHT = "/images/homepage-gallery/events/poster-events.jpg";
+const POSTER_ROOM = "/images/homepage-gallery/cinematic/poster-chingford-open.jpg";
 
 const BEAT_EVERY_MS = 9000;
+const PHONE_QUERY = "(max-width: 720px)";
 
-/**
- * Two films, crossfading.
- *
- * Nine seconds each with a 1.6-second dissolve — long enough that each one
- * is a scene rather than a cut. The pause holds whichever is showing.
- */
+/* What site.js does for the static pages: make a film eligible to autoplay
+   on every browser, then ask it to. */
+function armFilm(film: HTMLVideoElement) {
+  film.muted = true;
+  film.defaultMuted = true;
+  film.playsInline = true;
+  film.setAttribute("autoplay", "");
+  film.setAttribute("muted", "");
+  film.setAttribute("playsinline", "");
+  film.setAttribute("webkit-playsinline", "");
+}
+
+function kickFilm(film: HTMLVideoElement) {
+  armFilm(film);
+  try {
+    const play = film.play();
+    if (play && typeof play.catch === "function") play.catch(() => {});
+  } catch {
+    /* an old WebKit throws synchronously; nothing to do */
+  }
+}
+
+/* Runs as the parser reaches it, well before React. Plays whatever film is
+   on and actually displayed — on a phone that's the Events film alone. */
+const INLINE_KICK = `(function(){if(window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;document.querySelectorAll(".cinema .beat.is-on video").forEach(function(v){if(window.getComputedStyle(v).display==="none")return;v.muted=true;v.defaultMuted=true;v.playsInline=true;var p=v.play();if(p&&p.catch)p.catch(function(){});});})();`;
+
 export function Cinema({ gated }: { gated: boolean }) {
   const [beat, setBeat] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const filmsRef = useRef<(HTMLVideoElement | null)[]>([]);
+  const [held, setHeld] = useState(false);
+  const cinemaRef = useRef<HTMLElement>(null);
+
+  // Everything the template's page script does, kept in refs so the
+  // listeners registered once at mount always see the current state.
+  const beatRef = useRef(0);
+  const heldRef = useRef(false);
+  beatRef.current = beat;
+  heldRef.current = held;
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const cinema = cinemaRef.current;
+    if (!cinema) return;
 
-    filmsRef.current.forEach((film) => {
-      if (!film) return;
-      film.muted = true;
-      film.play().catch(() => {});
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const phone = window.matchMedia(PHONE_QUERY).matches;
+    const films = Array.from(cinema.querySelectorAll<HTMLVideoElement>(".film"));
+    const beats = Array.from(cinema.querySelectorAll<HTMLElement>(".beat"));
+
+    const shown = (film: HTMLVideoElement) =>
+      window.getComputedStyle(film).display !== "none";
+
+    function visibleFilm(): HTMLVideoElement | null {
+      const on = beats[beatRef.current] || beats[0];
+      if (!on) return null;
+      const candidates = Array.from(on.querySelectorAll<HTMLVideoElement>(".film"));
+      return candidates.find(shown) || candidates[0] || null;
+    }
+
+    function playCinema() {
+      if (heldRef.current || reduce) return;
+      const lead = visibleFilm();
+      if (lead) kickFilm(lead);
+
+      films.forEach((film) => {
+        if (film === lead) return;
+        // A phone gets one film at a time; a laptop can run both so the
+        // dissolve lands on a film that's already moving. A film CSS has
+        // hidden for this screen is paused outright — home.html skipped
+        // those, which left the desktop encode running underneath the
+        // Events film on a phone, exactly the double play() it warns about.
+        if (phone || !shown(film)) film.pause();
+        else kickFilm(film);
+      });
+    }
+
+    const lead = visibleFilm();
+    films.forEach((film) => {
+      // Only the encodes that exist on this screen are made autoplay-able —
+      // and on a phone, only the one that's on. Stamping `autoplay` on a
+      // film that isn't due yet starts it downloading.
+      if (phone ? film === lead : shown(film)) armFilm(film);
+      film.addEventListener("canplay", playCinema);
     });
+
+    let timer: number | undefined;
+    if (!reduce) {
+      playCinema();
+      timer = window.setInterval(() => {
+        if (heldRef.current || beats.length < 2) return;
+        const next = (beatRef.current + 1) % beats.length;
+        beatRef.current = next;
+        setBeat(next);
+        // The phone encode was left at preload="none" so it cost nothing
+        // until now; from here it's the one that has to be ready.
+        const film = visibleFilm();
+        if (film && phone) film.preload = "auto";
+        playCinema();
+      }, BEAT_EVERY_MS);
+    }
+
+    // The unlock: any gesture, or the page coming back, re-kicks the films
+    // that should be playing. A tap on the gate counts, which is the point.
+    const unlock = () => {
+      if (heldRef.current || reduce) return;
+      const list = phone ? [visibleFilm()] : films;
+      list.forEach((film) => film && kickFilm(film));
+    };
+    const onVisible = () => {
+      if (!document.hidden) unlock();
+    };
+    document.addEventListener("pointerdown", unlock, { passive: true });
+    document.addEventListener("touchstart", unlock, { passive: true });
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", unlock);
+
+    return () => {
+      if (timer !== undefined) window.clearInterval(timer);
+      films.forEach((film) => film.removeEventListener("canplay", playCinema));
+      document.removeEventListener("pointerdown", unlock);
+      document.removeEventListener("touchstart", unlock);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", unlock);
+    };
   }, []);
 
-  useEffect(() => {
-    if (paused) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    const timer = setInterval(
-      () => setBeat((current) => (current + 1) % BEATS.length),
-      BEAT_EVERY_MS
-    );
-
-    return () => clearInterval(timer);
-  }, [paused]);
-
   function togglePause() {
-    const next = !paused;
-    setPaused(next);
+    const cinema = cinemaRef.current;
+    const next = !held;
+    heldRef.current = next;
+    setHeld(next);
+    if (!cinema) return;
 
-    filmsRef.current.forEach((film) => {
-      if (!film) return;
-      if (next) film.pause();
-      else film.play().catch(() => {});
+    const films = Array.from(cinema.querySelectorAll<HTMLVideoElement>(".film"));
+    if (next) {
+      films.forEach((film) => film.pause());
+      return;
+    }
+    const phone = window.matchMedia(PHONE_QUERY).matches;
+    const on = cinema.querySelectorAll<HTMLElement>(".beat")[beatRef.current];
+    films.forEach((film) => {
+      const displayed = window.getComputedStyle(film).display !== "none";
+      if (!displayed) return;
+      if (phone && !on?.contains(film)) return;
+      kickFilm(film);
     });
   }
 
   return (
-    <section
-      aria-label="Sweet1NE"
-      className="relative h-[100svh] min-h-[32rem] overflow-hidden bg-black"
-      data-cinema
-    >
-      {BEATS.map((item, i) => (
-        <div
-          key={item.id}
-          className="absolute inset-0 transition-opacity duration-[1600ms] ease-in-out motion-reduce:hidden"
-          style={{ opacity: i === beat ? 1 : 0 }}
-        >
+    <>
+      <section
+        ref={cinemaRef}
+        aria-label="Sweet1NE"
+        className="cinema"
+        data-cinema
+      >
+        <div className={`beat beat-night${beat === 0 ? " is-on" : ""}`}>
           <video
-            ref={(el) => {
-              filmsRef.current[i] = el;
-            }}
+            className="film"
+            autoPlay
             muted
             loop
             playsInline
+            webkit-playsinline="true"
             disablePictureInPicture
             preload="auto"
-            poster={item.poster}
-            className="pointer-events-none block h-full w-full object-cover"
-            style={{ objectPosition: item.objectPosition }}
+            poster={POSTER_NIGHT}
           >
-            {item.sources.map((source) => (
-              <source
-                key={source.src}
-                src={source.src}
-                type="video/mp4"
-                media={source.media}
-              />
-            ))}
+            <source src="/videos/film-events.mp4" type="video/mp4" />
           </video>
         </div>
-      ))}
 
-      {/* Reduced motion gets a still rather than film — the fallback is a
-          poster, not an empty black panel. */}
-      <div
-        aria-hidden
-        className="absolute inset-0 hidden bg-cover bg-no-repeat motion-reduce:block"
-        style={{
-          backgroundImage:
-            "url('/images/homepage-gallery/cinematic/poster-chingford-open.jpg')",
-          backgroundPosition: "58% center",
-        }}
-      />
+        <div className={`beat beat-room${beat === 1 ? " is-on" : ""}`}>
+          <video
+            className="film film-desk"
+            autoPlay
+            muted
+            loop
+            playsInline
+            webkit-playsinline="true"
+            disablePictureInPicture
+            preload="auto"
+            poster={POSTER_ROOM}
+          >
+            <source src="/videos/film-chingford.mp4" type="video/mp4" />
+          </video>
+          {/* The phone encode. No autoplay and nothing preloaded — it is
+              hidden until 720px and paused until its beat comes round. */}
+          <video
+            className="film film-phone"
+            muted
+            loop
+            playsInline
+            webkit-playsinline="true"
+            disablePictureInPicture
+            preload="none"
+            poster={POSTER_ROOM}
+          >
+            <source src="/videos/film-chingford-mobile.mp4" type="video/mp4" />
+          </video>
+        </div>
 
-      {/* A tall fade at the foot — the section below begins in the film
-          rather than after it. */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-[6] h-[52%]"
-        style={{
-          background:
-            "linear-gradient(to top, #050505 0%, #050505 14%, rgba(5,5,5,.82) 36%, rgba(5,5,5,.38) 62%, transparent 100%)",
-        }}
-      />
-
-      <div className="pointer-events-none absolute bottom-10 left-1/2 z-[8] w-[calc(100%-1.8rem)] -translate-x-1/2 text-center sm:bottom-[2.5rem] sm:w-[min(36rem,calc(100%-2.4rem))]">
-        {/* A gold rule above the kicker — small, and it's what makes the
-            block read as composed rather than dropped in. */}
-        <span
+        {/* Reduced motion gets a still rather than film — the fallback is a
+            poster, not an empty black panel. */}
+        <div
           aria-hidden
-          className="mx-auto mb-[1.05rem] block h-px w-[2.35rem] bg-[var(--gold)]"
+          className="absolute inset-0 hidden bg-cover bg-no-repeat motion-reduce:block"
+          style={{
+            backgroundImage: `url('${POSTER_ROOM}')`,
+            backgroundPosition: "58% center",
+          }}
         />
 
-        <p
-          className="mb-[0.55rem] text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]"
-          style={{ textShadow: "0 1px 16px rgba(0,0,0,.85)" }}
-        >
-          Elevated Afro-Caribbean fusion
-        </p>
+        <div className="hero-copy">
+          <p className="kicker">Elevated Afro-Caribbean fusion</p>
+          <h1>A culinary adventure for all the senses.</h1>
+        </div>
 
-        <h1
-          className="m-0 font-display text-[1.55rem] font-medium leading-tight text-[var(--ivory)] sm:text-[clamp(1.7rem,5vw,3.05rem)]"
-          style={{ textShadow: "0 2px 28px rgba(0,0,0,.8)" }}
+        <button
+          type="button"
+          className="pause"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={togglePause}
+          aria-label={held ? "Play films" : "Pause films"}
+          style={{
+            opacity: gated ? 0 : 1,
+            pointerEvents: gated ? "none" : "auto",
+          }}
         >
-          A culinary adventure for all the senses.
-        </h1>
-      </div>
+          {held ? "▶" : "II"}
+        </button>
+      </section>
 
-      <button
-        type="button"
-        onClick={togglePause}
-        aria-label={paused ? "Play films" : "Pause films"}
-        className="absolute right-[0.85rem] top-[4.55rem] z-[9] grid h-[2.35rem] w-[2.35rem] place-items-center rounded-full border border-[rgba(201,162,74,.55)] bg-[rgba(5,5,5,.4)] text-[0.68rem] text-[var(--ivory)] backdrop-blur transition-opacity duration-[450ms] hover:border-[var(--gold)] motion-reduce:hidden sm:right-5 sm:top-[5.4rem]"
-        style={{
-          opacity: gated ? 0 : 1,
-          pointerEvents: gated ? "none" : "auto",
-        }}
-      >
-        {paused ? "▶" : "II"}
-      </button>
-    </section>
+      {/* Directly under the cinema, as in home.html — this is what starts
+          the film on a phone before React has loaded. */}
+      <script dangerouslySetInnerHTML={{ __html: INLINE_KICK }} />
+    </>
   );
 }

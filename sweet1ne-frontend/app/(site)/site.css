@@ -97,6 +97,172 @@ body.is-gated .pause {
   background: #000;
 }
 
+/* ---- Homepage cinema — straight from the locked home.html ---------- */
+
+.home-page .cinema {
+  position: relative;
+  height: 100svh;
+  min-height: 32rem;
+  overflow: hidden;
+  background: #000;
+}
+
+/* Soft bottom fade into page black — the section below begins in the
+   film rather than after it. */
+.home-page .cinema::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 52%;
+  z-index: 6;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    #050505 0%,
+    #050505 14%,
+    rgba(5, 5, 5, 0.82) 36%,
+    rgba(5, 5, 5, 0.38) 62%,
+    transparent 100%
+  );
+}
+
+.home-page .beat {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
+
+.home-page .beat.is-on {
+  opacity: 1;
+}
+
+.home-page .beat .film {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+.home-page .beat-night .film {
+  object-position: 50% 16%;
+}
+
+.home-page .beat-room .film {
+  object-position: 58% center;
+}
+
+/* The room beat carries two encodes; CSS decides which one exists on this
+   screen. Not <source media> — Chrome and Firefox ignore that in <video>. */
+.home-page .beat-room .film-phone {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .home-page .beat-room .film-desk {
+    display: none;
+  }
+
+  .home-page .beat-room .film-phone {
+    display: block;
+  }
+}
+
+.home-page .hero-copy {
+  position: absolute;
+  left: 50%;
+  bottom: 2.5rem;
+  transform: translateX(-50%);
+  z-index: 8;
+  width: min(36rem, calc(100% - 2.4rem));
+  text-align: center;
+  pointer-events: none;
+}
+
+/* The gold hairline above the kicker. */
+.home-page .hero-copy::before {
+  content: "";
+  display: block;
+  width: 2.35rem;
+  height: 1px;
+  margin: 0 auto 1.05rem;
+  background: var(--gold);
+}
+
+.home-page .hero-copy .kicker {
+  margin: 0 0 0.55rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.85);
+}
+
+.home-page .hero-copy h1 {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 500;
+  font-size: clamp(1.7rem, 5vw, 3.05rem);
+  line-height: 1.15;
+  color: var(--ivory);
+  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.8);
+}
+
+.home-page .cinema .pause {
+  position: absolute;
+  right: 0.85rem;
+  top: 5.4rem;
+  bottom: auto;
+  z-index: 9;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 162, 74, 0.55);
+  background: rgba(5, 5, 5, 0.45);
+  color: var(--ivory);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 0.68rem;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.home-page .cinema .pause:hover {
+  border-color: var(--gold);
+}
+
+@media (max-width: 720px) {
+  .home-page .hero-copy {
+    bottom: 1.55rem;
+    width: calc(100% - 1.8rem);
+  }
+
+  .home-page .hero-copy h1 {
+    font-size: 1.55rem;
+  }
+
+  .home-page .cinema .pause {
+    top: 4.55rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-page .film {
+    display: none;
+  }
+
+  .home-page .cinema {
+    background: url("/images/homepage-gallery/cinematic/poster-chingford-open.jpg")
+      58% center / cover no-repeat;
+  }
+
+  .home-page .pause {
+    display: none;
+  }
+}
+
 .events-page > footer {
   border-top-color: rgba(107, 127, 94, 0.72);
 }
