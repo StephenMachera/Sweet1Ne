@@ -54,7 +54,6 @@ function kickFilm(film: HTMLVideoElement) {
 const INLINE_KICK = `(function(){if(window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;document.querySelectorAll(".cinema .beat.is-on video").forEach(function(v){if(window.getComputedStyle(v).display==="none")return;v.muted=true;v.defaultMuted=true;v.playsInline=true;var p=v.play();if(p&&p.catch)p.catch(function(){});});})();`;
 
 export function Cinema({ gated }: { gated: boolean }) {
-  const [beat, setBeat] = useState(0);
   const [held, setHeld] = useState(false);
   const cinemaRef = useRef<HTMLElement>(null);
 
@@ -62,7 +61,6 @@ export function Cinema({ gated }: { gated: boolean }) {
   // listeners registered once at mount always see the current state.
   const beatRef = useRef(0);
   const heldRef = useRef(false);
-  beatRef.current = beat;
   heldRef.current = held;
 
   useEffect(() => {
@@ -101,23 +99,23 @@ export function Cinema({ gated }: { gated: boolean }) {
       });
     }
 
+    // The lead film is already playing by now — the `autoplay` attribute
+    // and the inline script under the cinema saw to that before React
+    // loaded. Nothing here calls play() on it; this only quietens the films
+    // that shouldn't be running on this screen and wires the re-kicks.
     const lead = visibleFilm();
     films.forEach((film) => {
-      // Only the encodes that exist on this screen are made autoplay-able —
-      // and on a phone, only the one that's on. Stamping `autoplay` on a
-      // film that isn't due yet starts it downloading.
-      if (phone ? film === lead : shown(film)) armFilm(film);
+      if (film !== lead && (phone || !shown(film))) film.pause();
       film.addEventListener("canplay", playCinema);
     });
 
     let timer: number | undefined;
     if (!reduce) {
-      playCinema();
       timer = window.setInterval(() => {
         if (heldRef.current || beats.length < 2) return;
         const next = (beatRef.current + 1) % beats.length;
         beatRef.current = next;
-        setBeat(next);
+        beats.forEach((el, i) => el.classList.toggle("is-on", i === next));
         // The phone encode was left at preload="none" so it cost nothing
         // until now; from here it's the one that has to be ready.
         const film = visibleFilm();
@@ -130,7 +128,7 @@ export function Cinema({ gated }: { gated: boolean }) {
     // that should be playing. A tap on the gate counts, which is the point.
     const unlock = () => {
       if (heldRef.current || reduce) return;
-      const list = phone ? [visibleFilm()] : films;
+      const list = phone ? [visibleFilm()] : films.filter(shown);
       list.forEach((film) => film && kickFilm(film));
     };
     const onVisible = () => {
@@ -181,7 +179,13 @@ export function Cinema({ gated }: { gated: boolean }) {
         className="cinema"
         data-cinema
       >
-        <div className={`beat beat-night${beat === 0 ? " is-on" : ""}`}>
+        {/* Classes here are static on purpose. The on-beat is switched with
+            classList in the effect, never through React state, so a beat
+            change (or the pause toggle, or hydration) never re-renders a
+            <video>. Tried injecting these as raw HTML instead: React 19
+            rebuilds a dangerouslySetInnerHTML subtree at hydration, which
+            restarted films that were already playing. */}
+        <div className="beat beat-night is-on">
           <video
             className="film"
             autoPlay
@@ -197,7 +201,7 @@ export function Cinema({ gated }: { gated: boolean }) {
           </video>
         </div>
 
-        <div className={`beat beat-room${beat === 1 ? " is-on" : ""}`}>
+        <div className="beat beat-room">
           <video
             className="film film-desk"
             autoPlay
@@ -211,8 +215,8 @@ export function Cinema({ gated }: { gated: boolean }) {
           >
             <source src="/videos/film-chingford.mp4" type="video/mp4" />
           </video>
-          {/* The phone encode. No autoplay and nothing preloaded — it is
-              hidden until 720px and paused until its beat comes round. */}
+          {/* The phone encode. No autoplay and nothing preloaded — hidden
+              until 720px, paused until its beat comes round. */}
           <video
             className="film film-phone"
             muted
