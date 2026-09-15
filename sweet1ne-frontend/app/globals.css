@@ -110,6 +110,15 @@ body {
   --guest-accent-soft: rgba(255, 129, 0, 0.14);
 }
 
+@theme {
+  --animate-gate-logo: gateLogo 0.55s ease forwards;
+  --animate-gate-fade: gateFade 0.4s ease forwards;
+  --animate-rail: railMove 42s linear infinite;
+}
+@keyframes gateLogo { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+@keyframes gateFade { to { opacity: 1; } }
+@keyframes railMove { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
 @media print {
   aside,
   header,

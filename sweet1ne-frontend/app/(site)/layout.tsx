@@ -7,6 +7,7 @@ import { Analytics } from "@/components/site/analytics";
 import { CookieConsent } from "@/components/site/cookie-consent";
 import { SmoothScroll } from "@/components/site/motion/smooth-scroll";
 import "./site.css";
+import "../globals.css";
 
 const display = Bodoni_Moda({
   subsets: ["latin"],

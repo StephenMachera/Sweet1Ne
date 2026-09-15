@@ -2,6 +2,10 @@
  * Site-only styles. The grain and glow are what stop the black reading as
  * flat digital black — they give it the warmth of a room rather than a
  * screen.
+ *
+ * Home page: the locked home.html markup is styled here under `.home-page`.
+ * Components should use the original class names (cinema / beat / gate /
+ * house / rail / ring) rather than re-declaring these rules in Tailwind.
  */
 
 .site-root {
@@ -97,6 +101,13 @@ body.is-gated .pause {
   background: #000;
 }
 
+/* The fixed header is the only thing home anchors need to clear — the
+   sticky course nav is a menu-page element. Without this, `#book` and the
+   plate anchors land 10.5rem short (see the .site-root rule further down). */
+.home-page {
+  scroll-padding-top: 4.6rem;
+}
+
 /* ---- Homepage cinema — straight from the locked home.html ---------- */
 
 .home-page .cinema {
@@ -151,6 +162,14 @@ body.is-gated .pause {
 
 .home-page .beat-room .film {
   object-position: 58% center;
+}
+
+/* iOS paints its own play badge over an autoplaying video until the first
+   frame decodes. Strip the native chrome so the poster is all you see. */
+.home-page .film::-webkit-media-controls,
+.home-page .film::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
 }
 
 /* The room beat carries two encodes; CSS decides which one exists on this
@@ -260,6 +279,254 @@ body.is-gated .pause {
 
   .home-page .pause {
     display: none;
+  }
+
+  /* No films to unlock, so the gate has nothing to do. */
+  .home-page .gate {
+    display: none;
+  }
+
+  /* The global 0.01ms override would otherwise snap the rail to -50%
+     mid-layout. Stop it where it starts instead. */
+  .home-page .rail {
+    animation: none;
+    transform: none;
+  }
+}
+
+/* ---- Homepage gate, house, plates and mood (from locked home.html) ---------- */
+
+.home-page .gate {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background: rgba(5, 5, 5, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: opacity 0.45s ease;
+}
+
+.home-page .gate-mark {
+  text-align: center;
+  padding: 0 1.25rem;
+  max-width: min(90vw, 28rem);
+}
+
+.home-page .gate-mark img {
+  width: min(52vw, 236px);
+  height: auto;
+  margin: 0 auto;
+  filter: drop-shadow(0 8px 28px rgba(0, 0, 0, 0.55));
+  animation: gateLogo 0.55s ease forwards;
+}
+
+.home-page .gate-mark hr {
+  width: 2.2rem;
+  height: 1px;
+  margin: 1.05rem auto 0;
+  border: 0;
+  background: var(--gold);
+  opacity: 0;
+  animation: gateFade 0.35s ease 0.28s forwards;
+}
+
+.home-page .gate-acts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.7rem 0.85rem;
+  margin-top: 1.45rem;
+  opacity: 0;
+  animation: gateFade 0.4s ease 0.4s forwards;
+}
+
+.home-page .gate-acts .book {
+  margin-left: 0;
+  min-width: 10.5rem;
+  cursor: pointer;
+}
+
+.home-page .gate.is-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.home-page .gate.is-gone {
+  display: none;
+}
+
+.home-page .house {
+  position: relative;
+  z-index: 8;
+  max-width: 40rem;
+  margin: 0 auto 2rem;
+  padding: 1.4rem 1.5rem 2.2rem;
+  text-align: center;
+  border: 1px solid rgba(201, 162, 74, 0.42);
+  box-shadow: inset 0 0 0 6px #050505, inset 0 0 0 7px rgba(201, 162, 74, 0.22);
+}
+
+/* --body is not a token this file defines; the body face is --font-body. */
+.home-page .house .lead {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 0.95rem;
+  letter-spacing: 0;
+  line-height: 1.55;
+  margin: 0 auto 1.05rem;
+  max-width: 32rem;
+  color: var(--ivory-dim);
+}
+
+.home-page .house .dek {
+  margin: 0 auto 1.65rem;
+  max-width: 32rem;
+  font-size: 0.95rem;
+}
+
+.home-page .house .acts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem 0.9rem;
+}
+
+.home-page .house .acts .book {
+  margin-left: 0;
+}
+
+@media (max-width: 720px) {
+  .home-page .house {
+    margin: 0 1rem 1.6rem;
+    padding: 1.2rem 1.15rem 1.85rem;
+  }
+}
+
+.home-page .plates {
+  padding: 0.6rem 0 2.6rem;
+}
+
+.home-page .table-hero {
+  max-width: 46rem;
+  margin: 0 auto 1.8rem;
+  padding: 0 1.25rem;
+  text-align: center;
+  color: var(--ivory-dim);
+  scroll-margin-top: 5rem;
+}
+
+.home-page .table-hero .frame {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background: #111;
+  box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.75);
+}
+
+.home-page .table-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 48%;
+}
+
+.home-page .rail-wrap {
+  overflow: hidden;
+  padding: 0.2rem 0 0.4rem;
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+
+.home-page .rail {
+  display: flex;
+  gap: 1.15rem;
+  width: max-content;
+  padding: 0.4rem 1.25rem 1.1rem;
+  animation: railMove 42s linear infinite;
+}
+
+.home-page .rail:hover {
+  animation-play-state: paused;
+}
+
+.home-page .ring {
+  flex: 0 0 auto;
+  width: min(42vw, 210px);
+  text-align: center;
+  color: var(--ivory-dim);
+  margin: 0;
+}
+
+.home-page .ring .disc {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 0 auto 0.7rem;
+  background: #111;
+  box-shadow: 0 0 0 2px rgba(201, 162, 74, 0.85), 0 0 0 6px #050505, 0 0 0 7px rgba(201, 162, 74, 0.35);
+}
+
+.home-page .ring img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home-page .ring figcaption {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.35;
+  min-height: 2.6em;
+}
+
+.home-page .mood {
+  padding: 3.5rem 1.5rem 5rem;
+  border-bottom: 1px solid rgba(201, 162, 74, 0.42);
+  text-align: center;
+}
+
+.home-page .mood p {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-style: italic;
+}
+
+.home-page .book {
+  display: inline-block;
+  padding: 0.65rem 1.15rem;
+  border: 1px solid rgba(201, 162, 74, 0.9);
+  border-radius: 3px;
+  color: var(--gold);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 400ms ease-out, color 400ms ease-out, border-color 400ms ease-out;
+}
+
+.home-page .book:hover {
+  background: var(--gold);
+  color: #0e0e0e;
+}
+
+@media (max-width: 720px) {
+  .home-page .gate-mark img {
+    width: min(58vw, 196px);
+  }
+
+  .home-page .ring {
+    width: min(58vw, 196px);
   }
 }
 
@@ -870,160 +1137,19 @@ body.is-gated .pause {
     background-color 400ms ease-out,
     border-color 400ms ease-out;
 }
-/* Anchors need to clear both the fixed header and the sticky course nav. */
+
+/* Menu-page anchors need to clear both the fixed header and the sticky
+   course nav. Home overrides this above — it has no sticky nav. */
 .site-root {
   scroll-padding-top: 10.5rem;
 }
 
-/* The gate's content rises as it arrives — a beat of movement so the splash
-   doesn't just sit there. */
-@keyframes gate-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 @media (min-width: 721px) {
   .site-root {
     scroll-padding-top: 11rem;
   }
 }
 
-.home-gate {
-  background: transparent;
-  opacity: 1;
-  transition: opacity 500ms ease;
-}
-
-.home-gate-leaf {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: calc(50% + 1px);
-  background: #050505;
-  transition: transform 650ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.home-gate-leaf-left {
-  left: 0;
-}
-
-.home-gate-leaf-right {
-  right: 0;
-}
-
-.home-gate-mark {
-  max-width: min(90vw, 28rem);
-  transition: opacity 400ms ease, transform 400ms ease;
-}
-
-.home-gate-mark img {
-  opacity: 0;
-  transform: scale(0.94);
-  animation: gate-logo 1.15s ease 120ms forwards;
-  filter: drop-shadow(0 8px 28px rgba(0, 0, 0, 0.55));
-}
-
-.home-gate-mark hr {
-  width: 2.4rem;
-  height: 1px;
-  margin: 1.2rem auto 0;
-  border: 0;
-  background: var(--gold);
-  opacity: 0;
-  animation: gate-fade 700ms ease 1.2s forwards;
-}
-
-.home-gate-mark p {
-  margin: 0.95rem 0 0;
-  font-family: var(--font-display), Georgia, serif;
-  font-size: clamp(1.2rem, 3.2vw, 1.85rem);
-  font-style: italic;
-  font-weight: 500;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.75);
-  opacity: 0;
-  animation: gate-fade 900ms ease 1.55s forwards;
-}
-
-.home-gate.is-out .home-gate-mark {
-  opacity: 0;
-  transform: scale(1.03);
-}
-
-.home-gate.is-out {
-  opacity: 0;
-}
-
-.home-gate.is-out .home-gate-leaf-left {
-  transform: translateX(-100%);
-}
-
-.home-gate.is-out .home-gate-leaf-right {
-  transform: translateX(100%);
-}
-
-@keyframes gate-logo {
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes gate-fade {
-  to {
-    opacity: 1;
-  }
-}
-
-@media (max-width: 720px) {
-  .home-gate-leaf {
-    right: 0;
-    left: 0;
-    width: 100%;
-    height: 50%;
-  }
-
-  .home-gate-leaf-left {
-    top: 0;
-    bottom: auto;
-  }
-
-  .home-gate-leaf-right {
-    top: auto;
-    bottom: 0;
-  }
-
-  .home-gate.is-out .home-gate-leaf-left {
-    transform: translateY(-100%);
-  }
-
-  .home-gate.is-out .home-gate-leaf-right {
-    transform: translateY(100%);
-  }
-
-  .home-gate-mark img {
-    width: min(62vw, 210px);
-  }
-
-  .home-gate-mark p {
-    font-size: 1.12rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .site-root *,
-  .site-root *::before,
-  .site-root *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
 /* The plate rail drifts left forever. -50% is exactly one set of dishes,
    so the duplicate lands where the original started and the loop is
    seamless. */
@@ -1036,19 +1162,6 @@ body.is-gated .pause {
   }
 }
 
-.plate-rail {
-  animation: railMove 42s linear infinite;
-}
-
-.plate-rail:hover {
-  animation-play-state: paused;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .plate-rail {
-    animation: none;
-  }
-}
 /* The gate's logo settles into place; the rule follows a beat later. */
 @keyframes gateLogo {
   from {
@@ -1067,11 +1180,12 @@ body.is-gated .pause {
   }
 }
 
-.gate-logo {
-  animation: gateLogo 0.55s ease forwards;
-}
-
-.gate-rule {
-  opacity: 0;
-  animation: gateFade 0.35s ease 0.28s forwards;
+/* Kept last so it wins over the animations declared above. */
+@media (prefers-reduced-motion: reduce) {
+  .site-root *,
+  .site-root *::before,
+  .site-root *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
