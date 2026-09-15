@@ -8,11 +8,13 @@ const nextConfig: NextConfig = {
     // once, and a replaced file (same name — the templates fix the names)
     // shows up on the next visit after that.
     const cached = "public, max-age=86400, stale-while-revalidate=604800";
+
     return [
       { source: "/videos/:path*", headers: [{ key: "Cache-Control", value: cached }] },
       { source: "/images/:path*", headers: [{ key: "Cache-Control", value: cached }] },
     ];
   },
+
   images: {
     remotePatterns: [
       {
