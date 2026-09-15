@@ -13,8 +13,8 @@ import { useEffect, useRef, useState } from "react";
  *    in the served HTML, so a phone doesn't wait for React.
  *  - A small inline script directly under the cinema kicks the visible film
  *    the moment the parser reaches it — before hydration.
- *  - On a phone only the visible beat plays; the film underneath is paused.
- *    Two simultaneous play() calls are what stop an iPhone.
+ *  - Only the visible beat plays; the film underneath is paused. Two
+ *    simultaneous play() calls are what stop an iPhone.
  *  - play() is re-kicked on canplay, pointerdown, touchstart, pageshow and
  *    on the tab becoming visible again. Nothing ever calls load().
  *  - Below 720px the room beat swaps to a separate mobile-encode <video>
@@ -61,7 +61,6 @@ export function Cinema({ gated }: { gated: boolean }) {
   // listeners registered once at mount always see the current state.
   const beatRef = useRef(0);
   const heldRef = useRef(false);
-  heldRef.current = held;
 
   useEffect(() => {
     const cinema = cinemaRef.current;
@@ -89,20 +88,13 @@ export function Cinema({ gated }: { gated: boolean }) {
 
       films.forEach((film) => {
         if (film === lead) return;
-        // A phone gets one film at a time; a laptop can run both so the
-        // dissolve lands on a film that's already moving. A film CSS has
-        // hidden for this screen is paused outright — home.html skipped
-        // those, which left the desktop encode running underneath the
-        // Events film on a phone, exactly the double play() it warns about.
-        if (phone || !shown(film)) film.pause();
-        else kickFilm(film);
+        film.pause();
       });
     }
 
     // The lead film is already playing by now — the `autoplay` attribute
     // and the inline script under the cinema saw to that before React
-    // loaded. Nothing here calls play() on it; this only quietens the films
-    // that shouldn't be running on this screen and wires the re-kicks.
+    // loaded. This also stops the room film before it can compete with it.
     const lead = visibleFilm();
     films.forEach((film) => {
       if (film !== lead && (phone || !shown(film))) film.pause();
@@ -151,18 +143,23 @@ export function Cinema({ gated }: { gated: boolean }) {
 
   function togglePause() {
     const cinema = cinemaRef.current;
-    const next = !held;
+    const on = cinema?.querySelectorAll<HTMLElement>(".beat")[beatRef.current];
+    const films = cinema
+      ? Array.from(cinema.querySelectorAll<HTMLVideoElement>(".film"))
+      : [];
+    const activeFilm = films.find(
+      (film) => on?.contains(film) && window.getComputedStyle(film).display !== "none"
+    );
+    const next = !held && !!activeFilm && !activeFilm.paused;
     heldRef.current = next;
     setHeld(next);
     if (!cinema) return;
 
-    const films = Array.from(cinema.querySelectorAll<HTMLVideoElement>(".film"));
     if (next) {
       films.forEach((film) => film.pause());
       return;
     }
     const phone = window.matchMedia(PHONE_QUERY).matches;
-    const on = cinema.querySelectorAll<HTMLElement>(".beat")[beatRef.current];
     films.forEach((film) => {
       const displayed = window.getComputedStyle(film).display !== "none";
       if (!displayed) return;
@@ -188,6 +185,7 @@ export function Cinema({ gated }: { gated: boolean }) {
         <div className="beat beat-night is-on">
           <video
             className="film"
+            src="/videos/film-events.mp4"
             autoPlay
             muted
             loop
@@ -197,18 +195,13 @@ export function Cinema({ gated }: { gated: boolean }) {
             preload="auto"
             poster={POSTER_NIGHT}
           >
-            {/* WebM first: a third fewer bytes to the first frame. The browser
-                takes the first source whose type it can play, so anything
-                without VP9 (older iOS) falls through to the MP4. */}
-            <source src="/videos/film-events.webm" type="video/webm" />
-            <source src="/videos/film-events.mp4" type="video/mp4" />
           </video>
         </div>
 
         <div className="beat beat-room">
           <video
             className="film film-desk"
-            autoPlay
+            src="/videos/film-chingford.mp4"
             muted
             loop
             playsInline
@@ -217,12 +210,12 @@ export function Cinema({ gated }: { gated: boolean }) {
             preload="auto"
             poster={POSTER_ROOM}
           >
-            <source src="/videos/film-chingford.mp4" type="video/mp4" />
           </video>
           {/* The phone encode. No autoplay and nothing preloaded — hidden
               until 720px, paused until its beat comes round. */}
           <video
             className="film film-phone"
+            src="/videos/film-chingford-mobile.mp4"
             muted
             loop
             playsInline
@@ -231,7 +224,6 @@ export function Cinema({ gated }: { gated: boolean }) {
             preload="none"
             poster={POSTER_ROOM}
           >
-            <source src="/videos/film-chingford-mobile.mp4" type="video/mp4" />
           </video>
         </div>
 

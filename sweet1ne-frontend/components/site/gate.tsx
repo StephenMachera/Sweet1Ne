@@ -6,17 +6,12 @@ import Image from "next/image";
 /** The sting's own length. */
 const TIMEOUT_MS = 1600;
 
-/** If the film hasn't started by then, the sting stays up until it has —
- *  the visitor should never see the page open onto a still. This is the
- *  longest it will wait before opening regardless. */
-const MAX_WAIT_MS = 4500;
-
 /**
  * A short hold before the page opens.
  *
  * Translucent rather than solid — the films are visible behind it through
  * the blur, so it reads as a curtain rather than a loading screen. Lifts on
- * a click, a keypress, or after 1.6 seconds.
+ * a click, a keypress, or once the film is actually playing.
  */
 export function Gate({ onOpen }: { onOpen: () => void }) {
   const [opened, setOpened] = useState(false);
@@ -34,6 +29,23 @@ export function Gate({ onOpen }: { onOpen: () => void }) {
     setTimeout(() => setGone(true), 480);
   }, [onOpen]);
 
+  const startFilm = useCallback(() => {
+    const film = document.querySelector<HTMLVideoElement>(
+      ".cinema .beat.is-on video"
+    );
+    if (!film) return;
+
+    film.muted = true;
+    film.defaultMuted = true;
+    film.playsInline = true;
+    film.play().catch(() => {});
+  }, []);
+
+  const enter = useCallback(() => {
+    startFilm();
+    open();
+  }, [open, startFilm]);
+
   useEffect(() => {
     if (opened) return;
 
@@ -41,17 +53,15 @@ export function Gate({ onOpen }: { onOpen: () => void }) {
     // someone who's asked for less of that shouldn't be made to wait.
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       open();
-      setGone(true);
       return;
     }
 
-    // Open at 1.6s if the film is moving by then; otherwise hold, and open
-    // the moment it starts (or at the ceiling). The sting is translucent,
-    // so the film is seen starting underneath it rather than after it.
+    // Open at 1.6s if the film is moving by then; otherwise hold until it
+    // starts or the visitor taps the gate. The sting is translucent, so the
+    // film is seen starting underneath it rather than after it.
     const film = document.querySelector<HTMLVideoElement>(".cinema .beat.is-on video");
     const playing = () => !!film && !film.paused && film.currentTime > 0;
 
-    let ceiling: number | undefined;
     const onPlaying = () => open();
 
     const timer = window.setTimeout(() => {
@@ -60,15 +70,13 @@ export function Gate({ onOpen }: { onOpen: () => void }) {
         return;
       }
       film.addEventListener("playing", onPlaying, { once: true });
-      ceiling = window.setTimeout(open, MAX_WAIT_MS - TIMEOUT_MS);
     }, TIMEOUT_MS);
 
     return () => {
       window.clearTimeout(timer);
-      if (ceiling !== undefined) window.clearTimeout(ceiling);
       film?.removeEventListener("playing", onPlaying);
     };
-  }, [open]);
+  }, [opened, open]);
 
   useEffect(() => {
     if (opened) return;
@@ -88,7 +96,7 @@ export function Gate({ onOpen }: { onOpen: () => void }) {
 
   return (
     <div
-      onClick={open}
+      onClick={enter}
       role="button"
       tabIndex={0}
       aria-label="Enter"
