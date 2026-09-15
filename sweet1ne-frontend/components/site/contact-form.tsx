@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { trackConversion } from "./analytics";
@@ -15,11 +15,7 @@ const TOPICS = [
   "Something else",
 ];
 
-const RESTAURANTS = [
-  { value: "", label: "Either / not sure" },
-  { value: "lewisham", label: "Lewisham" },
-  { value: "chingford", label: "Chingford" },
-];
+type Branch = { id: string; name: string };
 
 /**
  * Enquiries go through the reservations table rather than a separate inbox —
@@ -31,12 +27,23 @@ export function ContactForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [restaurant, setRestaurant] = useState("");
+  const [branchId, setBranchId] = useState("");
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [message, setMessage] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_URL}/public/site/locations`)
+      .then((res) => res.json())
+      .then((list: Branch[]) => {
+        setBranches(list);
+        if (!branchId && list.length > 0) setBranchId(list[0].id);
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -48,9 +55,7 @@ export function ContactForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // Falls back to the first branch — an enquiry has to land
-          // somewhere, and "either" is a reasonable default.
-          branch: restaurant || "lewisham",
+          branch_id: branchId,
           name,
           email,
           phone,
@@ -167,13 +172,13 @@ export function ContactForm() {
         <label className="block">
           <span className={labelClass}>Which restaurant?</span>
           <select
-            value={restaurant}
-            onChange={(e) => setRestaurant(e.target.value)}
+            value={branchId}
+            onChange={(e) => setBranchId(e.target.value)}
             className={fieldClass}
           >
-            {RESTAURANTS.map((option) => (
-              <option key={option.label} value={option.value}>
-                {option.label}
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id}>
+                {branch.name}
               </option>
             ))}
           </select>
