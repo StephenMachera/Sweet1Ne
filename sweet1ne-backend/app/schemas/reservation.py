@@ -5,12 +5,11 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class ReservationIn(BaseModel):
-    branch_id: uuid.UUID
+    branch: str
     name: str
     email: EmailStr
     phone: str
     reservation_type: str = "table"  # table | private | enquiry
-    # Both default for enquiries, which have neither.
     party_size: int = 1
     requested_at: datetime | None = None
     occasion: str | None = None
