@@ -36,7 +36,9 @@ export default function House() {
 
         {/* The live Book control — the branch modal, then SevenRooms. The
             template's href="#book" was a placeholder that went nowhere. */}
-        <BookTableButton className="book">Book a table</BookTableButton>
+        <Link href="/locations" className="book">
+            Book a table
+          </Link>
       </div>
     </section>
   );

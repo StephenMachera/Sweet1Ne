@@ -11,14 +11,14 @@ const BOOK =
   "hover:bg-[var(--gold)] hover:text-[#0e0e0e] " +
   "focus-visible:bg-[var(--gold)] focus-visible:text-[#0e0e0e] focus-visible:outline-none";
 
-type GateProps = {
-  /** Still frame shown behind the gate while the films are still locked. */
-  backdrop?: string;
-};
-
-export default function Gate({
-  backdrop = "/images/homepage-gallery/cinematic/poster-chingford-open.jpg",
-}: GateProps) {
+/**
+ * The logo sting over the films.
+ *
+ * Nothing is painted behind the mark but a translucent, blurred sheet — the
+ * cinema underneath is live and autoplaying, and it's meant to be seen
+ * starting through the blur. A still here would hide exactly that.
+ */
+export default function Gate() {
   const { gated, enter } = useStage();
 
   return (
@@ -28,7 +28,8 @@ export default function Gate({
       aria-label="Welcome to Sweet1NE"
       aria-hidden={!gated}
       className={[
-        "gate fixed inset-0 z-[200] grid place-items-center overflow-hidden bg-[#050505]",
+        "gate fixed inset-0 z-[200] grid place-items-center overflow-hidden",
+        "bg-[rgba(5,5,5,0.72)] backdrop-blur-[8px]",
         "transition-opacity duration-[450ms] ease-out motion-reduce:hidden",
         gated ? "opacity-100" : "pointer-events-none opacity-0",
       ].join(" ")}
@@ -37,17 +38,6 @@ export default function Gate({
         transitionProperty: "opacity, visibility",
       }}
     >
-      {/* Backdrop. Scaled up so the blur doesn't feather the edges inward. */}
-      <img
-        src={backdrop}
-        alt=""
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover object-[58%_center] blur-[8px]"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[rgba(5,5,5,0.72)]"
-      />
 
       <div className="relative z-10 max-w-[min(90vw,28rem)] px-5 text-center">
         <img
@@ -73,7 +63,7 @@ export default function Gate({
           >
             Enter Sweet1NE
           </button>
-          <Link href="/find-us" className={BOOK}>
+          <Link href="/locations" className={BOOK}>
             Book a table
           </Link>
         </div>

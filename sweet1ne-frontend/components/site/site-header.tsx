@@ -78,7 +78,7 @@ export function SiteHeader() {
           isHome ? "is-home" : "is-page"
         } ${
           isHome && isPage
-            ? "is-page border-b-0 bg-[#050505]"
+            ? "is-page border-b-0"
             : isHome && !isPage
               ? "border-b-0"
               : "border-b border-[rgba(201,162,74,.14)] bg-[#050505]/96 backdrop-blur"

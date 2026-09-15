@@ -161,6 +161,9 @@ export default function Cinema() {
     <section
       ref={sectionRef}
       aria-label="Sweet1NE"
+      // The site header (rendered by the layout, outside StageProvider)
+      // watches this to know when it has scrolled past the film.
+      data-cinema
       onClick={onSectionClick}
       className="cinema cinema-fallback relative h-[100svh] min-h-[32rem] overflow-hidden bg-black
         after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:z-[6] after:h-[52%] after:content-['']

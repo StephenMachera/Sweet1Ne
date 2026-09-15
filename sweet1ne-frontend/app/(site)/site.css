@@ -40,8 +40,37 @@ body.is-gated {
   height: 100svh;
 }
 
+/* Home: transparent over the film, then dark once past it. The gold rule
+   underneath is a gradient rather than a border — bright at the centre,
+   gone at the edges — and it fades in with the background. */
 .site-header.is-home.is-page {
-  background: #050505;
+  background: rgba(5, 5, 5, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.site-header.is-home::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(201, 162, 74, 0.28) 18%,
+    rgba(201, 162, 74, 0.7) 50%,
+    rgba(201, 162, 74, 0.28) 82%,
+    transparent 100%
+  );
+  /* A faint glow beneath the line, so it reads as light rather than a hairline. */
+  box-shadow: 0 1px 10px rgba(201, 162, 74, 0.18);
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.site-header.is-home.is-page::after {
+  opacity: 1;
 }
 
 .site-header.is-page {
