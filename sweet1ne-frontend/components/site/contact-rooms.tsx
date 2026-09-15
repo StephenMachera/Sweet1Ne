@@ -83,7 +83,6 @@ export function ContactRooms() {
           else film.pause();
         });
       },
-      
       { threshold: 0.35 }
     );
 
