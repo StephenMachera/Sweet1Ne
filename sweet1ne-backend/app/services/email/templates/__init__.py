@@ -3,4 +3,5 @@ from . import (  # noqa: F401
     reservation_confirmed,
     reservation_declined,
     reservation_received,
+    enquiry_notification,
 )

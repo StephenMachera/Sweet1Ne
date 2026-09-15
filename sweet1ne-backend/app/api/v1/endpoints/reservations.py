@@ -21,6 +21,7 @@ from app.schemas.reservation import (
 )
 from app.services.email.client import send_email
 from app.services.email.templates import (
+    enquiry_notification,
     reservation_confirmed,
     reservation_declined,
     reservation_received,
@@ -64,6 +65,9 @@ async def create_reservation(
         if payload.party_size < 1:
             raise HTTPException(status_code=400, detail="Party size must be at least one.")
 
+        if payload.requested_at is None:
+            raise HTTPException(status_code=400, detail="Please choose a date and time.")
+
         if payload.requested_at < datetime.now(timezone.utc):
             raise HTTPException(
                 status_code=400, detail="Please choose a date and time in the future."
@@ -72,8 +76,16 @@ async def create_reservation(
     if is_enquiry and not payload.notes:
         raise HTTPException(status_code=400, detail="Please tell us what you'd like to ask.")
 
+    # The marketing site is hardcoded and only knows slugs; the reservation
+    # form sends a UUID. Accept either.
+    branch = None
+    try:
+        branch = db.get(Branch, uuid.UUID(payload.branch))
+    except ValueError:
+        branch = db.execute(
+            select(Branch).where(Branch.slug == payload.branch)
+        ).scalars().first()
 
-    branch = db.get(Branch, payload.branch_id)
     if branch is None or not branch.is_active:
         raise HTTPException(status_code=404, detail="Branch not found")
 
@@ -85,7 +97,9 @@ async def create_reservation(
         phone=payload.phone.strip(),
         reservation_type=payload.reservation_type,
         party_size=payload.party_size,
-        requested_at=payload.requested_at,
+        # An enquiry has no time of its own; storing "now" keeps the list
+        # sortable without pretending it's a booking.
+        requested_at=payload.requested_at or datetime.now(timezone.utc),
         occasion=payload.occasion,
         notes=payload.notes,
         marketing_consent=payload.marketing_consent,
@@ -132,6 +146,34 @@ async def create_reservation(
         reply_to=settings.EMAIL_REPLY_TO,
     )
 
+    # Bookings get checked because service depends on them. An enquiry
+    # would otherwise sit in the dashboard unread, so the team is told.
+    if is_enquiry:
+        staff_subject, staff_html = enquiry_notification.render(
+            name=reservation.name,
+            email=reservation.email,
+            phone=reservation.phone,
+            branch_name=branch.name,
+            subject=reservation.occasion,
+            message=reservation.notes,
+            received_at=reservation.created_at,
+        )
+
+        for recipient in [
+            address.strip()
+            for address in settings.STAFF_NOTIFY_EMAIL.split(",")
+            if address.strip()
+        ]:
+            background.add_task(
+                send_email,
+                to=recipient,
+                subject=staff_subject,
+                html=staff_html,
+                # Replying reaches the customer directly, which is the whole
+                # point of a notification during service.
+                reply_to=reservation.email,
+            )
+
     return ReservationPublicOut(
         id=reservation.id,
         status=reservation.status,
@@ -139,6 +181,7 @@ async def create_reservation(
         requested_at=reservation.requested_at,
     )
 
+    
 
 # --- Staff -------------------------------------------------------------
 
