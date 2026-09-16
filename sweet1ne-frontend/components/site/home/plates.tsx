@@ -29,9 +29,6 @@ export default function Plates() {
                 [box-shadow:0_0_0_2px_rgba(201,162,74,0.85),0_0_0_6px_#050505,0_0_0_7px_rgba(201,162,74,0.35)]">
                 <img src={plate.src} alt="" className="h-full w-full object-cover" />
               </div>
-              <figcaption className="min-h-[2.6em] text-[0.62rem] uppercase leading-[1.35] tracking-[0.12em]">
-                {plate.caption}
-              </figcaption>
             </figure>
           ))}
         </div>

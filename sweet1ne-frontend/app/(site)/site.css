@@ -122,8 +122,8 @@ body.is-gated .pause {
 }
 
 .menu-page {
-  --bg: #000;
-  background: #000;
+  --bg: #050505;
+  background: #050505;
 }
 
 .home-page {
@@ -238,21 +238,30 @@ body.is-gated .pause {
   background: var(--gold);
 }
 
-.home-page .hero-copy .kicker {
-  margin: 0 0 0.55rem;
-  font-size: 0.72rem;
-  letter-spacing: 0.2em;
+/* The pack's .kicker: 0.7rem, wide-tracked small caps in gold. */
+.home-page .kicker {
+  margin: 0 0 0.7rem;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--gold);
+}
+
+.home-page .hero-copy .kicker {
+  margin-bottom: 0.55rem;
   text-shadow: 0 1px 16px rgba(0, 0, 0, 0.85);
 }
 
+/* Bodoni at medium weight, set tight — the pack's display setting, at the
+   homepage's smaller size. */
 .home-page .hero-copy h1 {
   margin: 0;
   font-family: var(--font-display), Georgia, serif;
   font-weight: 500;
   font-size: clamp(1.7rem, 5vw, 3.05rem);
-  line-height: 1.15;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
   color: var(--ivory);
   text-shadow: 0 2px 28px rgba(0, 0, 0, 0.8);
 }
@@ -397,7 +406,15 @@ body.is-gated .pause {
   box-shadow: inset 0 0 0 6px #050505, inset 0 0 0 7px rgba(201, 162, 74, 0.22);
 }
 
-/* --body is not a token this file defines; the body face is --font-body. */
+/* The pack's .dek: dimmed ivory body copy. --body is not a token this file
+   defines; the body face is --font-body. */
+.home-page .dek {
+  margin: 0;
+  color: var(--ivory-dim);
+  font-family: var(--font-body), system-ui, sans-serif;
+  line-height: 1.55;
+}
+
 .home-page .house .lead {
   font-family: var(--font-body), system-ui, sans-serif;
   font-weight: 400;
@@ -506,40 +523,35 @@ body.is-gated .pause {
   object-fit: cover;
 }
 
-.home-page .ring figcaption {
-  font-size: 0.62rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  line-height: 1.35;
-  min-height: 2.6em;
-}
-
 .home-page .mood {
-  padding: 3.5rem 1.5rem 5rem;
-  border-bottom: 1px solid rgba(201, 162, 74, 0.42);
+  padding: 2.4rem 1.15rem 4.2rem;
   text-align: center;
 }
 
 .home-page .mood p {
   margin: 0;
   font-family: var(--font-display), Georgia, serif;
-  font-size: clamp(1.4rem, 3vw, 2rem);
   font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  letter-spacing: -0.02em;
+  text-shadow: none;
 }
 
 .home-page .book {
   display: inline-block;
-  padding: 0.65rem 1.15rem;
+  flex-shrink: 0;
+  padding: 0.58rem 1.05rem;
   border: 1px solid rgba(201, 162, 74, 0.9);
   border-radius: 3px;
   color: var(--gold);
-  font-family: var(--font-body), system-ui, sans-serif;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font: 600 0.75rem var(--font-body), system-ui, sans-serif;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   text-decoration: none;
+  white-space: nowrap;
   background: transparent;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   cursor: pointer;
   transition: background-color 400ms ease-out, color 400ms ease-out, border-color 400ms ease-out;
 }
@@ -633,7 +645,7 @@ body.is-gated .pause {
   z-index: 40;
   padding: 0.55rem 0 0.45rem;
   border-bottom: 1px solid rgba(201, 162, 74, 0.14);
-  background: #000;
+  background: #050505;
 }
 
 .menu-page .courses {
@@ -694,18 +706,6 @@ body.is-gated .pause {
 .menu-page .course-desserts img { object-position: 40% 58%; }
 .menu-page .course-bar img { object-position: 50% 36%; }
 
-.menu-page .course-more {
-  margin: 0.15rem 1.5rem 0;
-  color: var(--ivory-dim);
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.menu-page .course-more a {
-  color: var(--ivory-dim);
-}
-
 .menu-page .chapter {
   max-width: 1100px;
   margin: 0 auto;
@@ -740,8 +740,18 @@ body.is-gated .pause {
   font-family: var(--font-display), Georgia, serif;
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 500;
-  line-height: 1.1;
   letter-spacing: -0.02em;
+}
+
+/* Mains, Pasta and Seafood: the chapter word alone, in the kicker's face. */
+.menu-page .chapter h2.kicker {
+  margin: 0;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
 }
 
 .menu-page .chapter .lede {
@@ -801,7 +811,6 @@ body.is-gated .pause {
   font-family: var(--font-display), Georgia, serif;
   font-size: 1.15rem;
   font-weight: 500;
-  line-height: 1.2;
 }
 
 .menu-page .dish p {
@@ -839,14 +848,6 @@ body.is-gated .pause {
   object-fit: cover;
 }
 
-.menu-page .mid {
-  padding: 2.4rem 1.5rem 0.4rem;
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 1.25rem;
-  font-style: italic;
-  text-align: center;
-}
-
 .menu-page .note {
   max-width: 1100px;
   margin: 0 auto;
@@ -857,37 +858,37 @@ body.is-gated .pause {
 
 .menu-page .mood {
   padding: 3.5rem 1.5rem 5rem;
-  border-bottom: 1px solid rgba(201, 162, 74, 0.42);
   text-align: center;
-}
-
-.menu-page .slogan {
-  position: sticky;
-  top: 3.7rem;
-  z-index: 30;
-  background: #000;
 }
 
 .menu-page .mood p {
   margin: 0 0 1.3rem;
   font-family: var(--font-display), Georgia, serif;
-  font-size: clamp(1.4rem, 3vw, 2rem);
   font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  letter-spacing: -0.02em;
 }
 
-.menu-page .slogan-button {
+/* The pack's ghost button. */
+.menu-page .book {
   display: inline-block;
-  padding: 0.65rem 1.15rem;
+  padding: 0.58rem 1.05rem;
   border: 1px solid rgba(201, 162, 74, 0.9);
   border-radius: 3px;
   color: var(--gold);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font: 600 0.75rem var(--font-body), system-ui, sans-serif;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  background: transparent;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: background-color 400ms ease-out, color 400ms ease-out;
 }
 
-.menu-page .slogan-button:hover {
+.menu-page .book:hover {
   background: var(--gold);
   color: #0e0e0e;
 }
@@ -896,12 +897,6 @@ body.is-gated .pause {
   .menu-page .chapter-head.has-mark {
     grid-template-columns: 8.6rem 1fr;
     gap: 2rem;
-  }
-}
-
-@media (min-width: 721px) {
-  .menu-page .slogan {
-    top: 4.15rem;
   }
 }
 
@@ -967,10 +962,6 @@ body.is-gated .pause {
   .menu-page .course,
   .menu-page .course .disc {
     width: 4.7rem;
-  }
-
-  .menu-page .course-more {
-    margin-left: 1.15rem;
   }
 
   .menu-page .chapter {

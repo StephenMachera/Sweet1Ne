@@ -87,9 +87,11 @@ export function SiteHeader() {
           overFilm && !isPage && !isMenu && !isEvents && !isContact
             ? {
                 // A scrim rather than a solid bar — keeps the nav legible
-                // over a bright frame without dimming the film itself.
+                // over a bright frame without dimming the film itself. The
+                // pack's curve: dense at the top, most of the way gone by
+                // the lower third, so it reads as shadow rather than a band.
                 background:
-                  "linear-gradient(to bottom, rgba(14,14,14,.72), transparent)",
+                  "linear-gradient(to bottom, rgba(0,0,0,.78) 0%, rgba(0,0,0,.28) 58%, transparent 100%)",
               }
             : isMenu || isEvents || isContact
               ? { background: "#000" }

@@ -18,7 +18,8 @@ export type Dish = {
 export type Chapter = {
   id: string;
   kicker: string;
-  heading: string;
+  /** Some chapters carry only their kicker, set as the heading. */
+  heading?: string;
   lede?: string;
   /** Sides and Kids have no emblem — they're short sections. */
   mark?: string;
@@ -122,8 +123,6 @@ export const MENU: Chapter[] = [
   {
     id: "mains",
     kicker: "Mains",
-    heading: "The plate you came for.",
-    lede: "Comfort, charcoal, and the kitchen's own sauces.",
     mark: `${PHOTO}/photo-mains.jpg`,
     markPosition: "50% 48%",
     dishes: [
@@ -192,13 +191,11 @@ export const MENU: Chapter[] = [
   {
     id: "pasta",
     kicker: "Pasta",
-    heading: "Jerk in the cream.",
-    lede: "Rasta pasta — the kitchen's own fusion, not for show.",
     mark: `${PHOTO}/photo-pasta-prawns.jpg`,
     markPosition: "50% 46%",
     dishes: [
       {
-        name: "Chef's Special — Prawns & Chicken",
+        name: "Chef’s Special — Prawns & Chicken",
         price: "£28.00",
         description: "Prawns, jerk chicken, smoked turkey sausage.",
         featured: true,
@@ -229,8 +226,6 @@ export const MENU: Chapter[] = [
   {
     id: "seafood",
     kicker: "Seafood",
-    heading: "From the grill, for the table.",
-    lede: "Prawns, lobster, a boil if the night is sharing.",
     mark: `${PHOTO}/photo-seafood.jpg`,
     markPosition: "48% 55%",
     bleed: {
@@ -295,7 +290,7 @@ export const MENU: Chapter[] = [
     kicker: "Kids",
     heading: "For the young ones.",
     dishes: [
-      { name: "Mac 'n' Cheese", price: "£4.00" },
+      { name: "Mac ’n’ Cheese", price: "£4.00" },
       { name: "BBQ Wings & Fries", price: "£7.50" },
       { name: "Beef Burger & Fries", price: "£8.50" },
     ],
@@ -338,7 +333,7 @@ export const MENU: Chapter[] = [
     id: "bar",
     kicker: "The bar",
     heading: "A proper bar for the table.",
-    lede: "Cocktails, wine, something without alcohol if you'd rather.",
+    lede: "Cocktails, wine, something without alcohol if you’d rather.",
     mark: `${PHOTO}/photo-bar-globe.jpg`,
     markPosition: "50% 36%",
     shots: [

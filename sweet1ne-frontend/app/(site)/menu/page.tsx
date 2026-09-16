@@ -6,7 +6,7 @@ import { MenuChapters } from "@/components/site/menu-chapters";
 export const metadata: Metadata = {
   title: "Menu",
   description:
-    "Elevated Afro-Fusion. African and Caribbean dishes with the indulgence of soul food, at Lewisham and Chingford.",
+    "Sweet1NE. Elevated Afro-Fusion. African and Caribbean dishes, with the indulgence of soul food. Book Lewisham or Chingford.",
 };
 
 export default function MenuPage() {

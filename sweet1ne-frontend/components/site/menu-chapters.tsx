@@ -8,15 +8,7 @@ import { MENU, MENU_NOTE, type Chapter, type Dish } from "@/lib/menu-content";
 export function MenuChapters() {
   return (
     <>
-      <MenuChapter chapter={MENU[0]} />
-
-      {/* A pause between the first two chapters, so the page doesn't run
-          straight from starters into mains. */}
-      <p className="mid">
-        The list is the invitation. The table is the night.
-      </p>
-
-      {MENU.slice(1).map((chapter) => (
+      {MENU.map((chapter) => (
         <MenuChapter key={chapter.id} chapter={chapter} />
       ))}
 
@@ -62,16 +54,16 @@ function MenuChapter({ chapter }: { chapter: Chapter }) {
         )}
 
         <div>
-          <p className="kicker">
-            {chapter.kicker}
-          </p>
-
-          <h2>
-            {chapter.heading}
-          </h2>
-
-          {chapter.lede && (
-            <p className="lede">{chapter.lede}</p>
+          {chapter.heading ? (
+            <>
+              <p className="kicker">{chapter.kicker}</p>
+              <h2>{chapter.heading}</h2>
+              {chapter.lede && <p className="lede">{chapter.lede}</p>}
+            </>
+          ) : (
+            // Mains, Pasta, Seafood carry only the word — set as the
+            // heading, in the kicker's face.
+            <h2 className="kicker">{chapter.kicker}</h2>
           )}
         </div>
       </div>

@@ -3,14 +3,6 @@
 import Link from "next/link";
 import { useStage } from "./stage-provider";
 
-const BOOK =
-  "font-body inline-block min-w-[10.5rem] cursor-pointer rounded-[3px] " +
-  "border border-[rgba(201,162,74,0.9)] bg-transparent px-[1.15rem] py-[0.65rem] " +
-  "text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[var(--gold)] no-underline " +
-  "transition-colors duration-[400ms] ease-out " +
-  "hover:bg-[var(--gold)] hover:text-[#0e0e0e] " +
-  "focus-visible:bg-[var(--gold)] focus-visible:text-[#0e0e0e] focus-visible:outline-none";
-
 /**
  * The logo sting over the films.
  *
@@ -39,31 +31,17 @@ export default function Gate() {
       }}
     >
 
-      <div className="relative z-10 max-w-[min(90vw,28rem)] px-5 text-center">
-        <img
-          src="/images/homepage-gallery/story/logo.png"
-          alt="Sweet1NE"
-          className="mx-auto h-auto w-[min(58vw,196px)] opacity-0 drop-shadow-[0_8px_28px_rgba(0,0,0,0.55)] sm:w-[min(52vw,236px)]"
-          style={{ animation: "gateLogo 0.55s ease forwards" }}
-        />
-        <hr
-          className="mx-auto mt-[1.05rem] h-px w-[2.2rem] border-0 bg-[var(--gold)] opacity-0"
-          style={{ animation: "gateFade 0.35s ease 0.28s forwards" }}
-        />
+      {/* Class names from home.html — the mark, rule and buttons are styled
+          and animated by the shared .gate-mark / .gate-acts / .book rules. */}
+      <div className="gate-mark relative z-10">
+        <img src="/images/homepage-gallery/story/logo.png" alt="Sweet1NE" />
+        <hr />
 
-        <div
-          className="mt-[1.45rem] flex flex-wrap justify-center gap-y-[0.7rem] gap-x-[0.85rem] opacity-0"
-          style={{ animation: "gateFade 0.4s ease 0.4s forwards" }}
-        >
-          <button
-            type="button"
-            onPointerDown={enter}
-            onClick={enter}
-            className={BOOK}
-          >
+        <div className="gate-acts">
+          <button type="button" onPointerDown={enter} onClick={enter} className="book">
             Enter Sweet1NE
           </button>
-          <Link href="/locations" className={BOOK}>
+          <Link href="/locations" className="book">
             Book a table
           </Link>
         </div>

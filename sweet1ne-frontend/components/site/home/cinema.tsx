@@ -202,14 +202,15 @@ export default function Cinema() {
         </div>
       ))}
 
-      <div className="pointer-events-none absolute bottom-[1.55rem] left-1/2 z-[8] w-[calc(100%-1.8rem)] -translate-x-1/2 text-center sm:bottom-10 sm:w-[min(36rem,calc(100%-2.4rem))]
-        before:mx-auto before:mb-[1.05rem] before:block before:h-px before:w-[2.35rem] before:bg-[var(--gold)] before:content-['']">
-        <p className="kicker mb-[0.55rem] [text-shadow:0_1px_16px_rgba(0,0,0,.85)]">
-          Elevated Afro-Caribbean fusion
-        </p>
-        <h1 className="m-0 text-[1.55rem] text-[var(--ivory)] [text-shadow:0_2px_28px_rgba(0,0,0,.8)] sm:text-[clamp(1.7rem,5vw,3.05rem)]">
-          A culinary adventure for all the senses.
-        </h1>
+      {/* `hero-copy` is what the template's rules key on — the placement, the
+          gold hairline above the kicker, and the Bodoni setting of the
+          headline all come from .home-page .hero-copy in site.css. The
+          Tailwind that was here duplicated the positioning but left the h1
+          with no font-family at all, so it rendered in the body face. It
+          also broke at 640px where the template breaks at 720px. */}
+      <div className="hero-copy">
+        <p className="kicker">Elevated Afro-Caribbean fusion</p>
+        <h1>A culinary adventure for all the senses.</h1>
       </div>
 
       <button

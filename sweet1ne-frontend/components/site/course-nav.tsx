@@ -9,8 +9,8 @@ import { COURSES, MENU } from "@/lib/menu-content";
  * Circular emblems rather than text chips. Sits below the header and tracks
  * which chapter you're reading.
  *
- * Sides and Kids are text links beneath — short sections, and giving them
- * emblems would imply an equivalence that isn't there.
+ * Sides and Kids have no emblem — short sections, and giving them one would
+ * imply an equivalence that isn't there. They're reached by scrolling.
  */
 export function CourseNav() {
   const [active, setActive] = useState(COURSES[0]);
@@ -104,27 +104,6 @@ export function CourseNav() {
         })}
       </nav>
 
-      <p className="course-more">
-        <Link
-          href="#sides"
-          onClick={(event) => {
-            event.preventDefault();
-            jumpTo("sides");
-          }}
-        >
-          Sides
-        </Link>
-        {" · "}
-        <Link
-          href="#kids"
-          onClick={(event) => {
-            event.preventDefault();
-            jumpTo("kids");
-          }}
-        >
-          Kids
-        </Link>
-      </p>
     </div>
   );
 }
