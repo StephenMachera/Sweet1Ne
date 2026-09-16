@@ -18,7 +18,9 @@ export type Dish = {
 export type Chapter = {
   id: string;
   kicker: string;
-  /** Some chapters carry only their kicker, set as the heading. */
+  /** This cut of the menu sets every course as its kicker alone — "gold
+   *  kickers only, no poetic headlines or ledes". Kept optional for a
+   *  future cut that brings a headline back. */
   heading?: string;
   lede?: string;
   /** Sides and Kids have no emblem — they're short sections. */
@@ -39,7 +41,6 @@ export const MENU: Chapter[] = [
   {
     id: "starters",
     kicker: "Starters",
-    heading: "Small plates.",
     mark: `${PHOTO}/photo-starters.jpg`,
     markPosition: "48% 38%",
     dishes: [
@@ -257,7 +258,6 @@ export const MENU: Chapter[] = [
   {
     id: "sides",
     kicker: "Sides & sauces",
-    heading: "What sits with it.",
     dishes: [
       { name: "Rasta Pasta", price: "£12.50" },
       {
@@ -288,7 +288,6 @@ export const MENU: Chapter[] = [
   {
     id: "kids",
     kicker: "Kids",
-    heading: "For the young ones.",
     dishes: [
       { name: "Mac ’n’ Cheese", price: "£4.00" },
       { name: "BBQ Wings & Fries", price: "£7.50" },
@@ -298,8 +297,6 @@ export const MENU: Chapter[] = [
   {
     id: "desserts",
     kicker: "Desserts",
-    heading: "Something sweet.",
-    lede: "West African dough, yaji spice, rum toffee.",
     mark: `${PHOTO}/photo-desserts.jpg`,
     markPosition: "40% 58%",
     dishes: [
@@ -332,8 +329,6 @@ export const MENU: Chapter[] = [
   {
     id: "bar",
     kicker: "The bar",
-    heading: "A proper bar for the table.",
-    lede: "Cocktails, wine, something without alcohol if you’d rather.",
     mark: `${PHOTO}/photo-bar-globe.jpg`,
     markPosition: "50% 36%",
     shots: [
@@ -375,14 +370,14 @@ export const MENU: Chapter[] = [
         name: "Spirits",
         price: "from £80",
         description:
-          "Azul, Casamigos, Hennessy, Courvoisier, Cîroc, Grey Goose, house tequila — ask the room.",
+          "Azul, Casamigos, Hennessy, Courvoisier, Cîroc, Grey Goose, house tequila — ask your server.",
       },
     ],
   },
 ];
 
 export const MENU_NOTE =
-  "Tell your server about allergies before you order. Not every ingredient is listed. Confirm in the room if you need to.";
+  "Tell your server about allergies before you order. Not every ingredient is listed. Confirm with your server if you need to.";
 
 /** The six that get an emblem in the course rail. */
 export const COURSES = ["starters", "mains", "pasta", "seafood", "desserts", "bar"];

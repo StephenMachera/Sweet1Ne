@@ -1,7 +1,16 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { SOCIAL_LINKS } from "@/lib/site-content";
 import { FacebookIcon, InstagramIcon, TikTokIcon } from "./social-icons";
 import { NewsletterForm } from "./newsletter-form";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+const POSTER = "/images/homepage-gallery/events/poster-events.jpg";
+
+/** Listed nights rotate at this pace when there's more than one. */
+const ROTATE_MS = 8000;
 
 const SOCIALS = [
   { href: SOCIAL_LINKS.instagram, label: "Instagram", Icon: InstagramIcon },
@@ -9,92 +18,139 @@ const SOCIALS = [
   { href: SOCIAL_LINKS.tiktok, label: "TikTok", Icon: TikTokIcon },
 ];
 
+/** What /public/events returns — upcoming, published, soonest first. */
+type Night = {
+  id: string;
+  slug: string;
+  title: string;
+  tagline: string | null;
+  description: string | null;
+  image_url: string | null;
+  starts_at: string;
+  branch_name: string | null;
+};
+
+function formatWhen(night: Night) {
+  const d = new Date(night.starts_at);
+  if (Number.isNaN(d.getTime())) return "";
+  const date = d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  const time = d.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" });
+  return [date, time, night.branch_name].filter(Boolean).join(" · ");
+}
+
 /**
- * The empty state, done properly.
+ * What's next — built to events.html.
  *
- * There are no events listed yet, and saying so plainly over a still of the
- * room is better than a blank panel or an invented placeholder.
+ * Reads the listed nights from the staff Events system. If there's more
+ * than one they rotate, with dots to pick; if there are none, the empty
+ * state is the design: say so plainly over a still of the room, with the
+ * socials, rather than a blank panel or an invented placeholder. Dates are
+ * never made up here — they're whatever staff have published.
  */
 export function EventsNext() {
+  const [nights, setNights] = useState<Night[]>([]);
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_URL}/public/events`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((rows: Night[]) => {
+        if (!cancelled && Array.isArray(rows)) setNights(rows);
+      })
+      .catch(() => {
+        // Unreachable API reads the same as nothing listed.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Rotation restarts whenever a dot is pressed, so a chosen night gets its
+  // full eight seconds.
+  useEffect(() => {
+    if (nights.length < 2) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(
+      () => setIndex((i) => (i + 1) % nights.length),
+      ROTATE_MS
+    );
+    return () => window.clearInterval(timer);
+  }, [nights.length, index]);
+
+  const night = nights[index] ?? null;
+
   return (
     <>
-      <section
-        id="next"
-        aria-label="What's next"
-        className="next relative mt-[2.2rem] min-h-[22rem] scroll-mt-32 overflow-hidden bg-[#0a0a0a]"
-      >
-        <Image
-          src="/images/homepage-gallery/events/poster-events.jpg"
-          alt=""
-          fill
-          sizes="100vw"
-          className="object-cover object-[50%_22%] brightness-[0.38] saturate-[0.9]"
-        />
+      <section className="next" id="next" aria-label="What’s next">
+        <div className="next-media">
+          <img className="next-still" src={night?.image_url || POSTER} alt="" />
+        </div>
+        <span className="next-veil" aria-hidden="true" />
 
-        <span
-          aria-hidden
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to top, rgba(5,5,5,.92) 0%, rgba(5,5,5,.5) 55%, rgba(5,5,5,.4) 100%)",
-          }}
-        />
+        <div className="next-copy">
+          <p className="kicker">What’s next</p>
 
-        <div className="relative z-[1] mx-auto max-w-[34rem] px-[1.15rem] py-[5.5rem] text-center sm:px-6 sm:py-[6rem]">
-          <p className="mb-[0.55rem] text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
-            What&apos;s next
-          </p>
+          {night ? (
+            <>
+              {formatWhen(night) && <p className="meta">{formatWhen(night)}</p>}
+              <h2>{night.title}</h2>
+              {(night.tagline || night.description) && (
+                <p className="dek">{night.tagline || night.description}</p>
+              )}
+              <div className="acts">
+                <Link href="/locations" className="book">
+                  Book
+                </Link>
+                {night.description && (
+                  <Link href={`/events/${night.slug}`} className="book">
+                    Details
+                  </Link>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <h2>Nothing listed yet.</h2>
+              <p className="dek">
+                When a night is on, it will sit here. Follow along, or join the list.
+              </p>
+              <nav className="socials socials-lg" aria-label="Follow Sweet1NE">
+                {SOCIALS.map(({ href, label, Icon }) => (
+                  <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label}>
+                    <Icon size={19} />
+                  </a>
+                ))}
+              </nav>
+            </>
+          )}
 
-          <h2 className="mb-[0.7rem] font-display text-[clamp(1.9rem,6vw,3rem)] font-medium leading-[1.08] tracking-[-0.02em]">
-            The next night isn&apos;t listed yet.
-          </h2>
-
-          <p className="mx-auto mb-8 max-w-[32rem] text-[1.02rem] text-[var(--ivory-dim)]">
-            When it is, it will live here. Follow along — or join the list and
-            hear it first.
-          </p>
-
-          <nav
-            aria-label="Follow Sweet1NE"
-            className="flex justify-center gap-3.5"
-          >
-            {SOCIALS.map(({ href, label, Icon }) => (
-              
-             <a   key={label}
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={label}
-                className="grid h-12 w-12 place-items-center border border-[rgba(201,162,74,.45)] text-[var(--gold)] transition-colors hover:border-[var(--gold)] hover:bg-[var(--gold)] hover:text-[#0e0e0e]"
-                style={{ borderRadius: "3px" }}
-              >
-                <Icon size={20} />
-              </a>
-            ))}
-          </nav>
+          {nights.length > 1 && (
+            <div className="next-dots">
+              {nights.map((row, i) => (
+                <button
+                  key={row.id}
+                  type="button"
+                  className={i === index ? "is-on" : undefined}
+                  aria-current={i === index ? "true" : undefined}
+                  aria-label={`${row.title}, ${i + 1} of ${nights.length}`}
+                  onClick={() => setIndex(i)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      <section className="mx-auto max-w-[34rem] px-[1.15rem] py-[2.8rem] text-center sm:px-6 sm:py-[3.2rem]">
-        <p className="mb-3 text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
-          Stay close
-        </p>
-
-        <h2 className="mb-3 font-display text-[clamp(1.6rem,4vw,2.3rem)] font-medium leading-tight">
-          Know before everyone else.
-        </h2>
-
-        <p className="mx-auto mb-7 max-w-[26rem] text-[var(--ivory-dim)]">
-          New dishes, event nights and the odd thing we don&apos;t put on Instagram.
-        </p>
-
+      <section className="know">
+        <p className="kicker">Stay close</p>
+        <h2>Join the list.</h2>
+        <p className="dek">New dishes and event nights. Unsubscribe any time.</p>
         <NewsletterForm variant="order" />
       </section>
 
-      <section id="book" className="px-[1.15rem] pb-12 pt-2 text-center sm:px-6">
-        <p className="font-display text-[clamp(1.4rem,3vw,2rem)] italic">
-          Always in the mood for you.
-        </p>
+      <section className="mood" id="book">
+        <p>Always in the mood for you.</p>
       </section>
     </>
   );

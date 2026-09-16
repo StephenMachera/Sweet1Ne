@@ -2,101 +2,172 @@
 
 import { useEffect, useRef, useState } from "react";
 
+const POSTER = "/images/homepage-gallery/events/poster-events.jpg";
+const FILM = "/videos/film-events.mp4";
+
+/* Runs as the parser reaches it, before React — the film is asked to play
+   the moment the tag exists, which is what a phone needs. */
+const INLINE_KICK = `(function(){if(window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;var v=document.querySelector(".events-page .hero .film");if(!v)return;v.muted=true;v.defaultMuted=true;v.playsInline=true;var p=v.play();if(p&&p.catch)p.catch(function(){});})();`;
+
+function armFilm(film: HTMLVideoElement) {
+  film.muted = true;
+  film.defaultMuted = true;
+  film.playsInline = true;
+  film.setAttribute("autoplay", "");
+  film.setAttribute("muted", "");
+  film.setAttribute("playsinline", "");
+  film.setAttribute("webkit-playsinline", "");
+}
+
+function kickFilm(film: HTMLVideoElement) {
+  armFilm(film);
+  try {
+    const play = film.play();
+    if (play && typeof play.catch === "function") play.catch(() => {});
+  } catch {
+    /* an old WebKit throws synchronously; nothing to do */
+  }
+}
+
 /**
- * The night, as a film.
+ * The night, as a portrait film on a gold-edged stage — built to events.html.
  *
- * Plays only while in view — an autoplaying video off-screen is wasted
- * bandwidth, and on a phone that's someone's data.
+ * The file sits on the <video src>, not a nested <source>: Safari is
+ * unreliable with the latter. It ships autoplay/muted/playsinline/
+ * webkit-playsinline in the HTML and is kicked by the inline script under
+ * it, so nothing waits for React. Afterwards it's re-kicked on canplay, on
+ * any gesture (Safari counts pointerup, touchend, click and keys — not
+ * pointerdown), on pageshow and when the tab comes back; a tap on the
+ * stage plays a film Safari refused to start; and it pauses off-screen.
+ * The pause control reads the film's real state, so it's never showing
+ * "pause" over a film that isn't moving.
  */
 export function EventsHero() {
   const filmRef = useRef<HTMLVideoElement>(null);
-  const [paused, setPaused] = useState(false);
+  const heldRef = useRef(false);
+  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     const film = filmRef.current;
     if (!film) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    film.muted = true;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const sync = () => setPlaying(!film.paused && film.readyState > 1);
+    film.addEventListener("playing", sync);
+    film.addEventListener("pause", sync);
+    sync();
 
-    const observer = new IntersectionObserver(
+    if (reduce) return () => {
+      film.removeEventListener("playing", sync);
+      film.removeEventListener("pause", sync);
+    };
+
+    const kick = () => {
+      if (!heldRef.current) kickFilm(film);
+    };
+
+    armFilm(film);
+    kick();
+    film.addEventListener("canplay", kick);
+
+    const onVisible = () => {
+      if (!document.hidden) kick();
+    };
+    document.addEventListener("pointerup", kick, { passive: true });
+    document.addEventListener("touchend", kick, { passive: true });
+    document.addEventListener("click", kick, { passive: true });
+    document.addEventListener("keydown", kick);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", kick);
+
+    // Off-screen it stops — an autoplaying film nobody can see is just
+    // someone's data.
+    const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          // A manual pause wins over the observer — otherwise scrolling
-          // back would restart something the visitor stopped.
-          if (paused) return;
-
-          if (entry.isIntersecting) film.play().catch(() => {});
+          if (heldRef.current) return;
+          if (entry.isIntersecting) kick();
           else film.pause();
         });
       },
       { threshold: 0.35 }
     );
+    io.observe(film);
 
-    observer.observe(film);
-    return () => observer.disconnect();
-  }, [paused]);
+    return () => {
+      film.removeEventListener("playing", sync);
+      film.removeEventListener("pause", sync);
+      film.removeEventListener("canplay", kick);
+      document.removeEventListener("pointerup", kick);
+      document.removeEventListener("touchend", kick);
+      document.removeEventListener("click", kick);
+      document.removeEventListener("keydown", kick);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", kick);
+      io.disconnect();
+    };
+  }, []);
 
-  function togglePause() {
+  function togglePause(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
     const film = filmRef.current;
     if (!film) return;
 
-    const next = !paused;
-    setPaused(next);
+    if (!film.paused) {
+      heldRef.current = true;
+      film.pause();
+    } else {
+      heldRef.current = false;
+      kickFilm(film);
+    }
+  }
 
-    if (next) film.pause();
-    else film.play().catch(() => {});
+  // A tap anywhere on the stage starts a film that isn't moving — the
+  // Safari case, where nothing but a gesture will do.
+  function onStageClick(e: React.MouseEvent) {
+    if ((e.target as HTMLElement).closest(".pause")) return;
+    const film = filmRef.current;
+    if (film && film.paused) {
+      heldRef.current = false;
+      kickFilm(film);
+    }
   }
 
   return (
-    <section
-      id="night"
-      aria-label="The night"
-      className="hero relative grid min-h-[calc(100svh-4.2rem)] bg-black lg:h-[calc(100svh-4.4rem)] lg:min-h-[36rem] lg:grid-cols-[minmax(20rem,0.92fr)_minmax(22rem,0.78fr)]"
-    >
-      <div className="stage relative order-1 h-[78svh] min-h-[22rem] overflow-hidden bg-[#0a0a0a] shadow-[inset_0_0_0_1px_rgba(201,162,74,0.42)] lg:col-start-2 lg:row-start-1 lg:my-[1.1rem] lg:mr-[1.4rem] lg:h-auto lg:min-h-0">
-          <video
-            ref={filmRef}
-            muted
-            loop
-            playsInline
-            preload="auto"
-            poster="/images/homepage-gallery/events/poster-events.jpg"
-            autoPlay
-            className="film absolute inset-0 block h-full w-full max-w-none object-cover object-[50%_18%] brightness-[0.82] saturate-[1.05]"
-          >
-            <source src="/videos/film-events.mp4" type="video/mp4" />
-          </video>
-
-          <span
-            aria-hidden
-            className="veil pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(5,5,5,0.88)_0%,rgba(5,5,5,0.18)_42%,rgba(5,5,5,0.4)_100%)] lg:hidden"
-          />
-
-          <button
-            type="button"
-            onClick={togglePause}
-            aria-label={paused ? "Play film" : "Pause film"}
-            className="pause absolute bottom-3 right-3 z-[3] grid h-[2.35rem] w-[2.35rem] place-items-center rounded-full border border-[rgba(201,162,74,.55)] bg-[rgba(5,5,5,.5)] text-[0.68rem] text-[var(--ivory)] backdrop-blur transition-colors hover:border-[var(--gold)] motion-reduce:hidden lg:bottom-4 lg:right-10"
-          >
-            {paused ? "▶" : "II"}
-          </button>
-          <span aria-hidden className="pointer-events-none absolute inset-0 hidden bg-[linear-gradient(to_right,#000_0%,transparent_18%)] lg:block" />
+    <section id="night" aria-label="The night" className="hero">
+      <div className="stage" onClick={onStageClick}>
+        <video
+          ref={filmRef}
+          className="film"
+          src={FILM}
+          autoPlay
+          muted
+          loop
+          playsInline
+          webkit-playsinline="true"
+          preload="auto"
+          poster={POSTER}
+        />
+        <span className="veil" aria-hidden="true" />
+        <button
+          type="button"
+          className="pause"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={togglePause}
+          aria-label={playing ? "Pause film" : "Play film"}
+        >
+          {playing ? "II" : "▶"}
+        </button>
       </div>
 
-      <div className="hero-copy relative z-[2] order-2 self-end px-[1.15rem] pb-[1.8rem] pt-0 sm:px-6 max-[720px]:absolute max-[720px]:bottom-0 max-[720px]:left-0 max-[720px]:right-0 max-[720px]:pb-[2.4rem] lg:col-start-1 lg:row-start-1 lg:self-center lg:px-8 lg:pb-8 lg:pt-[5.5rem]">
-        <p className="mb-[0.55rem] text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
-          What&apos;s on
-        </p>
+      {/* Directly under the stage, as in events.html. */}
+      <script dangerouslySetInnerHTML={{ __html: INLINE_KICK }} />
 
-        <h1 className="mb-[0.7rem] font-display text-[clamp(2.2rem,8vw,4.2rem)] font-medium leading-[1.02] tracking-[-0.02em] lg:text-shadow-none">
-          Nights worth planning around.
-        </h1>
-
-        <p className="dek max-w-[26rem] text-[1.02rem] text-[var(--ivory-dim)]">
-          A table. The room. A performance. Book a night — or take the room for
-          your own.
-        </p>
+      <div className="hero-copy">
+        <p className="kicker">What’s on</p>
+        <h1>Nights worth planning around.</h1>
+        <p className="dek">Book a table, or hire the restaurant for your own night.</p>
       </div>
     </section>
   );

@@ -7,12 +7,12 @@ import { SiteFooter } from "@/components/site/site-footer";
 export const metadata: Metadata = {
   title: "Events",
   description:
-    "A table. The room. A performance. Book a night at Sweet1NE, or take the room for your own.",
+    "Nights at Sweet1NE. Book a table in Lewisham or Chingford, or write for private hire.",
 };
 
 export default function EventsPage() {
   return (
-    <div className="events-page bg-black">
+    <div className="events-page">
       <EventsHero />
       <EventsPaths />
       <EventsNext />

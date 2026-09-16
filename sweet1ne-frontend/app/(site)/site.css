@@ -575,6 +575,537 @@ body.is-gated .pause {
   border-top-color: rgba(107, 127, 94, 0.72);
 }
 
+/* ---- Events page — straight from the locked events.html -------------- */
+
+.events-page {
+  --bg: #050505;
+  background: #050505;
+}
+
+/* Shared chrome the page uses (the pack's site.css) ----------------------- */
+
+.events-page .kicker {
+  margin: 0 0 0.7rem;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.events-page .dek {
+  margin: 0;
+  color: var(--ivory-dim);
+  font-family: var(--font-body), system-ui, sans-serif;
+  line-height: 1.55;
+}
+
+.events-page .book {
+  display: inline-block;
+  flex-shrink: 0;
+  padding: 0.58rem 1.05rem;
+  border: 1px solid rgba(201, 162, 74, 0.9);
+  border-radius: 3px;
+  color: var(--gold);
+  font: 600 0.75rem var(--font-body), system-ui, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  background: transparent;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: background-color 400ms ease-out, color 400ms ease-out;
+}
+
+.events-page .book:hover {
+  background: var(--gold);
+  color: #0e0e0e;
+}
+
+.events-page .jump {
+  position: sticky;
+  top: 4.15rem;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  background: rgba(5, 5, 5, 0.96);
+  border-bottom: 1px solid rgba(201, 162, 74, 0.14);
+}
+
+.events-page .jump a {
+  min-width: 0;
+  padding: 0.95rem 0.4rem;
+  color: var(--ivory-dim);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-align: center;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.events-page .jump a[aria-current="location"] {
+  color: var(--gold);
+  box-shadow: inset 0 -2px 0 var(--gold);
+}
+
+.events-page .socials {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.events-page .socials a {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  color: var(--gold);
+  border: 1px solid rgba(201, 162, 74, 0.45);
+  border-radius: 3px;
+}
+
+.events-page .socials a:hover {
+  background: var(--gold);
+  color: #0e0e0e;
+}
+
+.events-page .socials svg {
+  display: block;
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.events-page .socials.socials-lg a {
+  width: 3rem;
+  height: 3rem;
+}
+
+.events-page .socials.socials-lg svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.events-page .mood {
+  padding: 2.4rem 1.15rem 4.2rem;
+  text-align: center;
+}
+
+.events-page .mood p {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  letter-spacing: -0.02em;
+}
+
+/* The night: a portrait film on a gold-edged stage -------------------------- */
+
+.events-page .hero {
+  position: relative;
+  min-height: calc(100svh - 4.2rem);
+  display: grid;
+  background: #000;
+}
+
+.events-page .stage {
+  position: relative;
+  overflow: hidden;
+  background: #0a0a0a;
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.42);
+}
+
+.events-page .film {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: 50% 18%;
+  filter: brightness(0.82) saturate(1.05);
+}
+
+.events-page .film::-webkit-media-controls,
+.events-page .film::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
+
+.events-page .veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(5, 5, 5, 0.88) 0%, rgba(5, 5, 5, 0.18) 42%, rgba(5, 5, 5, 0.4) 100%);
+}
+
+.events-page .hero-copy {
+  position: relative;
+  z-index: 2;
+  align-self: end;
+  padding: 0 1.15rem 1.8rem;
+}
+
+.events-page .hero h1 {
+  margin: 0 0 0.7rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 500;
+  font-size: clamp(2.2rem, 8vw, 4.2rem);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.65);
+}
+
+.events-page .hero .dek {
+  max-width: 26rem;
+  margin: 0;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.55);
+}
+
+.events-page .pause {
+  position: absolute;
+  right: 0.85rem;
+  bottom: 0.9rem;
+  z-index: 3;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 162, 74, 0.55);
+  background: rgba(5, 5, 5, 0.5);
+  color: var(--ivory);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 0.68rem;
+}
+
+/* Two ways in ------------------------------------------------------------ */
+
+/* Anchor targets clear the fixed header and the sticky jump bar. */
+.events-page .paths,
+.events-page .emblem,
+.events-page .next {
+  scroll-margin-top: 7.4rem;
+}
+
+.events-page .paths {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.4rem 1.1rem;
+  padding: 2.4rem 1.15rem 0.8rem;
+}
+
+.events-page .emblem {
+  flex: 1 1 42%;
+  min-width: 0;
+  max-width: 22rem;
+  text-align: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+.events-page .disc {
+  display: block;
+  width: 100%;
+  max-width: 22rem;
+  aspect-ratio: 1;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #111;
+  box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.42);
+  transition: box-shadow 0.45s ease, transform 0.85s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.events-page .emblem:hover .disc {
+  box-shadow: 0 0 0 2px var(--gold);
+  transform: scale(1.03);
+}
+
+.events-page .disc img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  transition: transform 1.15s ease;
+}
+
+.events-page .emblem[data-path="table"] img { object-position: 48% 32%; }
+.events-page .emblem[data-path="room"] img { object-position: 50% 48%; }
+
+.events-page .emblem:hover img {
+  transform: scale(1.07);
+}
+
+.events-page .emblem h2 {
+  margin: 0 0 0.45rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 500;
+  font-size: clamp(1.55rem, 4.6vw, 2.35rem);
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+}
+
+.events-page .emblem p {
+  max-width: 16rem;
+  margin: 0 auto;
+  color: var(--ivory-dim);
+  font-size: 0.95rem;
+}
+
+/* What's next -------------------------------------------------------------- */
+
+.events-page .next {
+  position: relative;
+  min-height: 22rem;
+  margin: 2.2rem 0 0;
+  overflow: hidden;
+  background: #0a0a0a;
+}
+
+.events-page .next-media {
+  position: absolute;
+  inset: 0;
+}
+
+.events-page .next-still,
+.events-page .next-media img,
+.events-page .next-media video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: 50% 22%;
+  filter: brightness(0.38) saturate(0.9);
+}
+
+.events-page .next-veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(5, 5, 5, 0.92) 0%, rgba(5, 5, 5, 0.5) 55%, rgba(5, 5, 5, 0.4) 100%);
+}
+
+.events-page .next-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 5.5rem 1.15rem 3.2rem;
+  text-align: center;
+}
+
+.events-page .next h2 {
+  margin: 0 0 0.7rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 500;
+  font-size: clamp(1.9rem, 6vw, 3rem);
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+}
+
+.events-page .next .dek {
+  margin: 0 auto 1.35rem;
+}
+
+.events-page .next .meta {
+  margin: 0 0 0.55rem;
+  color: var(--ivory-dim);
+  font-size: 0.88rem;
+}
+
+.events-page .next .acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 0 0 1.1rem;
+}
+
+.events-page .next .socials {
+  justify-content: center;
+}
+
+.events-page .next-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 1.1rem 0 0;
+}
+
+.events-page .next-dots button {
+  width: 0.55rem;
+  height: 0.55rem;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--gold);
+  background: transparent;
+  cursor: pointer;
+}
+
+.events-page .next-dots button.is-on {
+  background: var(--gold);
+}
+
+/* Stay close --------------------------------------------------------------- */
+
+.events-page .know {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 2.8rem 1.15rem 0.4rem;
+  text-align: center;
+}
+
+.events-page .know h2 {
+  margin: 0 0 0.55rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 500;
+  font-size: clamp(1.7rem, 5vw, 2.5rem);
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+}
+
+.events-page .know .dek {
+  max-width: 24rem;
+  margin: 0 auto 1.2rem;
+}
+
+/* Breakpoints -------------------------------------------------------------- */
+
+@media (min-width: 900px) {
+  .events-page .hero {
+    grid-template-columns: minmax(20rem, 0.92fr) minmax(22rem, 0.78fr);
+    grid-template-rows: 1fr;
+    height: calc(100svh - 4.4rem);
+    min-height: 36rem;
+  }
+
+  .events-page .stage {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: stretch;
+    height: 100%;
+    min-height: 0;
+    margin: 1.1rem 1.4rem 1.1rem 0;
+  }
+
+  .events-page .veil {
+    display: none;
+  }
+
+  /* The page fades into the film from the left, so there's no seam
+     between copy and picture. */
+  .events-page .stage::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(to right, var(--bg) 0%, transparent 18%);
+  }
+
+  .events-page .hero-copy {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    padding: 5.5rem 1.6rem 2rem 2rem;
+  }
+
+  .events-page .hero h1,
+  .events-page .hero .dek {
+    text-shadow: none;
+  }
+
+  .events-page .pause {
+    top: auto;
+    right: 2.5rem;
+    bottom: 1rem;
+  }
+
+  .events-page .paths {
+    gap: 2.2rem;
+    padding: 3rem 2rem 1rem;
+  }
+
+  .events-page .emblem:nth-child(1) { transform: translateY(0.7rem); }
+  .events-page .emblem:nth-child(2) { transform: translateY(-0.35rem); }
+
+  .events-page .next-copy {
+    padding: 6rem 2rem 3.6rem;
+  }
+
+  .events-page .know {
+    padding: 3.2rem 2rem 0.6rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .events-page .hero {
+    min-height: 0;
+  }
+
+  .events-page .stage {
+    height: 78svh;
+    min-height: 22rem;
+  }
+
+  .events-page .hero-copy {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0 1.15rem 2.4rem;
+  }
+
+  .events-page .hero h1 {
+    font-size: clamp(1.85rem, 9vw, 2.45rem);
+  }
+
+  .events-page .pause {
+    right: 0.75rem;
+    bottom: 0.75rem;
+  }
+
+  .events-page .jump {
+    top: 3.7rem;
+  }
+
+  .events-page .paths {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.8rem;
+    padding: 2rem 1.15rem 0.6rem;
+  }
+
+  .events-page .emblem {
+    flex: none;
+    width: 100%;
+    max-width: none;
+  }
+
+  .events-page .disc {
+    width: min(86vw, 22rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .events-page .film {
+    display: none;
+  }
+
+  .events-page .stage {
+    background: url("/images/homepage-gallery/events/poster-events.jpg") 50% 18% / cover no-repeat;
+  }
+
+  .events-page .pause {
+    display: none;
+  }
+}
+
 .menu-page .hero {
   position: relative;
   height: 100svh;

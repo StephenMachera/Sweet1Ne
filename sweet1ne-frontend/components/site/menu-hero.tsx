@@ -33,14 +33,7 @@ export function MenuHero() {
       </div>
 
       <div className="hero-copy">
-        <h1>
-          The Menu.
-        </h1>
-
-        <p className="dek">
-          Elevated Afro-Fusion. African and Caribbean dishes, with the
-          indulgence of soul food.
-        </p>
+        <h1>The Menu.</h1>
 
         <Link
           href="#starters"
