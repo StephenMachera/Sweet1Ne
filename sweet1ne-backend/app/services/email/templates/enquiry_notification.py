@@ -22,7 +22,7 @@ def render(
     when = received_at.strftime("%-d %B at %-I:%M%p").replace("AM", "am").replace("PM", "pm")
     topic = subject or "General question"
 
-    email_subject = f"New enquiry — {topic} ({name})"
+    email_subject = f"New enquiry — {branch_name}"
 
     body = f"""
           <tr><td style="padding:36px 40px 12px;">
