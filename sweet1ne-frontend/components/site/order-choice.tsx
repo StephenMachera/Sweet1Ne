@@ -184,24 +184,8 @@ export function OrderChoice() {
         ) : (
           <>
             <p className="kicker mb-[0.85rem] text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
-              Which restaurant?
+              Comming Soon ...
             </p>
-
-            <div className="pick-row mx-auto grid max-w-[28rem] grid-cols-2 gap-[0.55rem]">
-              {LOCATIONS.map((location) => (
-                <button
-                  key={location.slug}
-                  type="button"
-                  onClick={chooseBranch}
-                  className="pick block border border-[rgba(201,162,74,.45)] px-[0.7rem] py-[1.05rem] font-display text-[1.35rem] tracking-[-0.02em] transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)] max-[720px]:flex max-[720px]:min-h-[4.2rem] max-[720px]:flex-col max-[720px]:justify-center"
-                >
-                  {location.shortName}
-                  <small className="mt-1 block font-body text-[0.62rem] font-normal uppercase tracking-[0.16em] text-[var(--ivory-dim)]">
-                    {location.slug === "lewisham" ? "Flagship" : location.area}
-                  </small>
-                </button>
-              ))}
-            </div>
           </>
         )}
       </section>
