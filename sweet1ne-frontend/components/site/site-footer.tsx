@@ -12,7 +12,7 @@ const LEGAL = [
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
   // Findable if you know to look, invisible if you don't.
-  { href: "/login", label: "Staff login" },
+  // { href: "/login", label: "Staff login" },
 ];
 
 /**
