@@ -133,7 +133,7 @@ export function OrderChoice() {
                   quality={100}
                   unoptimized
                   className={`object-cover transition-transform duration-[1150ms] ease-out ${isLead ? "scale-[1.07]" : "group-hover:scale-[1.07]"}`}
-                  style={{ objectPosition: path.id === "here" ? "50% 48%" : "50% 42%" }}
+                  style={{ objectPosition: "50% 42%" }}
                 />
               </span>
 
