@@ -22,17 +22,20 @@ def render(
     when = received_at.strftime("%-d %B at %-I:%M%p").replace("AM", "am").replace("PM", "pm")
     topic = subject or "General question"
 
-    email_subject = f"New enquiry — {branch_name}"
+    # The branch leads. In a shared inbox during service the branch is what
+    # decides who picks it up, so it's the first word in the subject line
+    # and the first line of the body — ahead of what the enquiry is about.
+    email_subject = f"{branch_name} — New enquiry: {topic}"
 
     body = f"""
           <tr><td style="padding:36px 40px 12px;">
-            <p style="margin:0 0 12px;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:{GOLD};">New enquiry</p>
+            <p style="margin:0 0 12px;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:{GOLD};">{branch_name} · New enquiry</p>
 
             <h1 style="margin:0 0 6px;font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:400;line-height:1.3;color:{IVORY};">
               {topic}
             </h1>
 
-            <p style="margin:0;font-size:14px;color:{MUTED};">{when} · {branch_name}</p>
+            <p style="margin:0;font-size:14px;color:{MUTED};">{when}</p>
           </td></tr>
 
           <tr><td style="padding:0 40px 20px;">

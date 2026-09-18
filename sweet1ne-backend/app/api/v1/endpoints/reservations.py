@@ -163,6 +163,7 @@ async def create_reservation(
                 # Replying reaches the customer directly, which is the whole
                 # point of a notification during service.
                 reply_to=reservation.email,
+                from_name=f"Sweet1NE {branch.name}",
             )
 
     return ReservationPublicOut(

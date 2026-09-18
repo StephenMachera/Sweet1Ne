@@ -1,3 +1,5 @@
+from email.utils import parseaddr
+
 import httpx
 
 from app.core.config import settings
@@ -9,6 +11,7 @@ async def send_email(
     subject: str,
     html: str,
     reply_to: str | None = None,
+    from_name: str | None = None,
 ) -> bool:
     """
     Sends through Resend.
@@ -23,8 +26,17 @@ async def send_email(
         print(f"[email] No RESEND_API_KEY set. Would have sent '{subject}' to {to}")
         return False
 
+    # A per-email display name on the same sending address — the staff
+    # notification uses the branch, so the sender reads "Sweet1NE Lewisham"
+    # rather than the generic name.
+    sender = settings.EMAIL_FROM
+    if from_name:
+        _, address = parseaddr(settings.EMAIL_FROM)
+        if address:
+            sender = f"{from_name} <{address}>"
+
     payload = {
-        "from": settings.EMAIL_FROM,
+        "from": sender,
         "to": [to],
         "subject": subject,
         "html": html,
