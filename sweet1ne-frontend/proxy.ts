@@ -28,7 +28,10 @@ function isAllowedHost(host: string) {
   );
 }
 
-export async function middleware(request: NextRequest) {
+// Next 16 runs this for every matched request. The file is proxy.ts and
+// the export must be named `proxy` (or be the default) — the old
+// `middleware` name is what the build refuses.
+export async function proxy(request: NextRequest) {
   const host = request.headers.get("host") ?? "";
 
   // Temporary — the block isn't firing, so this prints what actually
