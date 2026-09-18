@@ -12,12 +12,12 @@ type Path = "here" | "away";
 type Stage = "choosing" | "scan-prompt" | "scanning";
 
 const PATHS = [
-  {
-    id: "here" as const,
-    image: "/images/homepage-gallery/order/emblem-here.jpg",
-    heading: "I'm here now.",
-    body: "You're at the table. Order from the kitchen.",
-  },
+  // {
+  //   id: "here" as const,
+  //   image: "/images/homepage-gallery/order/emblem-here.jpg",
+  //   heading: "I'm here now.",
+  //   body: "You're at the table. Order from the kitchen.",
+  // },
   {
     id: "away" as const,
     image: "/images/homepage-gallery/order/emblem-aways.jpg",
