@@ -90,7 +90,7 @@ export function OrderChoice() {
 
   return (
     <div className="order-page">
-      <section className="hero-copy mx-auto max-w-[54rem] px-[1.15rem] pb-[0.4rem] pt-[5.6rem] text-center sm:px-8 sm:pt-[6.2rem]">
+      {/* <section className="hero-copy mx-auto max-w-[54rem] px-[1.15rem] pb-[0.4rem] pt-[5.6rem] text-center sm:px-8 sm:pt-[6.2rem]">
         <p className="mb-3 text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
           Order
         </p>
@@ -104,7 +104,7 @@ export function OrderChoice() {
           <br />
           Lewisham or Chingford.
         </p>
-      </section>
+      </section> */}
 
       {/* The two paths. Offset slightly on desktop so they sit off-axis
           rather than level — the detail that stops them reading as buttons. */}
