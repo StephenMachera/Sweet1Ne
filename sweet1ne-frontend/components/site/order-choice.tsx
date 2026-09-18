@@ -90,22 +90,6 @@ export function OrderChoice() {
 
   return (
     <div className="order-page">
-      {/* <section className="hero-copy mx-auto max-w-[54rem] px-[1.15rem] pb-[0.4rem] pt-[5.6rem] text-center sm:px-8 sm:pt-[6.2rem]">
-        <p className="mb-3 text-[0.72rem] uppercase tracking-[0.2em] text-[var(--gold)]">
-          Order
-        </p>
-
-        <h1 className="mb-3.5 font-display text-[clamp(2.2rem,6vw,3.6rem)] font-medium leading-[1.05] tracking-[-0.02em] [text-shadow:none] max-[720px]:text-[clamp(1.85rem,9vw,2.35rem)]">
-          Where are you eating.
-        </h1>
-
-        <p className="dek mx-auto max-w-[22rem] text-[var(--ivory-dim)]">
-          At the table, or taking it away.
-          <br />
-          Lewisham or Chingford.
-        </p>
-      </section> */}
-
       {/* The two paths. Offset slightly on desktop so they sit off-axis
           rather than level — the detail that stops them reading as buttons. */}
       <div aria-label="How you're ordering" className="paths mx-auto flex max-w-[54rem] items-end justify-center gap-x-[1.1rem] gap-y-[0.4rem] px-[1.15rem] pb-[0.6rem] pt-[1.4rem] max-[720px]:flex-col max-[720px]:items-center max-[720px]:gap-y-[1.8rem] max-[720px]:pt-[1.2rem] sm:gap-x-[2.2rem] sm:px-8 sm:pb-[0.8rem] sm:pt-8">
