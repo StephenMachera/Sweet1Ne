@@ -1163,7 +1163,10 @@ body {
     url("/images/homepage-gallery/carousel/web/01-table.jpg") 50% 42% / cover no-repeat;
   filter: saturate(1.08);
 }
-.gate {
+/* Namespaced .gate-card (not the bare .gate class) — (site)/site.css
+   already owns .gate for the homepage's own welcome overlay, and reusing
+   that name here collided with it site-wide. */
+.gate-card {
   position: relative;
   z-index: 1;
   width: min(24rem, calc(100% - 2.4rem));
@@ -1177,20 +1180,20 @@ body {
     inset 0 0 0 6px #050505,
     inset 0 0 0 7px rgba(201, 162, 74, 0.16);
 }
-.gate img.mark {
+.gate-card img.mark {
   width: min(48vw, 176px);
   height: auto;
   margin: 0 auto 0.95rem;
   filter: drop-shadow(0 8px 28px rgba(0, 0, 0, 0.55));
 }
-.gate hr {
+.gate-card hr {
   width: 2.2rem;
   height: 1px;
   margin: 0 auto 0.95rem;
   border: 0;
   background: var(--gate-gold);
 }
-.gate .slogan {
+.gate-card .slogan {
   margin: 0 0 1.5rem;
   font-family: var(--font-gate-display, Georgia, serif);
   font-style: italic;
@@ -1199,8 +1202,8 @@ body {
   color: var(--gate-ivory);
   letter-spacing: -0.01em;
 }
-.gate form { display: grid; gap: 0.85rem; text-align: left; }
-.gate label {
+.gate-card form { display: grid; gap: 0.85rem; text-align: left; }
+.gate-card label {
   display: grid;
   gap: 0.35rem;
   font-size: 0.68rem;
@@ -1208,7 +1211,7 @@ body {
   text-transform: uppercase;
   color: var(--gate-ivory-dim);
 }
-.gate input {
+.gate-card input {
   width: 100%;
   appearance: none;
   background: #050505;
@@ -1221,11 +1224,11 @@ body {
   font-size: 0.95rem;
   font-family: var(--font-gate-body, inherit);
 }
-.gate input:focus {
+.gate-card input:focus {
   outline: none;
   border-color: var(--gate-gold);
 }
-.gate .book {
+.gate-card .book {
   display: inline-block;
   width: 100%;
   margin-top: 0.35rem;
@@ -1239,18 +1242,18 @@ body {
   text-transform: uppercase;
   cursor: pointer;
 }
-.gate .book:hover:not(:disabled) {
+.gate-card .book:hover:not(:disabled) {
   background: var(--gate-gold);
   color: #0e0e0e;
 }
-.gate .book:disabled { opacity: 0.6; cursor: not-allowed; }
-.gate .hint {
+.gate-card .book:disabled { opacity: 0.6; cursor: not-allowed; }
+.gate-card .hint {
   margin: 1.15rem 0 0;
   font-size: 0.82rem;
   color: var(--gate-ivory-dim);
   text-align: center;
 }
-.gate .error {
+.gate-card .error {
   margin: 0 0 0.85rem;
   font-size: 0.82rem;
   color: var(--gate-gold);

@@ -89,9 +89,12 @@ export function OrderChoice() {
   }
 
   return (
+    
     <div className="order-page">
       {/* The two paths. Offset slightly on desktop so they sit off-axis
           rather than level — the detail that stops them reading as buttons. */}
+      <section className="hero-copy mx-auto max-w-[54rem] px-[1.15rem] pb-[0.4rem] pt-[5.6rem] text-center sm:px-8 sm:pt-[6.2rem]">
+      </section>
       <div aria-label="How you're ordering" className="paths mx-auto flex max-w-[54rem] items-end justify-center gap-x-[1.1rem] gap-y-[0.4rem] px-[1.15rem] pb-[0.6rem] pt-[1.4rem] max-[720px]:flex-col max-[720px]:items-center max-[720px]:gap-y-[1.8rem] max-[720px]:pt-[1.2rem] sm:gap-x-[2.2rem] sm:px-8 sm:pb-[0.8rem] sm:pt-8">
         {PATHS.map((path, i) => {
           const isLead = lead === path.id;

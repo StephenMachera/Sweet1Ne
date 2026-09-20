@@ -12,7 +12,7 @@ const NAV = [
   { href: "/order", label: "ORDER" },
   { href: "/story", label: "OUR STORY" },
   { href: "/events", label: "EVENTS" },
-  { href: "/locations", label: "FIND US" },
+  { href: "/locations", label: "RESERVATIONS" },
   { href: "/contact", label: "CONTACT" },
 ];
 

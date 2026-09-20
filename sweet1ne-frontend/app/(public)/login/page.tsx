@@ -70,7 +70,7 @@ export default function login() {
 
   return (
     <div className={`gate-shell ${gateDisplay.variable} ${gateBody.variable}`}>
-      <main className="gate">
+      <main className="gate-card">
         <img className="mark" src="/images/homepage-gallery/story/logo.png" alt="Sweet1NE" />
         <hr />
         <p className="slogan">Always in the mood for you.</p>
