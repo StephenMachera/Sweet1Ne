@@ -1,14 +1,15 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
-      auth, staff_menu, 
+      auth, staff_menu,
       public_menu, uploads,
       public_orders, station,
       staff_orders, settings,
       table, promo, public_site,
-      branch, signup, events, 
+      branch, signup, events,
       tenant, staff, reservations,
-      roles, reports, newsletter, campaigns
+      roles, reports, newsletter, campaigns,
+      media
       )
 
 api_router = APIRouter()
@@ -34,3 +35,4 @@ api_router.include_router(events.router, tags=["events"])
 api_router.include_router(reservations.router, tags=["reservations"])
 api_router.include_router(newsletter.router, tags=["newsletter"])
 api_router.include_router(campaigns.router, prefix="/campaigns", tags=["campaigns"])
+api_router.include_router(media.router, prefix="/media", tags=["media"])

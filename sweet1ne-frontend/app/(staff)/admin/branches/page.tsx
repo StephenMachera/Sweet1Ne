@@ -1,196 +1,212 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Building2, Phone, MapPin, Users, Plus } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-import { BranchForm, type Branch } from "@/components/staff/branch-form";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useMe, hasPermission } from "@/lib/use-me";
 
-type BranchStats = {
-  branch_id: string;
-  branch_name: string;
-  orders_today: number;
-  revenue_today: number;
-  live_orders: number;
-  average_order_value: number;
+type Place = "both" | "lewisham" | "chingford";
+
+type Branch = {
+  id: string;
+  name: string;
+  slug: string;
+  phone: string | null;
+  address: string | null;
+  settings: { hours?: string; toast?: string };
+  is_active: boolean;
 };
 
-const gbp = new Intl.NumberFormat("en-GB", {
-  style: "currency",
-  currency: "GBP",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
-
-function BranchCard({ branch, stats }: { branch: Branch; stats?: BranchStats }) {
-  return (
-    <div className="overflow-hidden rounded-lg border border-ink/8 bg-white shadow-[0_1px_2px_rgba(20,24,28,0.04)]">
-      <div className="relative h-36 bg-ink-cool">
-        {branch.image_url ? (
-          <img src={branch.image_url} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full items-center justify-center text-paper/25">
-            <Building2 size={32} />
-          </div>
-        )}
-
-        {!branch.is_active && (
-          <span className="absolute right-3 top-3 rounded-full bg-ink/80 px-2.5 py-1 text-xs text-paper">
-            Inactive
-          </span>
-        )}
-
-        {stats && stats.live_orders > 0 && (
-          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-ink/75 px-2.5 py-1 text-xs text-paper backdrop-blur">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold opacity-70" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gold" />
-            </span>
-            {stats.live_orders} live
-          </span>
-        )}
-      </div>
-
-      <div className="p-5">
-        <h3 className="font-display text-lg text-ink">{branch.name}</h3>
-        <p className="mt-0.5 font-mono text-xs text-ink-muted">sweet1ne.com/{branch.slug}</p>
-
-        {/* Live figures */}
-        <div className="mt-4 grid grid-cols-3 gap-3 rounded-md border border-ink/8 bg-[#F7F8FA] px-3 py-3">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.12em] text-ink-muted">Orders</p>
-            <p className="mt-1 font-mono text-lg tabular-nums text-ink">
-              {stats ? stats.orders_today : "—"}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.12em] text-ink-muted">Revenue</p>
-            <p className="mt-1 font-mono text-lg tabular-nums text-ink">
-              {stats ? gbp.format(stats.revenue_today) : "—"}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.12em] text-ink-muted">Live</p>
-            <p
-              className={`mt-1 font-mono text-lg tabular-nums ${
-                stats && stats.live_orders > 0 ? "text-gold" : "text-ink"
-              }`}
-            >
-              {stats ? stats.live_orders : "—"}
-            </p>
-          </div>
-        </div>
-
-        <dl className="mt-4 space-y-2 text-sm">
-          {branch.address && (
-            <div className="flex items-start gap-2.5 text-ink-muted">
-              <MapPin size={15} className="mt-0.5 shrink-0" />
-              <span>{branch.address}</span>
-            </div>
-          )}
-          {branch.phone && (
-            <div className="flex items-center gap-2.5 text-ink-muted">
-              <Phone size={15} className="shrink-0" />
-              <span>{branch.phone}</span>
-            </div>
-          )}
-          {branch.capacity != null && (
-            <div className="flex items-center gap-2.5 text-ink-muted">
-              <Users size={15} className="shrink-0" />
-              <span>Seats {branch.capacity}</span>
-            </div>
-          )}
-        </dl>
-
-        <Link
-          href={`/${branch.slug}/dashboard`}
-          className="mt-5 inline-block text-sm text-ink underline decoration-gold decoration-2 underline-offset-4 hover:text-ink/70"
-        >
-          Open branch dashboard
-        </Link>
-      </div>
-    </div>
-  );
+/** "020 3340 6750" -> "+442033406750" — a UK national number to a
+   dialable international one, since the two only ever differ by that
+   leading 0 vs the country code. */
+function telHref(phone: string) {
+  const digits = phone.replace(/\D/g, "").replace(/^0/, "");
+  return `tel:+44${digits}`;
 }
 
-export default function BranchesPage() {
+export default function AdminBranchesPage() {
+  const router = useRouter();
+  const { me, loading: meLoading } = useMe();
+  const canManage = hasPermission(me, "manage_tenant");
+
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [statsByBranch, setStatsByBranch] = useState<Record<string, BranchStats>>({});
+  const [place, setPlace] = useState<Place>("both");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const [editing, setEditing] = useState<Branch | null>(null);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [hours, setHours] = useState("");
+  const [toast, setToast] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [drawerSlot, setDrawerSlot] = useState<Element | null>(null);
 
   useEffect(() => {
-    Promise.all([apiFetch("/branches"), apiFetch("/reports/overview")])
-      .then(([branchList, overview]) => {
-        setBranches(branchList);
-        setStatsByBranch(
-          Object.fromEntries(
-            overview.by_branch.map((s: BranchStats) => [s.branch_id, s])
-          )
-        );
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reading a real DOM node from a sibling tree, only available after commit
+    setDrawerSlot(document.getElementById("admin-drawer-slot"));
   }, []);
 
+  const load = useCallback(
+    () =>
+      apiFetch("/branches")
+        .then(setBranches)
+        .catch((e) => setError(e.message))
+        .finally(() => setLoading(false)),
+    []
+  );
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    if (meLoading || !me) return;
+    if (!canManage) router.replace("/admin/dashboard");
+  }, [meLoading, me, canManage, router]);
+
+  function openEdit(branch: Branch) {
+    setEditing(branch);
+    setName(branch.name);
+    setPhone(branch.phone ?? "");
+    setAddress(branch.address ?? "");
+    setHours(branch.settings.hours ?? "");
+    setToast(branch.settings.toast ?? "");
+  }
+
+  function closeEdit() {
+    setEditing(null);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editing) return;
+
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await apiFetch(`/branches/${editing.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name, phone, address, settings: { hours, toast } }),
+      });
+      setBranches((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+      closeEdit();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't save that.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (meLoading || !me || !canManage) {
+    return <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>;
+  }
+
+  const visible = branches.filter((b) => place === "both" || b.slug.includes(place));
+
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl text-ink max-md:hidden">Branches</h1>
-          <p className="mt-1 text-sm text-ink-muted">
-            {branches.length} {branches.length === 1 ? "location" : "locations"}
-          </p>
-        </div>
-        <Button onClick={() => setDialogOpen(true)} className="bg-gold text-ink hover:bg-gold/90">
-          <Plus size={16} className="mr-1.5" />
-          New branch
-        </Button>
-      </div>
-
-      {error && (
-        <div
-          role="alert"
-          className="rounded-lg border border-ember/25 bg-ember/5 px-4 py-3 text-sm text-ember"
-        >
-          {error}
-        </div>
-      )}
-
-      {loading ? (
-        <p className="text-sm text-ink-muted">Loading…</p>
-      ) : branches.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-ink/15 px-6 py-16 text-center">
-          <Building2 size={28} className="mx-auto text-ink-muted" />
-          <p className="mt-3 text-sm text-ink-muted">
-            No branches yet. Create your first location to get started.
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {branches.map((branch) => (
-            <BranchCard key={branch.id} branch={branch} stats={statsByBranch[branch.id]} />
+    <>
+      <div className="admin-top">
+        <div className="admin-places" role="group" aria-label="Restaurant">
+          {(["both", "lewisham", "chingford"] as Place[]).map((p) => (
+            <button
+              key={p}
+              type="button"
+              className={place === p ? "is-on" : undefined}
+              onClick={() => setPlace(p)}
+            >
+              {p === "both" ? "Both" : p === "lewisham" ? "Lewisham" : "Chingford"}
+            </button>
           ))}
         </div>
+        <p className="admin-who">{me?.email ?? "—"}</p>
+      </div>
+
+      <h1>Branches</h1>
+      <p className="admin-dek">Lewisham · Chingford. Hours, phones, collection.</p>
+
+      {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
+
+      {loading ? (
+        <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+      ) : (
+        <section className="admin-board" aria-label="Restaurants">
+          {visible.map((branch) => (
+            <article key={branch.id} className="admin-card">
+              <h2>{branch.name}</h2>
+              <p className="admin-stat">{branch.phone || "—"}</p>
+              <p>{branch.address || "—"}</p>
+              <p className="admin-muted">
+                {branch.settings.hours ? branch.settings.hours.replace(/\n/g, " · ") : "Hours not set yet."}
+              </p>
+              <div className="admin-acts">
+                {branch.settings.toast && (
+                  <a className="admin-book" href={branch.settings.toast} target="_blank" rel="noopener">
+                    Toast
+                  </a>
+                )}
+                {branch.phone && (
+                  <a className="admin-book" href={telHref(branch.phone)}>
+                    Call
+                  </a>
+                )}
+                <button type="button" className="admin-book" onClick={() => openEdit(branch)}>
+                  Edit
+                </button>
+              </div>
+            </article>
+          ))}
+        </section>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">New branch</DialogTitle>
-          </DialogHeader>
-          <BranchForm
-            onCreated={(branch) => {
-              setBranches((prev) => [...prev, branch]);
-              setDialogOpen(false);
-            }}
-            onCancel={() => setDialogOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
-    </div>
+      {/* Editor — portaled into the third grid column owned by the shared
+          /admin layout. See #admin-drawer-slot in admin/layout.tsx. */}
+      {editing &&
+        drawerSlot &&
+        createPortal(
+          <aside className="admin-drawer-edit is-wide">
+            <h2>{name || editing.name}</h2>
+            <form onSubmit={handleSubmit} className="admin-form">
+              <label>
+                Name
+                <input required value={name} onChange={(e) => setName(e.target.value)} />
+              </label>
+              <label>
+                Phone
+                <input required value={phone} onChange={(e) => setPhone(e.target.value)} />
+              </label>
+              <label>
+                Address
+                <input required value={address} onChange={(e) => setAddress(e.target.value)} />
+              </label>
+              <label>
+                Hours
+                <textarea value={hours} onChange={(e) => setHours(e.target.value)} />
+              </label>
+              <label>
+                Toast link
+                <input
+                  type="url"
+                  placeholder="https://order.toasttab.com/…"
+                  value={toast}
+                  onChange={(e) => setToast(e.target.value)}
+                />
+              </label>
+              <div className="flex gap-3 pt-1">
+                <button type="submit" className="admin-book" disabled={saving}>
+                  {saving ? "Saving…" : "Save"}
+                </button>
+                <button type="button" className="admin-book" onClick={closeEdit}>
+                  Close
+                </button>
+              </div>
+            </form>
+          </aside>,
+          drawerSlot
+        )}
+    </>
   );
 }

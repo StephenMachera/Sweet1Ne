@@ -23,6 +23,18 @@ def _to_out(db: Session, event: Event) -> EventOut:
     return out
 
 
+def _sync_hero_image(event: Event) -> None:
+    """Keeps `image_url` pointing at the layout's hero image block, so
+    consumers that only know the old single-image shape — the public
+    popup, the events list — keep working without changes. Never clears
+    an existing image_url just because the layout has no image block."""
+    images = [b for b in event.layout if b.get("type") == "image" and b.get("image_url")]
+    if not images:
+        return
+    hero = next((b for b in images if b.get("hero")), images[0])
+    event.image_url = hero["image_url"]
+
+
 # --- Public ------------------------------------------------------------
 
 
@@ -128,6 +140,7 @@ def create_event(
 
     data = payload.model_dump(exclude={"branch_id"})
     event = Event(**data, tenant_id=staff.tenant_id, branch_id=branch_id)
+    _sync_hero_image(event)
 
     db.add(event)
     db.commit()
@@ -150,6 +163,7 @@ def update_event(
 
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(event, field, value)
+    _sync_hero_image(event)
 
     db.commit()
     db.refresh(event)

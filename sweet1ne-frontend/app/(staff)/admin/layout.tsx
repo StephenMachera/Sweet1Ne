@@ -19,16 +19,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading || !me || me.branch_id !== null) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F7F8FA]">
-        <p className="text-sm text-ink-muted">Loading…</p>
+      <div className="admin-shell flex min-h-[100svh] items-center justify-center bg-[var(--bg)]">
+        <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F7F8FA]">
+    <div className="admin-shell grid min-h-[100svh] grid-cols-1 bg-[var(--bg)] font-body text-[var(--ivory)] min-[961px]:grid-cols-[17rem_minmax(0,1fr)]">
       <Sidebar variant="admin" basePath="/admin" />
-      <main className="flex-1 overflow-y-auto px-6 py-8 max-md:pt-20 md:px-10">{children}</main>
+      <main className="min-w-0">
+        <div className="admin-stage">{children}</div>
+      </main>
+      {/* Pages portal an .admin-drawer-edit here when they need the
+          right-hand editor column; .admin-shell:has(...) in globals.css
+          expands the grid to 3 columns only while one is mounted. */}
+      <div id="admin-drawer-slot" />
     </div>
   );
 }

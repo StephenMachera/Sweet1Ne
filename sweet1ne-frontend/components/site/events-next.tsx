@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SOCIAL_LINKS } from "@/lib/site-content";
 import { FacebookIcon, InstagramIcon, TikTokIcon } from "./social-icons";
 import { NewsletterForm } from "./newsletter-form";
+import { hasBlock, heroImageOf, imagesOf, type EventBlock, type EventCta } from "@/components/events/event-blocks";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 const POSTER = "/images/homepage-gallery/events/poster-events.jpg";
@@ -28,6 +29,8 @@ type Night = {
   image_url: string | null;
   starts_at: string;
   branch_name: string | null;
+  layout: EventBlock[];
+  ctas: EventCta[];
 };
 
 function formatWhen(night: Night) {
@@ -98,10 +101,37 @@ export function EventsNext() {
               {(night.tagline || night.description) && (
                 <p className="dek">{night.tagline || night.description}</p>
               )}
+              {night.layout
+                .filter((b): b is Extract<EventBlock, { type: "note" }> => b.type === "note" && Boolean(b.text))
+                .map((b) => (
+                  <p key={b.id} className="dek note">
+                    {b.text}
+                  </p>
+                ))}
+              {(() => {
+                const hero = heroImageOf(night.layout);
+                const extras = imagesOf(night.layout).filter((b) => b !== hero);
+                if (!extras.length) return null;
+                return (
+                  <div className="extra-stills">
+                    {extras.map((b) => (
+                      <img key={b.id} src={b.image_url} alt="" />
+                    ))}
+                  </div>
+                );
+              })()}
               <div className="acts">
-                <Link href="/locations" className="book">
-                  Book
-                </Link>
+                {hasBlock(night.layout, "ctas") && night.ctas.length > 0 ? (
+                  night.ctas.map((c, i) => (
+                    <a key={i} href={c.href} className="book">
+                      {c.label}
+                    </a>
+                  ))
+                ) : (
+                  <Link href="/locations" className="book">
+                    Book
+                  </Link>
+                )}
                 {night.description && (
                   <Link href={`/events/${night.slug}`} className="book">
                     Details

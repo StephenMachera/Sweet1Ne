@@ -24,13 +24,13 @@ export function TableCard({
 
   const card = isBranch
     ? "border-slate-bg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-    : "border-ink/8 bg-white shadow-[0_1px_3px_rgba(20,24,28,0.04)]";
-  const title = isBranch ? "text-navy" : "text-ink";
-  const muted = isBranch ? "text-slate-muted" : "text-ink-muted";
-  const chip = isBranch ? "bg-slate-bg text-slate-subtle" : "bg-ink/5 text-ink-muted";
-  const activeChip = isBranch ? "bg-success-bg text-success" : "bg-sage-soft text-sage";
-  const inactiveChip = isBranch ? "bg-danger-bg text-danger" : "bg-ember-soft text-ember";
-  const actionHover = isBranch ? "hover:bg-slate-bg" : "hover:bg-ink/5";
+    : "border-[var(--gold-line)] bg-gradient-to-b from-[var(--panel)] to-[#0a0a0a] shadow-[0_12px_40px_rgba(0,0,0,0.35)]";
+  const title = isBranch ? "text-navy" : "text-[var(--ivory)]";
+  const muted = isBranch ? "text-slate-muted" : "text-[var(--ivory-dim)]";
+  const chip = isBranch ? "bg-slate-bg text-slate-subtle" : "border border-[var(--gold-line)] text-[var(--ivory-dim)]";
+  const activeChip = isBranch ? "bg-success-bg text-success" : "bg-[var(--gold)] text-[#0e0e0e]";
+  const inactiveChip = isBranch ? "bg-danger-bg text-danger" : "border border-[var(--gold-line)] text-[var(--gold)]";
+  const actionHover = isBranch ? "hover:bg-slate-bg" : "hover:bg-[var(--gold-glow)] hover:text-[var(--ivory)]";
   async function downloadQr() {
       if (!table.qr_code_url) return;
       try {
@@ -53,7 +53,11 @@ export function TableCard({
   return (
     <div className={`overflow-hidden rounded-xl border ${card}`}>
       {/* QR */}
-      <div className="flex h-44 items-center justify-center border-b border-black/[0.04] bg-[#FAFBFC] p-3">
+      <div
+        className={`flex h-44 items-center justify-center border-b p-3 ${
+          isBranch ? "border-black/[0.04] bg-[#FAFBFC]" : "border-[var(--gold-line)] bg-[#050505]"
+        }`}
+      >
         {table.qr_code_url ? (
           <img
             src={table.qr_code_url}
@@ -132,13 +136,11 @@ export function TableCard({
           <button
             onClick={onToggleActive}
             className={`ml-auto flex h-8 items-center rounded-lg px-2.5 text-xs ${
-              table.is_active
-                ? isBranch
+              isBranch
+                ? table.is_active
                   ? "text-danger hover:bg-danger-bg"
-                  : "text-ember hover:bg-ember-soft"
-                : isBranch
-                  ? "text-success hover:bg-success-bg"
-                  : "text-sage hover:bg-sage-soft"
+                  : "text-success hover:bg-success-bg"
+                : `text-[var(--gold)] ${actionHover}`
             }`}
           >
             {table.is_active ? "Deactivate" : "Reactivate"}

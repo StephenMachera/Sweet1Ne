@@ -1,14 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Grid3x3, Plus, Printer } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { TableForm, type Table } from "@/components/tables/table-form";
 import { TableCard } from "@/components/tables/table-card";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const BRANCH_KEY = "sweet1ne_admin_tables_branch";
 
@@ -27,11 +25,17 @@ export default function AdminTablesPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Table | undefined>();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [drawerSlot, setDrawerSlot] = useState<Element | null>(null);
 
   const canManage = hasPermission(me, "manage_tables");
 
   useEffect(() => {
     setBranchFilter(window.localStorage.getItem(BRANCH_KEY) ?? "");
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reading a real DOM node from a sibling tree, only available after commit
+    setDrawerSlot(document.getElementById("admin-drawer-slot"));
   }, []);
 
   const load = useCallback(
@@ -116,112 +120,84 @@ export default function AdminTablesPage() {
     });
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl text-ink max-md:hidden">Tables</h1>
-          <p className="mt-1 text-sm text-ink-muted">
-            {visible.length} of {tables.length} across {branches.length}{" "}
-            branch{branches.length === 1 ? "" : "es"}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => window.print()}>
-            <Printer size={16} className="mr-1.5" />
-            Print codes
-          </Button>
-          <Button
-            onClick={() => {
-              setEditing(undefined);
-              setFormOpen(true);
-            }}
-            className="bg-gold text-ink hover:bg-gold/90"
-          >
-            <Plus size={16} className="mr-1.5" />
-            Add table
-          </Button>
-        </div>
-      </div>
-
-      {error && (
-        <div
-          role="alert"
-          className="rounded-lg border border-ember/25 bg-ember-soft px-4 py-3 text-sm text-ember"
-        >
-          {error}
-        </div>
-      )}
-
-      <div className="space-y-3 print:hidden">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-[0.14em] text-ink-muted">Branch</span>
+    <>
+      <div className="admin-top">
+        <div className="admin-places print:hidden" role="group" aria-label="Branch">
           <button
+            type="button"
+            className={branchFilter === "" ? "is-on" : undefined}
             onClick={() => changeBranchFilter("")}
-            className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
-              branchFilter === ""
-                ? "bg-ink text-paper"
-                : "border border-ink/12 bg-white text-ink-muted hover:text-ink"
-            }`}
           >
             All branches
           </button>
           {branches.map((b) => (
             <button
               key={b.id}
+              type="button"
+              className={branchFilter === b.id ? "is-on" : undefined}
               onClick={() => changeBranchFilter(branchFilter === b.id ? "" : b.id)}
-              className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
-                branchFilter === b.id
-                  ? "bg-ink text-paper"
-                  : "border border-ink/12 bg-white text-ink-muted hover:text-ink"
-              }`}
             >
               {b.name}
             </button>
           ))}
         </div>
-
-        {regions.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs uppercase tracking-[0.14em] text-ink-muted">Area</span>
-            <button
-              onClick={() => setRegionFilter("")}
-              className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
-                regionFilter === ""
-                  ? "bg-gold text-ink"
-                  : "border border-ink/12 bg-white text-ink-muted hover:text-ink"
-              }`}
-            >
-              All areas
-            </button>
-            {regions.map((r) => (
-              <button
-                key={r}
-                onClick={() => setRegionFilter(regionFilter === r ? "" : r)}
-                className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
-                  regionFilter === r
-                    ? "bg-gold text-ink"
-                    : "border border-ink/12 bg-white text-ink-muted hover:text-ink"
-                }`}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-        )}
+        <p className="admin-who">{me?.email ?? "—"}</p>
       </div>
 
-      {loading ? (
-        <p className="text-sm text-ink-muted">Loading…</p>
-      ) : visible.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-ink/15 bg-white/50 px-6 py-16 text-center">
-          <Grid3x3 size={26} className="mx-auto text-ink-muted" />
-          <p className="mt-3 text-sm text-ink-muted">
-            {tables.length === 0
-              ? "No tables yet. Add one to start taking QR orders."
-              : "No tables match these filters."}
-          </p>
+      <h1>Tables</h1>
+      <p className="admin-dek">
+        {visible.length} of {tables.length} across {branches.length} branch
+        {branches.length === 1 ? "" : "es"}
+      </p>
+
+      {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
+
+      <div className="admin-tools print:hidden">
+        <button type="button" className="admin-book" onClick={() => window.print()}>
+          Print codes
+        </button>
+        <button
+          type="button"
+          className="admin-book ml-auto"
+          onClick={() => {
+            setEditing(undefined);
+            setFormOpen(true);
+          }}
+        >
+          Add table
+        </button>
+      </div>
+
+      {regions.length > 0 && (
+        <div className="admin-cats print:hidden" role="group" aria-label="Area">
+          <button
+            type="button"
+            className={regionFilter === "" ? "is-on" : undefined}
+            onClick={() => setRegionFilter("")}
+          >
+            All areas
+          </button>
+          {regions.map((r) => (
+            <button
+              key={r}
+              type="button"
+              className={regionFilter === r ? "is-on" : undefined}
+              onClick={() => setRegionFilter(regionFilter === r ? "" : r)}
+            >
+              {r}
+            </button>
+          ))}
         </div>
+      )}
+
+      {loading ? (
+        <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+      ) : visible.length === 0 ? (
+        <p className="admin-empty">
+          {tables.length === 0
+            ? "No tables yet. Add one to start taking QR orders."
+            : "No tables match these filters."}
+        </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {visible.map((table) => (
@@ -242,32 +218,34 @@ export default function AdminTablesPage() {
         </div>
       )}
 
-      <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">
-              {editing ? "Edit table" : "Add table"}
-            </DialogTitle>
-          </DialogHeader>
-          <TableForm
-            table={editing}
-            branches={branches}
-            fixedBranchId={branchFilter || null}
-            tone="admin"
-            onSaved={(saved) => {
-              setTables((prev) =>
-                editing ? prev.map((t) => (t.id === saved.id ? saved : t)) : [...prev, saved]
-              );
-              setFormOpen(false);
-              setEditing(undefined);
-            }}
-            onCancel={() => {
-              setFormOpen(false);
-              setEditing(undefined);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
-    </div>
+      {/* Editor — portaled into the third grid column owned by the shared
+          /admin layout, same as menu and events. No live preview here,
+          just the form. See #admin-drawer-slot in admin/layout.tsx. */}
+      {formOpen &&
+        drawerSlot &&
+        createPortal(
+          <aside className="admin-drawer-edit">
+            <h2>{editing ? "Edit table" : "Add table"}</h2>
+            <TableForm
+              table={editing}
+              branches={branches}
+              fixedBranchId={branchFilter || null}
+              tone="admin"
+              onSaved={(saved) => {
+                setTables((prev) =>
+                  editing ? prev.map((t) => (t.id === saved.id ? saved : t)) : [...prev, saved]
+                );
+                setFormOpen(false);
+                setEditing(undefined);
+              }}
+              onCancel={() => {
+                setFormOpen(false);
+                setEditing(undefined);
+              }}
+            />
+          </aside>,
+          drawerSlot
+        )}
+    </>
   );
 }

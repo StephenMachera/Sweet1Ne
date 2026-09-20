@@ -185,10 +185,10 @@ export default function MenuManagePage({
       </div>
 
       {tab === "mains" && (
-        <CategoryManager level="main" mains={mains} subs={subs} onChanged={load} />
+        <CategoryManager tone="branch" level="main" mains={mains} subs={subs} onChanged={load} />
       )}
       {tab === "subs" && (
-        <CategoryManager level="sub" mains={mains} subs={subs} onChanged={load} />
+        <CategoryManager tone="branch" level="sub" mains={mains} subs={subs} onChanged={load} />
       )}
 
       {tab === "items" && (
@@ -343,6 +343,7 @@ export default function MenuManagePage({
             </DialogTitle>
           </DialogHeader>
           <MenuItemForm
+            tone="branch"
             item={editing}
             mains={mains}
             subs={subs}

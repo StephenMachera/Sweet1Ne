@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarDays, Clock, MapPin } from "lucide-react";
 import { Heading } from "@/components/site/section";
 import { BookTableButton } from "@/components/site/booking-modal";
+import { heroImageOf, imagesOf, type EventBlock, type EventCta } from "@/components/events/event-blocks";
 
 type Event = {
   id: string;
@@ -17,6 +18,8 @@ type Event = {
   ends_at: string | null;
   price_note: string | null;
   branch_name: string | null;
+  layout: EventBlock[];
+  ctas: EventCta[];
 };
 
 async function getEvent(slug: string): Promise<Event | null> {
@@ -150,6 +153,19 @@ export default async function EventPage({
             >
               Book a table
             </BookTableButton>
+
+            {event.ctas
+              .filter((c) => c.kind !== "book")
+              .map((c, i) => (
+                <a
+                  key={i}
+                  href={c.href}
+                  className="block w-full border border-[var(--ivory)]/25 px-6 py-4 text-center text-sm text-[var(--ivory-dim)] hover:border-[var(--ivory)]/50 hover:text-[var(--ivory)]"
+                  style={{ borderRadius: "4px" }}
+                >
+                  {c.label}
+                </a>
+              ))}
           </div>
 
           {/* Description */}
@@ -165,6 +181,36 @@ export default async function EventPage({
                 More details coming soon. Book a table to be there.
               </p>
             )}
+
+            {event.layout
+              .filter((b): b is Extract<EventBlock, { type: "note" }> => b.type === "note" && Boolean(b.text))
+              .map((b) => (
+                <p
+                  key={b.id}
+                  className="mt-6 border-l border-[var(--gold)] pl-4 text-base italic text-[var(--ivory-dim)]"
+                >
+                  {b.text}
+                </p>
+              ))}
+
+            {(() => {
+              const hero = heroImageOf(event.layout);
+              const extras = imagesOf(event.layout).filter((b) => b !== hero);
+              if (!extras.length) return null;
+              return (
+                <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {extras.map((b) => (
+                    <img
+                      key={b.id}
+                      src={b.image_url}
+                      alt=""
+                      className="aspect-[4/3] w-full object-cover"
+                      style={{ borderRadius: "4px" }}
+                    />
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>

@@ -37,7 +37,11 @@ export function EventList({
   tone,
   showBranchPicker,
 }: {
-  tone: "admin" | "branch";
+  // Admin no longer uses this component — its events page has its own
+  // block-composer UI (app/(staff)/admin/events/page.tsx) that this
+  // simple upload-based form can't support. Kept branch-only rather than
+  // deleting the tone concept, in case a lighter admin view returns.
+  tone: "branch";
   showBranchPicker: boolean;
 }) {
   const [events, setEvents] = useState<Event[]>([]);
@@ -75,7 +79,7 @@ export function EventList({
     load();
     if (showBranchPicker) {
       apiFetch("/branches")
-        .then((list) => setBranches(list.map((b: any) => ({ id: b.id, name: b.name }))))
+        .then((list: { id: string; name: string }[]) => setBranches(list.map((b) => ({ id: b.id, name: b.name }))))
         .catch(() => setBranches([]));
     }
   }, [load, showBranchPicker]);
@@ -251,7 +255,7 @@ export function EventList({
         >
           <CalendarDays size={26} strokeWidth={1} className={`mx-auto ${muted}`} />
           <p className={`mt-3 text-sm ${muted}`}>
-            No events yet. Create one and it'll appear on the website.
+            No events yet. Create one and it&apos;ll appear on the website.
           </p>
         </div>
       ) : (

@@ -14,10 +14,10 @@ export function SettingsSection({
   const isBranch = tone === "branch";
   const card = isBranch
     ? "border-slate-bg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-    : "border-ink/8 bg-white shadow-[0_1px_3px_rgba(20,24,28,0.04)]";
-  const text = isBranch ? "text-navy" : "text-ink";
-  const muted = isBranch ? "text-slate-muted" : "text-ink-muted";
-  const border = isBranch ? "border-slate-border" : "border-ink/8";
+    : "border-[var(--gold-line)] bg-[var(--panel-2)]";
+  const text = isBranch ? "text-navy" : "text-[var(--ivory)]";
+  const muted = isBranch ? "text-slate-muted" : "text-[var(--ivory-dim)]";
+  const border = isBranch ? "border-slate-border" : "border-[var(--gold-line)]";
 
   return (
     <section className={`overflow-hidden rounded-xl border ${card}`}>
@@ -44,10 +44,10 @@ export function Toggle({
   tone: "admin" | "branch";
 }) {
   const isBranch = tone === "branch";
-  const on = isBranch ? "bg-emerald" : "bg-gold";
-  const off = isBranch ? "bg-slate-border" : "bg-ink/15";
-  const text = isBranch ? "text-navy" : "text-ink";
-  const muted = isBranch ? "text-slate-muted" : "text-ink-muted";
+  const on = isBranch ? "bg-emerald" : "bg-[var(--gold)]";
+  const off = isBranch ? "bg-slate-border" : "bg-[rgba(201,162,74,0.18)]";
+  const text = isBranch ? "text-navy" : "text-[var(--ivory)]";
+  const muted = isBranch ? "text-slate-muted" : "text-[var(--ivory-dim)]";
 
   return (
     <label className="flex cursor-pointer items-start justify-between gap-4">

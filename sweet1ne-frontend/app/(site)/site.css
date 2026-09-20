@@ -952,6 +952,27 @@ body.is-gated .pause {
   background: var(--gold);
 }
 
+.events-page .next .note {
+  margin: 0 auto 1.1rem;
+  max-width: 30rem;
+  font-style: italic;
+  color: var(--ivory-dim);
+}
+
+.events-page .next .extra-stills {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0 0 1.35rem;
+}
+
+.events-page .next .extra-stills img {
+  width: 100%;
+  height: 5.5rem;
+  object-fit: cover;
+  border: 1px solid rgba(201, 162, 74, 0.28);
+}
+
 /* Stay close --------------------------------------------------------------- */
 
 .events-page .know {

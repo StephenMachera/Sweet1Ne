@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Menu, X } from "lucide-react";
@@ -9,10 +9,115 @@ import { useMe, hasPermission, type Me } from "@/lib/use-me";
 import { NAV_GROUPS } from "./nav-items";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { MobileHeader } from "./mobile-header";
 
 const STORAGE_KEY = "sweet1ne_sidebar_collapsed";
 
 type Variant = "admin" | "branch";
+
+/**
+ * The admin console's rail — same tokens as the public site, one element
+ * that's a fixed sidebar on desktop and a sticky top bar + slide-down menu
+ * on mobile, matching the shared admin.css / admin-nav.js reference.
+ *
+ * `variant="branch"` never reaches this — it still renders SidebarBody /
+ * Sheet below, untouched.
+ */
+function AdminRail({ basePath }: { basePath: string }) {
+  const { me } = useMe();
+  const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
+  const [open, setOpen] = useState(false);
+
+  const visibleGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => hasPermission(me, item.permission)),
+  })).filter((group) => group.items.length > 0);
+
+  // The reference's pageLabel(): the active item's label, "Staff" if
+  // nothing matches (there's no page-specific title source yet).
+  const activeItem = visibleGroups
+    .flatMap((group) => group.items)
+    .find((item) => pathname.startsWith(`${basePath}${item.href}`));
+  const pageLabel = activeItem?.label ?? "Staff";
+
+  const close = useCallback(() => setOpen(false), []);
+
+  // Escape closes the mobile menu — unconditional, matching bindRailMenu.
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
+  // The page can't scroll behind the open mobile menu.
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
+  return (
+    <aside className={`admin-rail${open ? " is-open" : ""}`}>
+      <MobileHeader
+        open={open}
+        onToggle={() => setOpen((prev) => !prev)}
+        pageLabel={pageLabel}
+        brandHref={`${basePath}/dashboard`}
+        onSignOut={handleSignOut}
+      />
+
+      <button
+        type="button"
+        className="admin-rail-veil"
+        tabIndex={-1}
+        aria-label="Close menu"
+        onClick={close}
+      />
+
+      <nav id="admin-menu" aria-label="Admin">
+        {visibleGroups.map((group) => (
+          <div className="admin-rail-group" key={group.heading}>
+            <p className="admin-rail-label">{group.heading}</p>
+            {group.items.map((item) => {
+              const href = `${basePath}${item.href}`;
+              const active = pathname.startsWith(href);
+              const Icon = item.icon;
+
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  onClick={close}
+                >
+                  <Icon size={17} strokeWidth={1.6} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+
+      <div className="admin-rail-foot">
+        <button type="button" className="admin-rail-out text-left" onClick={handleSignOut}>
+          Sign out
+        </button>
+      </div>
+    </aside>
+  );
+}
 
 function SidebarBody({
   me,
@@ -182,6 +287,24 @@ export function Sidebar({
   branchName?: string;
   basePath: string;
 }) {
+  if (variant === "admin") {
+    return <AdminRail basePath={basePath} />;
+  }
+
+  return (
+    <BranchSidebar branchName={branchName} basePath={basePath} />
+  );
+}
+
+/** Unchanged — the branch console's Sheet + icon-collapse sidebar. */
+function BranchSidebar({
+  branchName,
+  basePath,
+}: {
+  branchName?: string;
+  basePath: string;
+}) {
+  const variant: Variant = "branch";
   const { me } = useMe();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);

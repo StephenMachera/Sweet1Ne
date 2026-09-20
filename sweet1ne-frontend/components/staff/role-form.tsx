@@ -34,13 +34,16 @@ export function groupByCategory(permissions: Permission[]) {
 
 export function RoleForm({
   allPermissions,
+  tone = "branch",
   onCreated,
   onCancel,
 }: {
   allPermissions: Permission[];
+  tone?: "admin" | "branch";
   onCreated: (role: Role) => void;
   onCancel: () => void;
 }) {
+  const isBranch = tone === "branch";
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -78,54 +81,123 @@ export function RoleForm({
     }
   }
 
-  return (
-    <form onSubmit={handleSubmit}>
-      <fieldset disabled={saving} className="space-y-6">
-        {error && (
-          <div
-            role="alert"
-            className="rounded-md border border-ember/30 bg-ember/5 px-4 py-3 text-sm text-ember"
-          >
-            {error}
+  if (isBranch) {
+    return (
+      <form onSubmit={handleSubmit}>
+        <fieldset disabled={saving} className="space-y-6">
+          {error && (
+            <div
+              role="alert"
+              className="rounded-md border border-ember/30 bg-ember/5 px-4 py-3 text-sm text-ember"
+            >
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <Label htmlFor="roleName">Role name</Label>
+            <Input
+              id="roleName"
+              required
+              placeholder="e.g. Waiter, Head Chef, Cashier"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
           </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="roleDescription">Description</Label>
+            <Input
+              id="roleDescription"
+              placeholder="Optional — what this role is for"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-4">
+            <Label>Permissions</Label>
+            {Object.entries(grouped).map(([category, permissions]) => (
+              <div key={category} className="rounded-md border border-ink/8 p-4">
+                <p className="mb-3 text-[11px] uppercase tracking-[0.14em] text-ink-muted">
+                  {category}
+                </p>
+                <div className="space-y-2.5">
+                  {permissions.map((p) => (
+                    <label key={p.id} className="flex cursor-pointer items-center gap-3 text-sm">
+                      <Checkbox
+                        checked={selected.has(p.key)}
+                        onCheckedChange={() => toggle(p.key)}
+                      />
+                      <span className="text-ink">{p.display_name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button type="submit" disabled={saving} className="bg-gold text-ink hover:bg-gold/90">
+              {saving ? "Creating…" : "Create role"}
+            </Button>
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          </div>
+        </fieldset>
+      </form>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="admin-form">
+      <fieldset disabled={saving} className="contents">
+        {error && (
+          <p role="alert" className="admin-hold mb-3 text-sm">
+            {error}
+          </p>
         )}
 
-        <div className="space-y-1">
-          <Label htmlFor="roleName">Role name</Label>
-          <Input
-            id="roleName"
+        <label>
+          Role name
+          <input
             required
             placeholder="e.g. Waiter, Head Chef, Cashier"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-        </div>
+        </label>
 
-        <div className="space-y-1">
-          <Label htmlFor="roleDescription">Description</Label>
-          <Input
-            id="roleDescription"
+        <label>
+          Description
+          <input
             placeholder="Optional — what this role is for"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-        </div>
+        </label>
 
-        <div className="space-y-4">
-          <Label>Permissions</Label>
+        <div className="space-y-3">
+          <p className="mb-1 text-[0.68rem] uppercase tracking-[0.14em] text-[var(--ivory-dim)]">
+            Permissions
+          </p>
           {Object.entries(grouped).map(([category, permissions]) => (
-            <div key={category} className="rounded-md border border-ink/8 p-4">
-              <p className="mb-3 text-[11px] uppercase tracking-[0.14em] text-ink-muted">
+            <div
+              key={category}
+              className="rounded-[3px] border border-[var(--gold-line)] bg-[var(--panel)] p-3"
+            >
+              <p className="mb-2.5 text-[11px] uppercase tracking-[0.14em] text-[var(--ivory-dim)]">
                 {category}
               </p>
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 {permissions.map((p) => (
-                  <label key={p.id} className="flex cursor-pointer items-center gap-3 text-sm">
-                    <Checkbox
-                      checked={selected.has(p.key)}
-                      onCheckedChange={() => toggle(p.key)}
-                    />
-                    <span className="text-ink">{p.display_name}</span>
+                  <label
+                    key={p.id}
+                    className="flex cursor-pointer items-center gap-3 text-sm normal-case tracking-normal text-[var(--ivory)]"
+                  >
+                    <Checkbox checked={selected.has(p.key)} onCheckedChange={() => toggle(p.key)} />
+                    <span>{p.display_name}</span>
                   </label>
                 ))}
               </div>
@@ -134,12 +206,12 @@ export function RoleForm({
         </div>
 
         <div className="flex gap-3 pt-2">
-          <Button type="submit" disabled={saving} className="bg-gold text-ink hover:bg-gold/90">
+          <button type="submit" className="admin-book" disabled={saving}>
             {saving ? "Creating…" : "Create role"}
-          </Button>
-          <Button type="button" variant="outline" onClick={onCancel}>
+          </button>
+          <button type="button" className="admin-book" onClick={onCancel}>
             Cancel
-          </Button>
+          </button>
         </div>
       </fieldset>
     </form>

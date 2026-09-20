@@ -15,27 +15,19 @@ export function BranchScopePicker({
   const isEverything = scope.branchId === null && !scope.sharedOnly;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs uppercase tracking-[0.14em] text-ink-muted">Showing</span>
-
+    <div className="admin-places" role="group" aria-label="Showing">
       <button
+        type="button"
+        className={isEverything ? "is-on" : undefined}
         onClick={() => onChange({ branchId: null, sharedOnly: false })}
-        className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
-          isEverything
-            ? "bg-ink text-paper"
-            : "border border-ink/12 bg-white text-ink-muted hover:text-ink"
-        }`}
       >
         Everything
       </button>
 
       <button
+        type="button"
+        className={scope.sharedOnly ? "is-on" : undefined}
         onClick={() => onChange({ branchId: null, sharedOnly: true })}
-        className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
-          scope.sharedOnly
-            ? "bg-ink text-paper"
-            : "bg-gold-soft text-[#8a6a28] hover:brightness-95"
-        }`}
       >
         Shared only
       </button>
@@ -45,12 +37,9 @@ export function BranchScopePicker({
         return (
           <button
             key={branch.id}
+            type="button"
+            className={active ? "is-on" : undefined}
             onClick={() => onChange({ branchId: active ? null : branch.id, sharedOnly: false })}
-            className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
-              active
-                ? "bg-ink text-paper"
-                : "border border-ink/12 bg-white text-ink-muted hover:text-ink"
-            }`}
           >
             {branch.name}
           </button>

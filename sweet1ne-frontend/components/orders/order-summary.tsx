@@ -1,6 +1,6 @@
 "use client";
 
-import { Banknote, ReceiptText, TrendingUp } from "lucide-react";
+import { Banknote, ReceiptText, TrendingUp, type LucideIcon } from "lucide-react";
 
 type Order = {
   status: string;
@@ -27,13 +27,17 @@ export function OrderSummary({
 
   const card = isBranch
     ? "border-slate-bg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-    : "border-ink/8 bg-white shadow-[0_1px_3px_rgba(20,24,28,0.04)]";
-  const text = isBranch ? "text-navy" : "text-ink";
-  const muted = isBranch ? "text-slate-muted" : "text-ink-muted";
+    : "border-[var(--gold-line)] bg-[var(--panel)]";
+  const text = isBranch ? "text-navy" : "text-[var(--ivory)]";
+  const muted = isBranch ? "text-slate-muted" : "text-[var(--ivory-dim)]";
 
   const tones = isBranch
     ? { orders: "bg-info-bg text-info", revenue: "bg-success-bg text-success", avg: "bg-purple-bg text-purple" }
-    : { orders: "bg-teal-soft text-teal", revenue: "bg-sage-soft text-sage", avg: "bg-violet-soft text-violet" };
+    : {
+        orders: "bg-[var(--gold-glow)] text-[var(--gold)]",
+        revenue: "bg-[var(--gold-glow)] text-[var(--gold)]",
+        avg: "bg-[var(--gold-glow)] text-[var(--gold)]",
+      };
 
   // Cancelled orders shouldn't inflate revenue.
   const counted = orders.filter((o) => o.status !== "cancelled");
@@ -97,7 +101,9 @@ export function OrderSummary({
                 <span className={`w-4 shrink-0 text-xs tabular-nums ${muted}`}>{i + 1}</span>
                 <span className="min-w-0 flex-1">
                   <span className={`block truncate text-sm ${text}`}>{name}</span>
-                  <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-black/5">
+                  <span
+                    className={`mt-1 block h-1.5 overflow-hidden rounded-full ${isBranch ? "bg-black/5" : "bg-white/5"}`}
+                  >
                     <span
                       className={`block h-full rounded-full ${isBranch ? "bg-emerald" : "bg-gold"}`}
                       style={{ width: `${(qty / max) * 100}%` }}
@@ -123,7 +129,7 @@ function Figure({
   text,
   muted,
 }: {
-  icon: any;
+  icon: LucideIcon;
   label: string;
   value: string;
   tone: string;

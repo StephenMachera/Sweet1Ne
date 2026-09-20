@@ -42,6 +42,14 @@ const FILTERS = [
   { key: "", label: "All upcoming" },
 ];
 
+// Literal colors, not var(--gold-line) etc — Dialog portals to
+// document.body, outside .admin-shell, so those custom properties (only
+// defined under that class) don't cascade here.
+const DARK_DIALOG = "border border-[rgba(201,162,74,0.42)] bg-[#0c0c0c] text-[#e5e2e1] sm:max-w-md";
+const DIALOG_BOOK_BTN =
+  "inline-flex items-center justify-center rounded-[3px] border border-[rgba(201,162,74,0.9)] bg-transparent px-[1.15rem] py-[0.6rem] text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-[#c9a24a] hover:bg-[#c9a24a] hover:text-[#0e0e0e] disabled:opacity-50";
+const DIALOG_GHOST_BTN = "px-[1.15rem] py-[0.6rem] text-[0.75rem] uppercase tracking-[0.1em] text-[rgba(229,226,225,0.68)] hover:text-[#e5e2e1]";
+
 function when(iso: string | null) {
   if (!iso) return "Enquiry";
   return new Date(iso).toLocaleDateString("en-GB", {
@@ -61,7 +69,25 @@ function waitingHours(iso: string) {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 3600000);
 }
 
-export function ReservationList({ tone }: { tone: "admin" | "branch" }) {
+export function ReservationList({
+  tone,
+  reservationTypes,
+  hideHeader = false,
+  onDecided,
+}: {
+  tone: "admin" | "branch";
+  /** Only show these reservation_type values — omit to show everything
+     (table, private and enquiry mixed), which is what the branch console
+     still does. The admin Reservations page passes ["enquiry"] to keep
+     that card's list to contact-page messages only. */
+  reservationTypes?: string[];
+  /** The admin page renders its own <h1>/count above two summary cards;
+     this skips this component's own, so they don't duplicate. */
+  hideHeader?: boolean;
+  /** Fires after a confirm/decline succeeds, so a parent showing its own
+     summary count (e.g. the Inquiry card) can refresh it. */
+  onDecided?: () => void;
+}) {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [filter, setFilter] = useState("pending");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -78,16 +104,16 @@ export function ReservationList({ tone }: { tone: "admin" | "branch" }) {
 
   const card = isBranch
     ? "border-slate-bg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-    : "border-ink/8 bg-white shadow-[0_1px_3px_rgba(20,24,28,0.04)]";
-  const text = isBranch ? "text-navy" : "text-ink";
-  const muted = isBranch ? "text-slate-muted" : "text-ink-muted";
-  const subtle = isBranch ? "text-slate-subtle" : "text-ink-muted";
+    : "border-[var(--gold-line)] bg-[var(--panel)]";
+  const text = isBranch ? "text-navy" : "text-[var(--ivory)]";
+  const muted = isBranch ? "text-slate-muted" : "text-[var(--ivory-dim)]";
+  const subtle = isBranch ? "text-slate-subtle" : "text-[var(--ivory-dim)]";
   const accept = isBranch
     ? "bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
-    : "bg-sage text-white hover:bg-sage/90";
+    : "admin-book";
   const decline = isBranch
     ? "bg-danger-bg text-danger hover:bg-danger/15"
-    : "bg-ember-soft text-ember hover:bg-ember/15";
+    : "admin-edit";
 
   const statusStyles: Record<string, string> = isBranch
     ? {
@@ -97,10 +123,10 @@ export function ReservationList({ tone }: { tone: "admin" | "branch" }) {
         cancelled: "bg-slate-bg text-slate-subtle",
       }
     : {
-        pending: "bg-gold-soft text-[#8a6a28]",
-        confirmed: "bg-sage-soft text-sage",
-        declined: "bg-ember-soft text-ember",
-        cancelled: "bg-ink/5 text-ink-muted",
+        pending: "border border-[var(--gold-line)] text-[var(--gold)]",
+        confirmed: "bg-[var(--gold)] text-[#0e0e0e]",
+        declined: "text-[var(--ivory-dim)] line-through",
+        cancelled: "text-[var(--ivory-dim)]",
       };
 
   const load = useCallback(() => {
@@ -144,6 +170,7 @@ export function ReservationList({ tone }: { tone: "admin" | "branch" }) {
 
       // If we're looking at pending only, it's no longer in this list.
       if (filter === "pending") load();
+      onDecided?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save that.");
     } finally {
@@ -151,19 +178,24 @@ export function ReservationList({ tone }: { tone: "admin" | "branch" }) {
     }
   }
 
-  const pendingCount = reservations.filter((r) => r.status === "pending").length;
+  const visible = reservationTypes
+    ? reservations.filter((r) => reservationTypes.includes(r.reservation_type))
+    : reservations;
+  const pendingCount = visible.filter((r) => r.status === "pending").length;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className={`text-2xl font-semibold sm:text-3xl ${text}`}>Reservations</h1>
-          <p className={`mt-1 text-sm ${subtle}`}>
-            {reservations.length} {reservations.length === 1 ? "request" : "requests"}
-            {filter === "pending" && pendingCount > 0 && " waiting on you"}
-          </p>
+      {!hideHeader && (
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className={`text-2xl font-semibold sm:text-3xl ${text}`}>Reservations</h1>
+            <p className={`mt-1 text-sm ${subtle}`}>
+              {visible.length} {visible.length === 1 ? "request" : "requests"}
+              {filter === "pending" && pendingCount > 0 && " waiting on you"}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {error && (
         <div
@@ -171,7 +203,7 @@ export function ReservationList({ tone }: { tone: "admin" | "branch" }) {
           className={`rounded-xl px-4 py-3 text-sm ${
             isBranch
               ? "border border-danger/25 bg-danger-bg text-danger"
-              : "border border-ember/25 bg-ember-soft text-ember"
+              : "border border-[var(--gold-line)] text-[var(--gold)]"
           }`}
         >
           {error}
@@ -179,44 +211,51 @@ export function ReservationList({ tone }: { tone: "admin" | "branch" }) {
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              filter === f.key
-                ? isBranch
+      <div className={isBranch ? "flex flex-wrap gap-2" : "admin-cats"} role={isBranch ? undefined : "group"}>
+        {FILTERS.map((f) =>
+          isBranch ? (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                filter === f.key
                   ? "bg-navy text-white"
-                  : "bg-ink text-paper"
-                : isBranch
-                  ? "border border-slate-border bg-white text-slate-subtle hover:text-navy"
-                  : "border border-ink/12 bg-white text-ink-muted hover:text-ink"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+                  : "border border-slate-border bg-white text-slate-subtle hover:text-navy"
+              }`}
+            >
+              {f.label}
+            </button>
+          ) : (
+            <button
+              key={f.key}
+              type="button"
+              className={filter === f.key ? "is-on" : undefined}
+              onClick={() => setFilter(f.key)}
+            >
+              {f.label}
+            </button>
+          )
+        )}
       </div>
 
       {loading ? (
         <p className={`text-sm ${muted}`}>Loading…</p>
-      ) : reservations.length === 0 ? (
-        <div
-          className={`rounded-xl border border-dashed px-6 py-16 text-center ${
-            isBranch ? "border-slate-border" : "border-ink/15"
-          }`}
-        >
-          <CalendarDays size={26} strokeWidth={1} className={`mx-auto ${muted}`} />
-          <p className={`mt-3 text-sm ${muted}`}>
-            {filter === "pending"
-              ? "Nothing waiting for an answer."
-              : "No reservations here."}
+      ) : visible.length === 0 ? (
+        isBranch ? (
+          <div className="rounded-xl border border-dashed border-slate-border px-6 py-16 text-center">
+            <CalendarDays size={26} strokeWidth={1} className={`mx-auto ${muted}`} />
+            <p className={`mt-3 text-sm ${muted}`}>
+              {filter === "pending" ? "Nothing waiting for an answer." : "No reservations here."}
+            </p>
+          </div>
+        ) : (
+          <p className="admin-empty">
+            {filter === "pending" ? "Nothing waiting for an answer." : "Nothing here."}
           </p>
-        </div>
+        )
       ) : (
         <ul className="space-y-3">
-          {reservations.map((reservation) => {
+          {visible.map((reservation) => {
             const expanded = expandedId === reservation.id;
             const isPending = reservation.status === "pending";
             const waiting = waitingHours(reservation.created_at);
@@ -228,7 +267,7 @@ export function ReservationList({ tone }: { tone: "admin" | "branch" }) {
               <li
                 key={reservation.id}
                 className={`overflow-hidden rounded-xl border ${card} ${
-                  overdue ? (isBranch ? "ring-1 ring-warning" : "ring-1 ring-gold") : ""
+                  overdue ? (isBranch ? "ring-1 ring-warning" : "ring-1 ring-[var(--gold)]") : ""
                 }`}
               >
                 <button
@@ -259,7 +298,7 @@ export function ReservationList({ tone }: { tone: "admin" | "branch" }) {
                           className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                             isBranch
                               ? "bg-purple-bg text-purple"
-                              : "bg-violet-soft text-violet"
+                              : "border border-[var(--gold-line)] text-[var(--gold)]"
                           }`}
                         >
                           Private hire
@@ -301,22 +340,16 @@ export function ReservationList({ tone }: { tone: "admin" | "branch" }) {
                 {expanded && (
                   <div
                     className={`border-t px-4 py-4 sm:px-5 ${
-                      isBranch ? "border-slate-bg bg-slate-bg/30" : "border-ink/8 bg-[#FBFCFD]"
+                      isBranch ? "border-slate-bg bg-slate-bg/30" : "border-[var(--gold-line)] bg-[#080808]"
                     }`}
                   >
                     <div className="grid gap-4 sm:grid-cols-2">
-                      
-                      <a  href={`tel:${reservation.phone.replace(/\s/g, "")}`}
-                        className={`flex items-center gap-2.5 text-sm ${text}`}
-                      >
+                      <a href={`tel:${reservation.phone.replace(/\s/g, "")}`} className={`flex items-center gap-2.5 text-sm ${text}`}>
                         <Phone size={15} strokeWidth={1} className={muted} />
                         {reservation.phone}
                       </a>
 
-                      
-                      <a  href={`mailto:${reservation.email}`}
-                        className={`flex items-center gap-2.5 truncate text-sm ${text}`}
-                      >
+                      <a href={`mailto:${reservation.email}`} className={`flex items-center gap-2.5 truncate text-sm ${text}`}>
                         <Mail size={15} strokeWidth={1} className={muted} />
                         {reservation.email}
                       </a>
@@ -325,9 +358,7 @@ export function ReservationList({ tone }: { tone: "admin" | "branch" }) {
                     {reservation.notes && (
                       <div
                         className={`mt-4 rounded-lg px-4 py-3 text-sm ${
-                          isBranch
-                            ? "bg-warning-bg text-warning"
-                            : "bg-gold-soft text-[#8a6a28]"
+                          isBranch ? "bg-warning-bg text-warning" : "border border-[var(--gold-line)] text-[var(--gold)]"
                         }`}
                       >
                         {reservation.notes}
@@ -349,26 +380,53 @@ export function ReservationList({ tone }: { tone: "admin" | "branch" }) {
 
                     {isPending && (
                       <div className="mt-5 flex flex-wrap gap-2">
-                        <Button
-                          onClick={() => {
-                            setDeciding({ reservation, status: "confirmed" });
-                            setMessage("");
-                          }}
-                          className={accept}
-                        >
-                          <Check size={16} className="mr-1.5" />
-                          Confirm
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setDeciding({ reservation, status: "declined" });
-                            setMessage("");
-                          }}
-                          className={decline}
-                        >
-                          <X size={16} className="mr-1.5" />
-                          Can't do it
-                        </Button>
+                        {isBranch ? (
+                          <>
+                            <Button
+                              onClick={() => {
+                                setDeciding({ reservation, status: "confirmed" });
+                                setMessage("");
+                              }}
+                              className={accept}
+                            >
+                              <Check size={16} className="mr-1.5" />
+                              Confirm
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                setDeciding({ reservation, status: "declined" });
+                                setMessage("");
+                              }}
+                              className={decline}
+                            >
+                              <X size={16} className="mr-1.5" />
+                              Can&apos;t do it
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className={accept}
+                              onClick={() => {
+                                setDeciding({ reservation, status: "confirmed" });
+                                setMessage("");
+                              }}
+                            >
+                              Accept
+                            </button>
+                            <button
+                              type="button"
+                              className={decline}
+                              onClick={() => {
+                                setDeciding({ reservation, status: "declined" });
+                                setMessage("");
+                              }}
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -382,9 +440,9 @@ export function ReservationList({ tone }: { tone: "admin" | "branch" }) {
       {/* Decision dialog — the message goes into the email, so it's worth
           a moment rather than a one-click accept. */}
       <Dialog open={deciding !== null} onOpenChange={(open) => !open && setDeciding(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className={isBranch ? "sm:max-w-md" : DARK_DIALOG}>
           <DialogHeader>
-            <DialogTitle className={`text-xl font-semibold ${text}`}>
+            <DialogTitle className={`text-xl font-semibold ${isBranch ? text : "text-[#e5e2e1]"}`}>
               {deciding?.status === "confirmed"
                 ? `Confirm ${deciding.reservation.name}'s table?`
                 : `Let ${deciding?.reservation.name} down gently`}
@@ -392,14 +450,17 @@ export function ReservationList({ tone }: { tone: "admin" | "branch" }) {
           </DialogHeader>
 
           <div className="space-y-4">
-            <p className={`text-sm ${subtle}`}>
+            <p className={`text-sm ${isBranch ? subtle : "text-[rgba(229,226,225,0.68)]"}`}>
               {deciding?.status === "confirmed"
                 ? "They'll get a confirmation email straight away."
                 : "They'll get an email explaining. A reason helps."}
             </p>
 
             <div className="space-y-1">
-              <label htmlFor="staff-message" className={`text-sm ${text}`}>
+              <label
+                htmlFor="staff-message"
+                className={`text-sm ${isBranch ? text : "text-[#e5e2e1]"}`}
+              >
                 {deciding?.status === "confirmed"
                   ? "Anything to add? (optional)"
                   : "Why not? (optional)"}
@@ -414,27 +475,34 @@ export function ReservationList({ tone }: { tone: "admin" | "branch" }) {
                     ? "We've put you by the window — see you then."
                     : "We're fully booked that evening, but we could do 9pm?"
                 }
-                className={`w-full resize-none rounded-lg border px-3 py-2.5 text-sm ${
-                  isBranch ? "border-slate-border" : "border-ink/15"
-                }`}
+                className={
+                  isBranch
+                    ? "w-full resize-none rounded-lg border border-slate-border px-3 py-2.5 text-sm"
+                    : "w-full resize-none rounded-[3px] border border-[rgba(201,162,74,0.35)] bg-[#050505] px-3 py-2.5 text-sm text-[#e5e2e1]"
+                }
               />
             </div>
 
             <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => setDeciding(null)} disabled={saving}>
-                Cancel
-              </Button>
-              <Button
-                onClick={decide}
-                disabled={saving}
-                className={deciding?.status === "confirmed" ? accept : decline}
-              >
-                {saving
-                  ? "Sending…"
-                  : deciding?.status === "confirmed"
-                    ? "Confirm and email"
-                    : "Decline and email"}
-              </Button>
+              {isBranch ? (
+                <>
+                  <Button variant="ghost" onClick={() => setDeciding(null)} disabled={saving}>
+                    Cancel
+                  </Button>
+                  <Button onClick={decide} disabled={saving} className={deciding?.status === "confirmed" ? accept : decline}>
+                    {saving ? "Sending…" : deciding?.status === "confirmed" ? "Confirm and email" : "Decline and email"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <button type="button" className={DIALOG_GHOST_BTN} onClick={() => setDeciding(null)} disabled={saving}>
+                    Cancel
+                  </button>
+                  <button type="button" className={DIALOG_BOOK_BTN} onClick={decide} disabled={saving}>
+                    {saving ? "Sending…" : deciding?.status === "confirmed" ? "Confirm and email" : "Decline and email"}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </DialogContent>

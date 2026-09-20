@@ -1,21 +1,27 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { CategoryManager } from "@/components/menu/category-manager";
-import { MenuItemForm } from "@/components/menu/menu-item-form";
+import { MenuItemForm, emptyDraft, type MenuItemDraft } from "@/components/menu/menu-item-form";
 import { BranchScopePicker, type Branch, type Scope } from "@/components/menu/branch-scope-picker";
 import type { MainCategory, MenuItem, SubCategory } from "@/components/menu/menu-browser";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
 const SCOPE_KEY = "sweet1ne_admin_menu_scope";
+// Literal colors, not var(--gold-line) etc — Dialog portals to
+// document.body, outside .admin-shell, so those custom properties (only
+// defined under that class) don't cascade here and the panel, its text
+// and its .admin-book buttons would all render uncolored without them.
+const DARK_DIALOG =
+  "border border-[rgba(201,162,74,0.42)] bg-[#0c0c0c] text-[#e5e2e1] sm:max-w-lg max-h-[90vh] overflow-y-auto";
+const DIALOG_BOOK_BTN =
+  "inline-block rounded-[3px] border border-[rgba(201,162,74,0.9)] bg-transparent px-[1.15rem] py-[0.7rem] text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-[#c9a24a] hover:bg-[#c9a24a] hover:text-[#0e0e0e]";
 
 type Tab = "items" | "subs" | "mains";
 
@@ -29,14 +35,43 @@ export default function AdminMenuManagePage() {
   const [mains, setMains] = useState<MainCategory[]>([]);
   const [subs, setSubs] = useState<SubCategory[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [cat, setCat] = useState("All");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<MenuItem | undefined>();
+  const [draft, setDraft] = useState<MenuItemDraft>(emptyDraft());
   const [confirmDelete, setConfirmDelete] = useState<MenuItem | null>(null);
+  const [drawerSlot, setDrawerSlot] = useState<Element | null>(null);
 
   const canEdit = hasPermission(me, "edit_menu");
+
+  // The editor renders in the third grid column owned by admin/layout.tsx,
+  // not here — see #admin-drawer-slot and .admin-shell:has(...) in
+  // globals.css. That element only exists in the real DOM once the layout
+  // has committed, so this has to run post-commit, not during render.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reading a real DOM node from a sibling tree, only available after commit
+    setDrawerSlot(document.getElementById("admin-drawer-slot"));
+  }, []);
+
+  function openAdd() {
+    setEditing(undefined);
+    setDraft(emptyDraft());
+    setFormOpen(true);
+  }
+
+  function openEdit(item: MenuItem) {
+    setEditing(item);
+    setDraft(emptyDraft(item));
+    setFormOpen(true);
+  }
+
+  function closeForm() {
+    setFormOpen(false);
+    setEditing(undefined);
+  }
 
   useEffect(() => {
     const saved = window.localStorage.getItem(SCOPE_KEY);
@@ -114,21 +149,35 @@ export default function AdminMenuManagePage() {
   }
 
   if (meLoading || !me || !canEdit) {
-    return <p className="text-sm text-ink-muted">Loading…</p>;
+    return <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>;
   }
 
   const subById = new Map(subs.map((s) => [s.id, s]));
   const mainById = new Map(mains.map((m) => [m.id, m]));
   const branchById = new Map(branches.map((b) => [b.id, b]));
 
+  // Category filter pills, driven by the real (branch-scoped) main categories
+  // instead of the template's fixed Starters/Mains/… list.
+  const CATS = ["All", ...mains.map((m) => m.name), "Needs picture"];
+
   const visibleItems = items.filter((item) => {
-    if (!query) return true;
-    const q = query.toLowerCase();
-    return (
-      item.title.toLowerCase().includes(q) ||
-      (item.description ?? "").toLowerCase().includes(q)
-    );
+    if (cat === "Needs picture" && item.picture) return false;
+    if (cat !== "All" && cat !== "Needs picture") {
+      const sub = subById.get(item.sub_category_id);
+      const main = sub ? mainById.get(sub.main_category_id) : undefined;
+      if (main?.name !== cat) return false;
+    }
+    if (query) {
+      const q = query.toLowerCase();
+      const haystack = `${item.title} ${item.description ?? ""}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
   });
+
+  const on = items.filter((i) => i.is_available).length;
+  const withPic = items.filter((i) => i.picture).length;
+  const needPic = items.filter((i) => i.is_available && !i.picture).length;
 
   const TABS: { key: Tab; label: string; count: number }[] = [
     { key: "items", label: "Items", count: items.length },
@@ -143,286 +192,235 @@ export default function AdminMenuManagePage() {
       : "every branch";
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl text-ink max-md:hidden">Menu</h1>
-          <p className="mt-1 text-sm text-ink-muted">
-            {items.length} item{items.length === 1 ? "" : "s"} · {scopeLabel}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/admin/menu/preview"
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-ink/12 bg-white px-3.5 text-sm text-ink-muted transition-colors hover:text-ink"
-          >
-            <Eye size={15} />
-            Preview as customer
-          </Link>
-          {tab === "items" && (
-            <Button
-              onClick={() => {
-                setEditing(undefined);
-                setFormOpen(true);
-              }}
-              className="bg-gold text-ink hover:bg-gold/90"
-            >
-              <Plus size={16} className="mr-1.5" />
-              Add item
-            </Button>
-          )}
-        </div>
+    <>
+      <div className="admin-top">
+        <BranchScopePicker branches={branches} scope={scope} onChange={changeScope} />
+        <Link href="/admin/menu/preview" className="admin-who">
+          Preview as customer →
+        </Link>
       </div>
 
-      {error && (
-        <div
-          role="alert"
-          className="rounded-lg border border-ember/25 bg-ember-soft px-4 py-3 text-sm text-ember"
-        >
-          {error}
-        </div>
-      )}
+      <h1>Menu</h1>
+      <p className="admin-dek">
+        {items.length} item{items.length === 1 ? "" : "s"} · {scopeLabel}
+      </p>
 
-      <BranchScopePicker branches={branches} scope={scope} onChange={changeScope} />
+      {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
 
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-ink/10">
+      <div className="admin-cats" role="tablist" aria-label="Section">
         {TABS.map((t) => (
           <button
             key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.key}
+            className={tab === t.key ? "is-on" : undefined}
             onClick={() => setTab(t.key)}
-            className={`relative px-4 py-2.5 text-sm transition-colors ${
-              tab === t.key ? "font-medium text-ink" : "text-ink-muted hover:text-ink"
-            }`}
           >
-            {t.label}
-            <span className="ml-1.5 text-xs text-ink-muted">{t.count}</span>
-            {tab === t.key && (
-              <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-gold" />
-            )}
+            {t.label} · {t.count}
           </button>
         ))}
       </div>
 
       {tab === "mains" && (
-        <CategoryManager
-          level="main"
-          mains={mains}
-          subs={subs}
-          onChanged={load}
-          branchId={scope.branchId}
-        />
+        <CategoryManager tone="admin" level="main" mains={mains} subs={subs} onChanged={load} branchId={scope.branchId} />
       )}
       {tab === "subs" && (
-        <CategoryManager
-          level="sub"
-          mains={mains}
-          subs={subs}
-          onChanged={load}
-          branchId={scope.branchId}
-        />
+        <CategoryManager tone="admin" level="sub" mains={mains} subs={subs} onChanged={load} branchId={scope.branchId} />
       )}
 
       {tab === "items" && (
         <>
-          <div className="relative max-w-sm">
-            <Search
-              size={15}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted"
-            />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search items…"
-              className="h-10 bg-white pl-9"
-            />
+          <div className="admin-kpi-strip" aria-label="Summary">
+            <div>
+              <span className="admin-kpi-n">{on}</span>
+              <span className="admin-kpi-l">On menu</span>
+            </div>
+            <div>
+              <span className="admin-kpi-n">{items.length - on}</span>
+              <span className="admin-kpi-l">Off</span>
+            </div>
+            <div>
+              <span className="admin-kpi-n">{withPic}</span>
+              <span className="admin-kpi-l">With picture</span>
+            </div>
+            <div>
+              <span className="admin-kpi-n">{needPic}</span>
+              <span className="admin-kpi-l">Need a picture</span>
+            </div>
           </div>
 
-          {loading ? (
-            <p className="text-sm text-ink-muted">Loading…</p>
-          ) : visibleItems.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-ink/15 bg-white/50 px-6 py-16 text-center">
-              <p className="text-sm text-ink-muted">
-                {items.length === 0
-                  ? "Nothing on this menu yet. Start by adding a main category."
-                  : "No items match that search."}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-xl border border-ink/8 bg-white shadow-[0_1px_3px_rgba(20,24,28,0.04)]">
-              <div className="hidden border-b border-ink/8 bg-[#FBFCFD] px-5 py-3 text-[11px] uppercase tracking-[0.12em] text-ink-muted md:grid md:grid-cols-[1.5fr_1fr_120px_100px_110px_90px] md:gap-4">
-                <span>Item</span>
-                <span>Category</span>
-                <span>Branch</span>
-                <span className="text-right">Price</span>
-                <span>Availability</span>
-                <span className="text-right">Actions</span>
+          <div className="admin-cats">
+            {CATS.map((name) => (
+              <button
+                key={name}
+                type="button"
+                className={cat === name ? "is-on" : undefined}
+                onClick={() => setCat(name)}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+
+          <div className="admin-tools">
+            <input
+              type="search"
+              placeholder="Search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <button type="button" className="admin-book" onClick={openAdd}>
+              Add item
+            </button>
+          </div>
+
+          {formOpen && (
+            <section className="admin-dish-preview">
+              <p className="admin-kicker">Website and phone</p>
+              <div className="admin-dish-stills">
+                {draft.picture ? (
+                  <img src={draft.picture} alt="" />
+                ) : (
+                  <p className="admin-dek">Pick a picture. The phone shows it with the dish.</p>
+                )}
               </div>
+              <h2>{draft.title.trim() || "Name sits here."}</h2>
+              <p className="admin-dek">
+                {draft.description.trim() || "Write the dish. Guests see this on the website and the phone."}
+              </p>
+              <p className="admin-price">{draft.price.trim() ? gbp.format(Number(draft.price) || 0) : ""}</p>
+            </section>
+          )}
 
-              <ul className="divide-y divide-ink/5">
-                {visibleItems.map((item) => {
-                  const sub = subById.get(item.sub_category_id);
-                  const main = sub ? mainById.get(sub.main_category_id) : undefined;
-                  const branchName = main?.branch_id
-                    ? branchById.get(main.branch_id)?.name ?? "—"
-                    : null;
+          {loading ? (
+            <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+          ) : visibleItems.length === 0 ? (
+            <p className="admin-hold px-5 py-10 text-center text-sm">
+              {items.length === 0
+                ? "Nothing on this menu yet. Start by adding a main category."
+                : "No items match that search."}
+            </p>
+          ) : (
+            <div className="admin-data-panel">
+              <table className="admin-sheet">
+                <thead>
+                  <tr>
+                    <th>On</th>
+                    <th></th>
+                    <th>Item</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Restaurant</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleItems.map((item) => {
+                    const sub = subById.get(item.sub_category_id);
+                    const main = sub ? mainById.get(sub.main_category_id) : undefined;
+                    const branchName = main?.branch_id ? branchById.get(main.branch_id)?.name ?? "—" : null;
 
-                  return (
-                    <li
-                      key={item.id}
-                      className="px-5 py-3.5 md:grid md:grid-cols-[1.5fr_1fr_120px_100px_110px_90px] md:items-center md:gap-4"
-                    >
-                      <div className="flex items-center gap-3">
-                        {item.picture ? (
-                          <img
-                            src={item.picture}
-                            alt=""
-                            className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                    return (
+                      <tr key={item.id}>
+                        <td>
+                          <button
+                            type="button"
+                            aria-label="On"
+                            className={`admin-toggle${item.is_available ? " is-on" : ""}`}
+                            onClick={() => toggleAvailability(item)}
                           />
-                        ) : (
-                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-ink/5 text-[10px] text-ink-muted">
-                            —
-                          </span>
-                        )}
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-ink">{item.title}</p>
-                          {item.description && (
-                            <p className="truncate text-xs text-ink-muted">{item.description}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1.5 max-md:mt-2">
-                        {main && (
-                          <span className="rounded-full bg-violet-soft px-2 py-0.5 text-xs text-violet">
-                            {main.name}
-                          </span>
-                        )}
-                        {sub && (
-                          <span className="rounded-full bg-teal-soft px-2 py-0.5 text-xs text-teal">
-                            {sub.name}
-                          </span>
-                        )}
-                      </div>
-
-                      <span className="max-md:mt-2 max-md:block">
-                        {branchName ? (
-                          <span className="rounded-full bg-ink/5 px-2 py-0.5 text-xs text-ink-muted">
-                            {branchName}
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-gold-soft px-2 py-0.5 text-xs text-[#8a6a28]">
-                            Shared
-                          </span>
-                        )}
-                      </span>
-
-                      <span className="text-sm font-medium tabular-nums text-ink max-md:mt-2 max-md:block md:text-right">
-                        {gbp.format(item.price)}
-                      </span>
-
-                      <div className="max-md:mt-2">
-                        <button
-                          onClick={() => toggleAvailability(item)}
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium transition-opacity hover:opacity-80 ${
-                            item.is_available
-                              ? "bg-sage-soft text-sage"
-                              : "bg-ink/5 text-ink-muted"
-                          }`}
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              item.is_available ? "bg-sage" : "bg-ink-muted"
-                            }`}
-                          />
-                          {item.is_available ? "Available" : "Off menu"}
-                        </button>
-                      </div>
-
-                      <div className="flex gap-1 max-md:mt-3 md:justify-end">
-                        <button
-                          onClick={() => {
-                            setEditing(item);
-                            setFormOpen(true);
-                          }}
-                          aria-label="Edit"
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted hover:bg-teal-soft hover:text-teal"
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <button
-                          onClick={() => setConfirmDelete(item)}
-                          aria-label="Remove"
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted hover:bg-ember-soft hover:text-ember"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                        </td>
+                        <td className="admin-pic">
+                          {item.picture ? <img src={item.picture} alt="" /> : "—"}
+                        </td>
+                        <td>
+                          <span className="admin-name">{item.title}</span>
+                          {item.description && <div className="admin-muted">{item.description}</div>}
+                        </td>
+                        <td className="admin-muted">
+                          {main?.name}
+                          {sub ? ` · ${sub.name}` : ""}
+                        </td>
+                        <td className="admin-price">{gbp.format(item.price)}</td>
+                        <td className="admin-muted">{branchName ?? "Shared"}</td>
+                        <td>
+                          <div className="flex gap-3">
+                            <button type="button" className="admin-edit" onClick={() => openEdit(item)}>
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="admin-edit"
+                              onClick={() => setConfirmDelete(item)}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </>
       )}
 
-      {/* Item form */}
-      <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">
-              {editing ? "Edit item" : "Add item"}
-            </DialogTitle>
-          </DialogHeader>
-          <MenuItemForm
-            item={editing}
-            mains={mains}
-            subs={subs}
-            onSaved={(saved) => {
-              setItems((prev) =>
-                editing ? prev.map((i) => (i.id === saved.id ? saved : i)) : [...prev, saved]
-              );
-              setFormOpen(false);
-              setEditing(undefined);
-            }}
-            onCancel={() => {
-              setFormOpen(false);
-              setEditing(undefined);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* Item editor — portaled into the third grid column owned by the
+          shared /admin layout, not a modal. See #admin-drawer-slot. */}
+      {formOpen &&
+        drawerSlot &&
+        createPortal(
+          <aside className="admin-drawer-edit is-builder">
+            <h2>{editing ? "Edit item" : "Add item"}</h2>
+            <p className="admin-dek">
+              This dish is the website and the table phone. The picture is what guests see first.
+            </p>
+            <MenuItemForm
+              tone="admin"
+              item={editing}
+              mains={mains}
+              subs={subs}
+              draft={draft}
+              onDraftChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+              onSaved={(saved) => {
+                setItems((prev) => (editing ? prev.map((i) => (i.id === saved.id ? saved : i)) : [...prev, saved]));
+                closeForm();
+              }}
+              onCancel={closeForm}
+            />
+          </aside>,
+          drawerSlot
+        )}
 
       {/* Delete confirmation */}
       <Dialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className={DARK_DIALOG + " sm:max-w-md"}>
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">
+            <DialogTitle className="font-display text-xl text-[#e5e2e1]">
               Remove {confirmDelete?.title}?
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-ink-muted">
-              This takes the item off the menu. Past orders that included it stay intact, and you
-              can put it back at any time.
-            </p>
-            <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => setConfirmDelete(null)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={() => confirmDelete && remove(confirmDelete)}
-                className="bg-ember text-white hover:bg-ember/90"
-              >
-                Remove
-              </Button>
-            </div>
+          <p className="text-sm text-[rgba(229,226,225,0.68)]">
+            This takes the item off the menu. Past orders that included it stay intact, and you can put it
+            back at any time.
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" className={DIALOG_BOOK_BTN} onClick={() => setConfirmDelete(null)}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={DIALOG_BOOK_BTN}
+              onClick={() => confirmDelete && remove(confirmDelete)}
+            >
+              Remove
+            </button>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

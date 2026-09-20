@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
@@ -16,6 +17,9 @@ class EventIn(BaseModel):
     branch_id: uuid.UUID | None = None
     is_featured: bool = True
     is_published: bool = True
+    # See Event.layout / Event.ctas for the recognised shapes.
+    layout: list[dict[str, Any]] = []
+    ctas: list[dict[str, Any]] = []
 
 
 class EventUpdate(BaseModel):
@@ -29,6 +33,8 @@ class EventUpdate(BaseModel):
     price_note: str | None = None
     is_featured: bool | None = None
     is_published: bool | None = None
+    layout: list[dict[str, Any]] | None = None
+    ctas: list[dict[str, Any]] | None = None
 
 
 class EventOut(BaseModel):
@@ -46,4 +52,6 @@ class EventOut(BaseModel):
     price_note: str | None
     is_featured: bool
     is_published: bool
+    layout: list[dict[str, Any]]
+    ctas: list[dict[str, Any]]
     branch_name: str | None = None

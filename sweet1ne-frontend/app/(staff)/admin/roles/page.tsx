@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, ShieldCheck, Users } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ShieldCheck, Users } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import {
   RoleForm,
@@ -9,9 +10,18 @@ import {
   type Permission,
   type Role,
 } from "@/components/staff/role-form";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+// The deactivate-confirmation dialog is portaled by @base-ui to
+// document.body, outside .admin-shell — var(--x) tokens don't cascade
+// there, so literal hex/rgba values are used instead (same fix as the
+// other admin confirm dialogs; see menu/events/reservations/staff pages).
+const DARK_DIALOG = "border border-[rgba(201,162,74,0.42)] bg-[#0c0c0c] text-[#e5e2e1] sm:max-w-md";
+const DIALOG_BOOK_BTN =
+  "inline-flex items-center justify-center rounded-[3px] border border-[rgba(201,162,74,0.9)] bg-transparent px-[1.15rem] py-[0.6rem] text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-[#c9a24a] hover:bg-[#c9a24a] hover:text-[#0e0e0e] disabled:opacity-50";
+const DIALOG_GHOST_BTN =
+  "px-[1.15rem] py-[0.6rem] text-[0.75rem] uppercase tracking-[0.1em] text-[rgba(229,226,225,0.68)] hover:text-[#e5e2e1]";
 
 export default function RolesPage() {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -23,6 +33,12 @@ export default function RolesPage() {
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [confirmDeactivate, setConfirmDeactivate] = useState<Role | null>(null);
+  const [drawerSlot, setDrawerSlot] = useState<Element | null>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reading a real DOM node from a sibling tree, only available after commit
+    setDrawerSlot(document.getElementById("admin-drawer-slot"));
+  }, []);
 
   const selected = roles.find((r) => r.id === selectedId) ?? null;
   const grouped = groupByCategory(allPermissions);
@@ -95,31 +111,22 @@ export default function RolesPage() {
       selected.permissions.some((p) => !draft.has(p.key)));
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl text-ink max-md:hidden">Roles &amp; Permissions</h1>
-          <p className="mt-1 text-sm text-ink-muted">
-            {roles.length} {roles.length === 1 ? "role" : "roles"}
-          </p>
-        </div>
-        <Button onClick={() => setDialogOpen(true)} className="bg-gold text-ink hover:bg-gold/90">
-          <Plus size={16} className="mr-1.5" />
+    <>
+      <h1>Roles &amp; Permissions</h1>
+      <p className="admin-dek">
+        {roles.length} {roles.length === 1 ? "role" : "roles"}
+      </p>
+
+      {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
+
+      <div className="admin-tools">
+        <button type="button" className="admin-book ml-auto" onClick={() => setDialogOpen(true)}>
           New role
-        </Button>
+        </button>
       </div>
 
-      {error && (
-        <div
-          role="alert"
-          className="rounded-lg border border-ember/25 bg-ember/5 px-4 py-3 text-sm text-ember"
-        >
-          {error}
-        </div>
-      )}
-
       {loading ? (
-        <p className="text-sm text-ink-muted">Loading…</p>
+        <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
       ) : (
         <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
           {/* Role list */}
@@ -130,24 +137,30 @@ export default function RolesPage() {
                 <button
                   key={role.id}
                   onClick={() => selectRole(role)}
-                  className={`w-full rounded-lg border px-4 py-3.5 text-left transition-colors ${
+                  className={`w-full rounded-[3px] border px-4 py-3.5 text-left transition-colors ${
                     active
-                      ? "border-gold/50 bg-white shadow-[0_1px_2px_rgba(20,24,28,0.04)]"
-                      : "border-ink/8 bg-white/60 hover:bg-white"
+                      ? "border-[var(--gold)] bg-[var(--panel)]"
+                      : "border-[var(--gold-line)] bg-[var(--panel-2)] hover:bg-[var(--panel)]"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className={`font-medium ${role.is_active ? "text-ink" : "text-ink-muted"}`}>
+                    <span
+                      className={`font-medium ${
+                        role.is_active ? "text-[var(--ivory)]" : "text-[var(--ivory-dim)]"
+                      }`}
+                    >
                       {role.name}
                     </span>
-                    {role.is_super_admin && <ShieldCheck size={15} className="shrink-0 text-gold" />}
+                    {role.is_super_admin && (
+                      <ShieldCheck size={15} className="shrink-0 text-[var(--gold)]" />
+                    )}
                   </div>
-                  <div className="mt-1.5 flex items-center gap-3 text-xs text-ink-muted">
+                  <div className="mt-1.5 flex items-center gap-3 text-xs text-[var(--ivory-dim)]">
                     <span className="inline-flex items-center gap-1">
                       <Users size={12} />
                       {role.staff_count}
                     </span>
-                    {!role.is_active && <span className="text-ember">Inactive</span>}
+                    {!role.is_active && <span className="text-[var(--gold)]">Inactive</span>}
                   </div>
                 </button>
               );
@@ -155,18 +168,20 @@ export default function RolesPage() {
           </aside>
 
           {/* Permission matrix */}
-          <section className="overflow-hidden rounded-lg border border-ink/8 bg-white">
+          <section className="overflow-hidden rounded-[3px] border border-[var(--gold-line)] bg-[var(--panel-2)]">
             {!selected ? (
-              <p className="px-5 py-16 text-center text-sm text-ink-muted">
+              <p className="px-5 py-16 text-center text-sm text-[var(--ivory-dim)]">
                 Select a role to view its permissions.
               </p>
             ) : (
               <>
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/8 px-5 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--gold-line)] px-5 py-4">
                   <div>
-                    <h2 className="font-display text-lg text-ink">{selected.name}</h2>
+                    <h2 className="font-display text-lg text-[var(--ivory)]">{selected.name}</h2>
                     {selected.description && (
-                      <p className="mt-0.5 text-sm text-ink-muted">{selected.description}</p>
+                      <p className="mt-0.5 text-sm text-[var(--ivory-dim)]">
+                        {selected.description}
+                      </p>
                     )}
                   </div>
 
@@ -174,22 +189,19 @@ export default function RolesPage() {
                     (selected.is_active ? (
                       <button
                         onClick={() => setConfirmDeactivate(selected)}
-                        className="text-sm text-ember underline underline-offset-4 hover:text-ember/80"
+                        className="admin-edit"
                       >
                         Deactivate role
                       </button>
                     ) : (
-                      <button
-                        onClick={() => activate(selected)}
-                        className="text-sm text-sage underline underline-offset-4 hover:text-sage/80"
-                      >
+                      <button onClick={() => activate(selected)} className="admin-edit">
                         Reactivate role
                       </button>
                     ))}
                 </div>
 
                 {!selected.is_active && (
-                  <div className="border-b border-ink/8 bg-ember/5 px-5 py-3 text-sm text-ember">
+                  <div className="admin-hold border-b border-[var(--gold-line)] px-5 py-3 text-sm">
                     This role is inactive. Staff assigned to it can't sign in until it's
                     reactivated.
                   </div>
@@ -197,10 +209,12 @@ export default function RolesPage() {
 
                 {selected.is_super_admin ? (
                   <div className="flex items-start gap-3 px-5 py-6">
-                    <ShieldCheck size={18} className="mt-0.5 shrink-0 text-gold" />
+                    <ShieldCheck size={18} className="mt-0.5 shrink-0 text-[var(--gold)]" />
                     <div className="text-sm">
-                      <p className="text-ink">This role has full access to everything.</p>
-                      <p className="mt-1 text-ink-muted">
+                      <p className="text-[var(--ivory)]">
+                        This role has full access to everything.
+                      </p>
+                      <p className="mt-1 text-[var(--ivory-dim)]">
                         Permissions can't be edited — it automatically includes every permission,
                         including any added in future.
                       </p>
@@ -211,20 +225,20 @@ export default function RolesPage() {
                     <div className="space-y-5 px-5 py-5">
                       {Object.entries(grouped).map(([category, permissions]) => (
                         <div key={category}>
-                          <p className="mb-3 text-[11px] uppercase tracking-[0.14em] text-ink-muted">
+                          <p className="mb-3 text-[11px] uppercase tracking-[0.14em] text-[var(--ivory-dim)]">
                             {category}
                           </p>
                           <div className="grid gap-2.5 sm:grid-cols-2">
                             {permissions.map((p) => (
                               <label
                                 key={p.id}
-                                className="flex cursor-pointer items-center gap-3 text-sm"
+                                className="flex cursor-pointer items-center gap-3 text-sm text-[var(--ivory)]"
                               >
                                 <Checkbox
                                   checked={draft.has(p.key)}
                                   onCheckedChange={() => toggle(p.key)}
                                 />
-                                <span className="text-ink">{p.display_name}</span>
+                                <span>{p.display_name}</span>
                               </label>
                             ))}
                           </div>
@@ -233,25 +247,25 @@ export default function RolesPage() {
                     </div>
 
                     {dirty && (
-                      <div className="flex items-center justify-between gap-3 border-t border-ink/8 bg-[#F7F8FA] px-5 py-3.5">
-                        <p className="text-sm text-ink-muted">Unsaved changes</p>
+                      <div className="flex items-center justify-between gap-3 border-t border-[var(--gold-line)] bg-[var(--panel)] px-5 py-3.5">
+                        <p className="text-sm text-[var(--ivory-dim)]">Unsaved changes</p>
                         <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
+                          <button
+                            type="button"
+                            className="admin-edit"
                             onClick={() => selectRole(selected)}
                             disabled={saving}
                           >
                             Discard
-                          </Button>
-                          <Button
-                            size="sm"
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-book"
                             onClick={savePermissions}
                             disabled={saving}
-                            className="bg-gold text-ink hover:bg-gold/90"
                           >
                             {saving ? "Saving…" : "Save changes"}
-                          </Button>
+                          </button>
                         </div>
                       </div>
                     )}
@@ -263,38 +277,42 @@ export default function RolesPage() {
         </div>
       )}
 
-      {/* Create role */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">New role</DialogTitle>
-          </DialogHeader>
-          <RoleForm
-            allPermissions={allPermissions}
-            onCreated={(role) => {
-              setRoles((prev) => [...prev, role]);
-              selectRole(role);
-              setDialogOpen(false);
-            }}
-            onCancel={() => setDialogOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* Create role — portaled into the third grid column owned by the
+          shared /admin layout, same as menu, events, tables and staff.
+          See #admin-drawer-slot in admin/layout.tsx. */}
+      {dialogOpen &&
+        drawerSlot &&
+        createPortal(
+          <aside className="admin-drawer-edit">
+            <h2>New role</h2>
+            <RoleForm
+              allPermissions={allPermissions}
+              tone="admin"
+              onCreated={(role) => {
+                setRoles((prev) => [...prev, role]);
+                selectRole(role);
+                setDialogOpen(false);
+              }}
+              onCancel={() => setDialogOpen(false)}
+            />
+          </aside>,
+          drawerSlot
+        )}
 
       {/* Deactivate confirmation */}
       <Dialog
         open={confirmDeactivate !== null}
         onOpenChange={(open) => !open && setConfirmDeactivate(null)}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className={DARK_DIALOG}>
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">
+            <DialogTitle className="font-display text-xl text-[#e5e2e1]">
               Deactivate {confirmDeactivate?.name}?
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {confirmDeactivate && confirmDeactivate.staff_count > 0 ? (
-              <div className="rounded-md border border-ember/30 bg-ember/5 px-4 py-3 text-sm text-ember">
+              <div className="rounded-[3px] border border-[rgba(201,162,74,0.35)] bg-[#050505] px-4 py-3 text-sm text-[#c9a24a]">
                 {confirmDeactivate.staff_count} active staff{" "}
                 {confirmDeactivate.staff_count === 1 ? "member uses" : "members use"} this role.
                 Deactivating it will immediately prevent{" "}
@@ -302,24 +320,25 @@ export default function RolesPage() {
                 until they're reassigned to another role.
               </div>
             ) : (
-              <p className="text-sm text-ink-muted">
+              <p className="text-sm text-[rgba(229,226,225,0.68)]">
                 No staff currently use this role, so nobody will lose access.
               </p>
             )}
             <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setConfirmDeactivate(null)}>
+              <button type="button" className={DIALOG_GHOST_BTN} onClick={() => setConfirmDeactivate(null)}>
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
+                type="button"
+                className={DIALOG_BOOK_BTN}
                 onClick={() => confirmDeactivate && deactivate(confirmDeactivate)}
-                className="bg-ember text-white hover:bg-ember/90"
               >
                 Deactivate
-              </Button>
+              </button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

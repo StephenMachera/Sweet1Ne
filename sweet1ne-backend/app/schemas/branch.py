@@ -13,6 +13,15 @@ class BranchIn(BaseModel):
     image_url: str | None = None
 
 
+class BranchUpdate(BaseModel):
+    name: str | None = None
+    phone: str | None = None
+    address: str | None = None
+    # Merged into the existing dict, not replaced — settings also holds
+    # things this form never touches (QR toggles, tax overrides, etc.).
+    settings: dict | None = None
+
+
 class BranchOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

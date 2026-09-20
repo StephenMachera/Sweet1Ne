@@ -29,6 +29,7 @@ def _tenant_out(tenant: Tenant) -> TenantSettingsOut:
         logo_url=tenant.logo_url,
         currency=tenant.currency,
         timezone=tenant.timezone,
+        email=tenant.email,
         **{k: v for k, v in blob.items() if k in TenantSettingsOut.model_fields},
     )
 

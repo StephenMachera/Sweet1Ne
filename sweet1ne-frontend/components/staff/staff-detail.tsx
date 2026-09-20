@@ -61,11 +61,13 @@ function Field({
   label,
   value,
   tone = "ink",
+  dark = false,
 }: {
   icon: any;
   label: string;
   value: string | null | undefined;
   tone?: "ink" | "teal" | "violet" | "rose" | "sage" | "gold";
+  dark?: boolean;
 }) {
   const tones: Record<string, string> = {
     ink: "bg-ink/5 text-ink-muted",
@@ -78,12 +80,24 @@ function Field({
 
   return (
     <div className="flex items-start gap-3">
-      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${tones[tone]}`}>
+      <span
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+          dark ? "bg-[rgba(201,162,74,0.14)] text-[var(--gold)]" : tones[tone]
+        }`}
+      >
         <Icon size={15} />
       </span>
       <div className="min-w-0">
-        <p className="text-[11px] uppercase tracking-[0.12em] text-ink-muted">{label}</p>
-        <p className="mt-0.5 break-words text-sm text-ink">{value || "—"}</p>
+        <p
+          className={`text-[11px] uppercase tracking-[0.12em] ${
+            dark ? "text-[var(--ivory-dim)]" : "text-ink-muted"
+          }`}
+        >
+          {label}
+        </p>
+        <p className={`mt-0.5 break-words text-sm ${dark ? "text-[var(--ivory)]" : "text-ink"}`}>
+          {value || "—"}
+        </p>
       </div>
     </div>
   );
@@ -92,12 +106,24 @@ function Field({
 function SectionCard({
   title,
   accent,
+  dark = false,
   children,
 }: {
   title: string;
   accent: string;
+  dark?: boolean;
   children: React.ReactNode;
 }) {
+  if (dark) {
+    return (
+      <div className="overflow-hidden rounded-xl border border-[var(--gold-line)] bg-[var(--panel)]">
+        <div className="border-b border-[var(--gold-line)] bg-[rgba(201,162,74,0.1)] px-4 py-2.5 text-[var(--gold)]">
+          <span className="text-[11px] font-medium uppercase tracking-[0.14em]">{title}</span>
+        </div>
+        <div className="grid gap-4 p-4 sm:grid-cols-2">{children}</div>
+      </div>
+    );
+  }
   return (
     <div className="overflow-hidden rounded-xl border border-ink/8 bg-white">
       <div className={`border-b border-ink/6 px-4 py-2.5 ${accent}`}>
@@ -113,6 +139,7 @@ export function StaffDetail({
   canViewPay,
   roles,
   branches,
+  tone = "branch",
   onUpdated,
   onDeactivate,
   onClose,
@@ -121,6 +148,7 @@ export function StaffDetail({
   canViewPay: boolean;
   roles: Option[];
   branches: Option[];
+  tone?: "admin" | "branch";
   onUpdated: (member: StaffMember) => void;
   onDeactivate: (member: StaffMember) => void;
   onClose: () => void;
@@ -130,6 +158,8 @@ export function StaffDetail({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isAdmin = tone === "admin";
 
   function set(field: string, value: any) {
     setDraft((prev) => ({ ...prev, [field]: value }));
@@ -200,15 +230,24 @@ export function StaffDetail({
   }
 
   return (
-    <div className="border-t border-ink/8 bg-gradient-to-b from-[#F7F9FB] to-white px-5 py-6">
-      {error && (
-        <div
-          role="alert"
-          className="mb-5 rounded-lg border border-ember/30 bg-ember-soft px-4 py-3 text-sm text-ember"
-        >
-          {error}
-        </div>
-      )}
+    <div
+      className={
+        isAdmin
+          ? "border-t border-[var(--gold-line)] bg-[var(--panel-2)] px-5 py-6"
+          : "border-t border-ink/8 bg-gradient-to-b from-[#F7F9FB] to-white px-5 py-6"
+      }
+    >
+      {error &&
+        (isAdmin ? (
+          <p className="admin-hold mb-5 text-sm">{error}</p>
+        ) : (
+          <div
+            role="alert"
+            className="mb-5 rounded-lg border border-ember/30 bg-ember-soft px-4 py-3 text-sm text-ember"
+          >
+            {error}
+          </div>
+        ))}
 
       {/* ---- Profile header ---- */}
       <div className="mb-6 flex flex-wrap items-center gap-5">
@@ -217,13 +256,15 @@ export function StaffDetail({
             <img
               src={currentPicture}
               alt=""
-              className="h-24 w-24 rounded-full object-cover ring-4 ring-white shadow-md"
+              className={`h-24 w-24 rounded-full object-cover shadow-md ${
+                isAdmin ? "ring-4 ring-[var(--panel-2)]" : "ring-4 ring-white"
+              }`}
             />
           ) : (
             <span
-              className={`flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br text-2xl font-semibold text-white shadow-md ring-4 ring-white ${avatarGradient(
-                member.role_name
-              )}`}
+              className={`flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br text-2xl font-semibold text-white shadow-md ${
+                isAdmin ? "ring-4 ring-[var(--panel-2)]" : "ring-4 ring-white"
+              } ${avatarGradient(member.role_name)}`}
             >
               {initials(member.full_name, member.email)}
             </span>
@@ -233,7 +274,11 @@ export function StaffDetail({
             <>
               <label
                 htmlFor={`pic-${member.id}`}
-                className="absolute -bottom-1 -right-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-teal text-white shadow-md ring-2 ring-white transition-colors hover:bg-teal/90"
+                className={`absolute -bottom-1 -right-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full shadow-md ring-2 transition-colors ${
+                  isAdmin
+                    ? "bg-[var(--gold)] text-[#0e0e0e] ring-[var(--panel-2)] hover:opacity-90"
+                    : "bg-teal text-white ring-white hover:bg-teal/90"
+                }`}
                 title="Change photo"
               >
                 <Camera size={16} />
@@ -256,80 +301,143 @@ export function StaffDetail({
         </div>
 
         <div className="min-w-0 flex-1">
-          <h3 className="font-display text-2xl text-ink">{member.full_name ?? member.email}</h3>
+          <h3
+            className={`font-display text-2xl ${isAdmin ? "text-[var(--ivory)]" : "text-ink"}`}
+          >
+            {member.full_name ?? member.email}
+          </h3>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-violet-soft px-2.5 py-0.5 text-xs font-medium text-violet">
-              {member.role_name}
-            </span>
-            <span className="rounded-full bg-teal-soft px-2.5 py-0.5 text-xs font-medium text-teal">
-              {member.branch_slug ?? "All branches"}
-            </span>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                member.is_active ? "bg-sage-soft text-sage" : "bg-ember-soft text-ember"
-              }`}
-            >
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${member.is_active ? "bg-sage" : "bg-ember"}`}
-              />
-              {member.is_active ? "Active" : "Inactive"}
-            </span>
+            {isAdmin ? (
+              <>
+                <span className="admin-status is-ok">{member.role_name}</span>
+                <span className="admin-status">{member.branch_slug ?? "All branches"}</span>
+                <span className={`admin-status${member.is_active ? " is-ok" : ""}`}>
+                  {member.is_active ? "Active" : "Inactive"}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="rounded-full bg-violet-soft px-2.5 py-0.5 text-xs font-medium text-violet">
+                  {member.role_name}
+                </span>
+                <span className="rounded-full bg-teal-soft px-2.5 py-0.5 text-xs font-medium text-teal">
+                  {member.branch_slug ?? "All branches"}
+                </span>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    member.is_active ? "bg-sage-soft text-sage" : "bg-ember-soft text-ember"
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      member.is_active ? "bg-sage" : "bg-ember"
+                    }`}
+                  />
+                  {member.is_active ? "Active" : "Inactive"}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
           {editing ? (
             <>
-              <Button
-                size="sm"
-                onClick={save}
-                disabled={saving || uploading}
-                className="bg-sage text-white hover:bg-sage/90"
-              >
-                <Check size={15} className="mr-1.5" />
-                {saving ? "Saving…" : "Save"}
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setDraft({});
-                  setEditing(false);
-                }}
-                className="text-ink-muted hover:text-ink"
-              >
-                Cancel
-              </Button>
+              {isAdmin ? (
+                <>
+                  <button
+                    type="button"
+                    className="admin-book"
+                    onClick={save}
+                    disabled={saving || uploading}
+                  >
+                    {saving ? "Saving…" : "Save"}
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-edit"
+                    onClick={() => {
+                      setDraft({});
+                      setEditing(false);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={save}
+                    disabled={saving || uploading}
+                    className="bg-sage text-white hover:bg-sage/90"
+                  >
+                    <Check size={15} className="mr-1.5" />
+                    {saving ? "Saving…" : "Save"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setDraft({});
+                      setEditing(false);
+                    }}
+                    className="text-ink-muted hover:text-ink"
+                  >
+                    Cancel
+                  </Button>
+                </>
+              )}
             </>
           ) : (
             <>
-              <Button
-                size="sm"
-                onClick={() => setEditing(true)}
-                className="bg-teal text-white hover:bg-teal/90"
-              >
-                <Pencil size={14} className="mr-1.5" />
-                Edit
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => onDeactivate(member)}
-                className={
-                  member.is_active
-                    ? "bg-ember-soft text-ember hover:bg-ember/15"
-                    : "bg-sage-soft text-sage hover:bg-sage/15"
-                }
-              >
-                {member.is_active ? "Deactivate" : "Reactivate"}
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={onClose}
-                className="text-ink-muted hover:text-ink"
-              >
-                <X size={16} />
-              </Button>
+              {isAdmin ? (
+                <>
+                  <button type="button" className="admin-book" onClick={() => setEditing(true)}>
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-edit"
+                    onClick={() => onDeactivate(member)}
+                  >
+                    {member.is_active ? "Deactivate" : "Reactivate"}
+                  </button>
+                  <button type="button" className="admin-edit" onClick={onClose}>
+                    <X size={16} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={() => setEditing(true)}
+                    className="bg-teal text-white hover:bg-teal/90"
+                  >
+                    <Pencil size={14} className="mr-1.5" />
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => onDeactivate(member)}
+                    className={
+                      member.is_active
+                        ? "bg-ember-soft text-ember hover:bg-ember/15"
+                        : "bg-sage-soft text-sage hover:bg-sage/15"
+                    }
+                  >
+                    {member.is_active ? "Deactivate" : "Reactivate"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={onClose}
+                    className="text-ink-muted hover:text-ink"
+                  >
+                    <X size={16} />
+                  </Button>
+                </>
+              )}
             </>
           )}
         </div>
@@ -337,10 +445,22 @@ export function StaffDetail({
 
       {/* ---- Body ---- */}
       {editing ? (
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-xl border border-ink/8 bg-white">
-            <div className="border-b border-ink/6 bg-teal-soft px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.14em] text-teal">
-              Personal & contact
+        <div className={`space-y-4 ${isAdmin ? "admin-form" : ""}`}>
+          <div
+            className={
+              isAdmin
+                ? "overflow-hidden rounded-xl border border-[var(--gold-line)] bg-[var(--panel)]"
+                : "overflow-hidden rounded-xl border border-ink/8 bg-white"
+            }
+          >
+            <div
+              className={
+                isAdmin
+                  ? "border-b border-[var(--gold-line)] bg-[rgba(201,162,74,0.1)] px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--gold)]"
+                  : "border-b border-ink/6 bg-teal-soft px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.14em] text-teal"
+              }
+            >
+              Personal &amp; contact
             </div>
             <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-1">
@@ -387,8 +507,20 @@ export function StaffDetail({
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-ink/8 bg-white">
-            <div className="border-b border-ink/6 bg-violet-soft px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.14em] text-violet">
+          <div
+            className={
+              isAdmin
+                ? "overflow-hidden rounded-xl border border-[var(--gold-line)] bg-[var(--panel)]"
+                : "overflow-hidden rounded-xl border border-ink/8 bg-white"
+            }
+          >
+            <div
+              className={
+                isAdmin
+                  ? "border-b border-[var(--gold-line)] bg-[rgba(201,162,74,0.1)] px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--gold)]"
+                  : "border-b border-ink/6 bg-violet-soft px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.14em] text-violet"
+              }
+            >
               Employment
             </div>
             <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -398,7 +530,9 @@ export function StaffDetail({
                   id="d-employment"
                   value={value("employment_type")}
                   onChange={(e) => set("employment_type", e.target.value)}
-                  className="h-10 w-full rounded-md border border-ink/15 bg-white px-3 text-sm"
+                  className={
+                    isAdmin ? undefined : "h-10 w-full rounded-md border border-ink/15 bg-white px-3 text-sm"
+                  }
                 >
                   <option value="">Not set</option>
                   {EMPLOYMENT_TYPES.map((t) => (
@@ -432,7 +566,9 @@ export function StaffDetail({
                   id="d-role"
                   value={value("role_id")}
                   onChange={(e) => set("role_id", e.target.value)}
-                  className="h-10 w-full rounded-md border border-ink/15 bg-white px-3 text-sm"
+                  className={
+                    isAdmin ? undefined : "h-10 w-full rounded-md border border-ink/15 bg-white px-3 text-sm"
+                  }
                 >
                   {roles.map((r) => (
                     <option key={r.id} value={r.id}>
@@ -447,7 +583,9 @@ export function StaffDetail({
                   id="d-branch"
                   value={value("branch_id")}
                   onChange={(e) => set("branch_id", e.target.value || null)}
-                  className="h-10 w-full rounded-md border border-ink/15 bg-white px-3 text-sm"
+                  className={
+                    isAdmin ? undefined : "h-10 w-full rounded-md border border-ink/15 bg-white px-3 text-sm"
+                  }
                 >
                   <option value="">All branches (director level)</option>
                   {branches.map((b) => (
@@ -464,9 +602,12 @@ export function StaffDetail({
                     type="checkbox"
                     checked={Boolean(draft.right_to_work_verified ?? member.right_to_work_verified)}
                     onChange={(e) => set("right_to_work_verified", e.target.checked)}
-                    className="h-4 w-4 accent-[#2f7d7f]"
+                    className={isAdmin ? "h-4 w-4 accent-[var(--gold)]" : "h-4 w-4 accent-[#2f7d7f]"}
                   />
-                  <Label htmlFor="d-rtw" className="cursor-pointer">
+                  <Label
+                    htmlFor="d-rtw"
+                    className={isAdmin ? "!text-sm !normal-case !tracking-normal cursor-pointer" : "cursor-pointer"}
+                  >
                     Right to work verified
                   </Label>
                 </div>
@@ -475,9 +616,21 @@ export function StaffDetail({
           </div>
 
           {canViewPay && (
-            <div className="overflow-hidden rounded-xl border border-ink/8 bg-white">
-              <div className="border-b border-ink/6 bg-gold-soft px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.14em] text-[#8a6a28]">
-                Pay & records
+            <div
+              className={
+                isAdmin
+                  ? "overflow-hidden rounded-xl border border-[var(--gold-line)] bg-[var(--panel)]"
+                  : "overflow-hidden rounded-xl border border-ink/8 bg-white"
+              }
+            >
+              <div
+                className={
+                  isAdmin
+                    ? "border-b border-[var(--gold-line)] bg-[rgba(201,162,74,0.1)] px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--gold)]"
+                    : "border-b border-ink/6 bg-gold-soft px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.14em] text-[#8a6a28]"
+                }
+              >
+                Pay &amp; records
               </div>
               <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-1">
@@ -496,7 +649,9 @@ export function StaffDetail({
                     id="d-paytype"
                     value={value("pay_type")}
                     onChange={(e) => set("pay_type", e.target.value)}
-                    className="h-10 w-full rounded-md border border-ink/15 bg-white px-3 text-sm"
+                    className={
+                      isAdmin ? undefined : "h-10 w-full rounded-md border border-ink/15 bg-white px-3 text-sm"
+                    }
                   >
                     <option value="">Not set</option>
                     <option value="hourly">Hourly</option>
@@ -522,20 +677,22 @@ export function StaffDetail({
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          <SectionCard title="Personal & contact" accent="bg-teal-soft text-teal">
-            <Field icon={Mail} label="Email" value={member.email} tone="teal" />
-            <Field icon={Phone} label="Phone" value={member.phone} tone="teal" />
+          <SectionCard title="Personal & contact" accent="bg-teal-soft text-teal" dark={isAdmin}>
+            <Field icon={Mail} label="Email" value={member.email} tone="teal" dark={isAdmin} />
+            <Field icon={Phone} label="Phone" value={member.phone} tone="teal" dark={isAdmin} />
             <Field
               icon={UserRound}
               label="Emergency contact"
               value={member.emergency_contact_name}
               tone="rose"
+              dark={isAdmin}
             />
             <Field
               icon={Phone}
               label="Emergency phone"
               value={member.emergency_contact_phone}
               tone="rose"
+              dark={isAdmin}
             />
             {canViewPay && (
               <>
@@ -547,31 +704,46 @@ export function StaffDetail({
                       ? new Date(member.date_of_birth).toLocaleDateString("en-GB")
                       : null
                   }
+                  dark={isAdmin}
                 />
-                <Field icon={MapPin} label="Address" value={member.address} />
+                <Field icon={MapPin} label="Address" value={member.address} dark={isAdmin} />
               </>
             )}
           </SectionCard>
 
-          <SectionCard title="Employment" accent="bg-violet-soft text-violet">
+          <SectionCard title="Employment" accent="bg-violet-soft text-violet" dark={isAdmin}>
             <Field
               icon={BriefcaseBusiness}
               label="Type"
               value={EMPLOYMENT_TYPES.find((t) => t.value === member.employment_type)?.label}
               tone="violet"
+              dark={isAdmin}
             />
-            <Field icon={CalendarDays} label="Shift pattern" value={member.shift_pattern} tone="violet" />
+            <Field
+              icon={CalendarDays}
+              label="Shift pattern"
+              value={member.shift_pattern}
+              tone="violet"
+              dark={isAdmin}
+            />
             <Field
               icon={CalendarDays}
               label="Started"
               value={member.hire_date ? new Date(member.hire_date).toLocaleDateString("en-GB") : null}
               tone="violet"
+              dark={isAdmin}
             />
-            <Field icon={MapPin} label="Branch" value={member.branch_slug ?? "All branches"} tone="violet" />
+            <Field
+              icon={MapPin}
+              label="Branch"
+              value={member.branch_slug ?? "All branches"}
+              tone="violet"
+              dark={isAdmin}
+            />
           </SectionCard>
 
           {canViewPay && (
-            <SectionCard title="Pay & records" accent="bg-gold-soft text-[#8a6a28]">
+            <SectionCard title="Pay & records" accent="bg-gold-soft text-[#8a6a28]" dark={isAdmin}>
               <Field
                 icon={Banknote}
                 label="Pay"
@@ -587,31 +759,43 @@ export function StaffDetail({
                     : null
                 }
                 tone="sage"
+                dark={isAdmin}
               />
               <Field
                 icon={StickyNote}
                 label="NI number"
                 value={member.national_insurance_number}
                 tone="gold"
+                dark={isAdmin}
               />
 
               <div className="flex items-start gap-3">
                 <span
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                    member.right_to_work_verified
-                      ? "bg-sage-soft text-sage"
-                      : "bg-ember-soft text-ember"
+                    isAdmin
+                      ? "bg-[rgba(201,162,74,0.14)] text-[var(--gold)]"
+                      : member.right_to_work_verified
+                        ? "bg-sage-soft text-sage"
+                        : "bg-ember-soft text-ember"
                   }`}
                 >
                   <ShieldCheck size={15} />
                 </span>
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-ink-muted">
+                  <p
+                    className={`text-[11px] uppercase tracking-[0.12em] ${
+                      isAdmin ? "text-[var(--ivory-dim)]" : "text-ink-muted"
+                    }`}
+                  >
                     Right to work
                   </p>
                   <p
                     className={`mt-0.5 text-sm font-medium ${
-                      member.right_to_work_verified ? "text-sage" : "text-ember"
+                      isAdmin
+                        ? "text-[var(--ivory)]"
+                        : member.right_to_work_verified
+                          ? "text-sage"
+                          : "text-ember"
                     }`}
                   >
                     {member.right_to_work_verified ? "Verified" : "Not verified"}
@@ -619,7 +803,7 @@ export function StaffDetail({
                 </div>
               </div>
 
-              <Field icon={StickyNote} label="Notes" value={member.notes} tone="gold" />
+              <Field icon={StickyNote} label="Notes" value={member.notes} tone="gold" dark={isAdmin} />
             </SectionCard>
           )}
         </div>

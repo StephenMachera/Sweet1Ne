@@ -15,12 +15,14 @@ const STATIONS = [
 ];
 
 export function CategoryManager({
+  tone,
   level,
   mains,
   subs,
   onChanged,
   branchId = null,
 }: {
+  tone: "admin" | "branch";
   level: "main" | "sub";
   mains: MainCategory[];
   subs: SubCategory[];
@@ -117,28 +119,189 @@ export function CategoryManager({
     }
   }
 
-  return (
-    <div className="space-y-4">
-      {error && (
-        <div
-          role="alert"
-          className="rounded-xl border border-danger/25 bg-danger-bg px-4 py-3 text-sm text-danger"
+  if (tone === "branch") {
+    return (
+      <div className="space-y-4">
+        {error && (
+          <div
+            role="alert"
+            className="rounded-xl border border-danger/25 bg-danger-bg px-4 py-3 text-sm text-danger"
+          >
+            {error}
+          </div>
+        )}
+
+        <form
+          onSubmit={create}
+          className="flex flex-wrap gap-3 rounded-xl border border-slate-bg bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
         >
-          {error}
+          {!isMain && (
+            <select
+              value={parentId}
+              onChange={(e) => setParentId(e.target.value)}
+              className="h-10 rounded-lg border border-slate-border bg-white px-3 text-sm"
+            >
+              <option value="">Main category…</option>
+              {mains.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <Input
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={isMain ? "e.g. Bar, Kitchen" : "e.g. Whisky, Desserts"}
+            className="h-10 min-w-[180px] flex-1 border-slate-border"
+          />
+
+          {isMain && (
+            <select
+              value={prepStation}
+              onChange={(e) => setPrepStation(e.target.value)}
+              className="h-10 rounded-lg border border-slate-border bg-white px-3 text-sm"
+            >
+              <option value="kitchen">Prepared in the kitchen</option>
+              <option value="bar">Prepared at the bar</option>
+              <option value="none">No preparation needed</option>
+            </select>
+          )}
+
+          <Button
+            type="submit"
+            disabled={saving}
+            className="bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
+          >
+            <Plus size={16} className="mr-1.5" />
+            {saving ? "Adding…" : "Add"}
+          </Button>
+        </form>
+
+        <div className="overflow-hidden rounded-xl border border-slate-bg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+          {rows.length === 0 ? (
+            <p className="px-5 py-12 text-center text-sm text-slate-muted">Nothing here yet.</p>
+          ) : (
+            <ul className="divide-y divide-slate-bg">
+              {rows.map((row) => {
+                const editing = editingId === row.id;
+
+                if (editing) {
+                  return (
+                    <li key={row.id} className="flex flex-wrap items-center gap-2 px-5 py-3">
+                      <Input
+                        value={draftName}
+                        onChange={(e) => setDraftName(e.target.value)}
+                        className="h-9 min-w-[160px] flex-1 border-slate-border"
+                      />
+
+                      {isMain ? (
+                        <select
+                          value={draftStation}
+                          onChange={(e) => setDraftStation(e.target.value)}
+                          className="h-9 rounded-lg border border-slate-border bg-white px-2.5 text-sm"
+                        >
+                          {STATIONS.map((s) => (
+                            <option key={s.value} value={s.value}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <select
+                          value={draftParent}
+                          onChange={(e) => setDraftParent(e.target.value)}
+                          className="h-9 rounded-lg border border-slate-border bg-white px-2.5 text-sm"
+                        >
+                          {mains.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+
+                      <button
+                        onClick={() => saveEdit(row.id)}
+                        disabled={saving}
+                        aria-label="Save"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald text-white disabled:opacity-60"
+                      >
+                        <Check size={16} />
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        aria-label="Cancel"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-muted hover:bg-slate-bg"
+                      >
+                        <X size={16} />
+                      </button>
+                    </li>
+                  );
+                }
+
+                return (
+                  <li key={row.id} className="flex items-center gap-3 px-5 py-3.5">
+                    <span className="flex-1 text-sm text-navy">{row.name}</span>
+
+                    {isMain ? (
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-xs ${
+                          (row as MainCategory).prep_station === "bar"
+                            ? "bg-purple-bg text-purple"
+                            : (row as MainCategory).prep_station === "none"
+                              ? "bg-slate-bg text-slate-subtle"
+                              : "bg-info-bg text-info"
+                        }`}
+                      >
+                        {STATIONS.find((s) => s.value === (row as MainCategory).prep_station)
+                          ?.label ?? "Kitchen"}
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-purple-bg px-2.5 py-0.5 text-xs text-purple">
+                        {mains.find((m) => m.id === (row as SubCategory).main_category_id)?.name ??
+                          "—"}
+                      </span>
+                    )}
+
+                    <button
+                      onClick={() => startEdit(row)}
+                      aria-label="Edit"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-muted hover:bg-info-bg hover:text-info"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      onClick={() => remove(row.id)}
+                      aria-label="Remove"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-muted hover:bg-danger-bg hover:text-danger"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {error && (
+        <p role="alert" className="admin-hold mb-3 text-sm">
+          {error}
+        </p>
       )}
 
       {/* Create */}
-      <form
-        onSubmit={create}
-        className="flex flex-wrap gap-3 rounded-xl border border-slate-bg bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-      >
+      <form onSubmit={create} className="admin-tools">
         {!isMain && (
-          <select
-            value={parentId}
-            onChange={(e) => setParentId(e.target.value)}
-            className="h-10 rounded-lg border border-slate-border bg-white px-3 text-sm"
-          >
+          <select value={parentId} onChange={(e) => setParentId(e.target.value)}>
             <option value="">Main category…</option>
             {mains.map((m) => (
               <option key={m.id} value={m.id}>
@@ -148,141 +311,108 @@ export function CategoryManager({
           </select>
         )}
 
-        <Input
+        <input
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder={isMain ? "e.g. Bar, Kitchen" : "e.g. Whisky, Desserts"}
-          className="h-10 min-w-[180px] flex-1 border-slate-border"
         />
 
         {isMain && (
-          <select
-            value={prepStation}
-            onChange={(e) => setPrepStation(e.target.value)}
-            className="h-10 rounded-lg border border-slate-border bg-white px-3 text-sm"
-          >
+          <select value={prepStation} onChange={(e) => setPrepStation(e.target.value)}>
             <option value="kitchen">Prepared in the kitchen</option>
             <option value="bar">Prepared at the bar</option>
             <option value="none">No preparation needed</option>
           </select>
         )}
 
-        <Button
-          type="submit"
-          disabled={saving}
-          className="bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
-        >
-          <Plus size={16} className="mr-1.5" />
+        <button type="submit" className="admin-book" disabled={saving}>
+          <Plus size={14} className="-mt-0.5 mr-1 inline" />
           {saving ? "Adding…" : "Add"}
-        </Button>
+        </button>
       </form>
 
       {/* List */}
-      <div className="overflow-hidden rounded-xl border border-slate-bg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+      <div className="admin-data-panel">
         {rows.length === 0 ? (
-          <p className="px-5 py-12 text-center text-sm text-slate-muted">Nothing here yet.</p>
+          <p className="px-5 py-12 text-center text-sm text-[var(--ivory-dim)]">Nothing here yet.</p>
         ) : (
-          <ul className="divide-y divide-slate-bg">
-            {rows.map((row) => {
-              const editing = editingId === row.id;
+          <table className="admin-sheet">
+            <tbody>
+              {rows.map((row) => {
+                const editing = editingId === row.id;
 
-              if (editing) {
+                if (editing) {
+                  return (
+                    <tr key={row.id}>
+                      <td>
+                        <input
+                          value={draftName}
+                          onChange={(e) => setDraftName(e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        {isMain ? (
+                          <select value={draftStation} onChange={(e) => setDraftStation(e.target.value)}>
+                            {STATIONS.map((s) => (
+                              <option key={s.value} value={s.value}>
+                                {s.label}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <select value={draftParent} onChange={(e) => setDraftParent(e.target.value)}>
+                            {mains.map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => saveEdit(row.id)}
+                          disabled={saving}
+                          aria-label="Save"
+                          className="admin-edit"
+                        >
+                          <Check size={15} />
+                        </button>
+                      </td>
+                      <td>
+                        <button onClick={() => setEditingId(null)} aria-label="Cancel" className="admin-edit">
+                          <X size={15} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                }
+
                 return (
-                  <li key={row.id} className="flex flex-wrap items-center gap-2 px-5 py-3">
-                    <Input
-                      value={draftName}
-                      onChange={(e) => setDraftName(e.target.value)}
-                      className="h-9 min-w-[160px] flex-1 border-slate-border"
-                    />
-
-                    {isMain ? (
-                      <select
-                        value={draftStation}
-                        onChange={(e) => setDraftStation(e.target.value)}
-                        className="h-9 rounded-lg border border-slate-border bg-white px-2.5 text-sm"
-                      >
-                        {STATIONS.map((s) => (
-                          <option key={s.value} value={s.value}>
-                            {s.label}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <select
-                        value={draftParent}
-                        onChange={(e) => setDraftParent(e.target.value)}
-                        className="h-9 rounded-lg border border-slate-border bg-white px-2.5 text-sm"
-                      >
-                        {mains.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-
-                    <button
-                      onClick={() => saveEdit(row.id)}
-                      disabled={saving}
-                      aria-label="Save"
-                      className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald text-white disabled:opacity-60"
-                    >
-                      <Check size={16} />
-                    </button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      aria-label="Cancel"
-                      className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-muted hover:bg-slate-bg"
-                    >
-                      <X size={16} />
-                    </button>
-                  </li>
+                  <tr key={row.id}>
+                    <td className="admin-name">{row.name}</td>
+                    <td className="admin-muted">
+                      {isMain
+                        ? STATIONS.find((s) => s.value === (row as MainCategory).prep_station)?.label ??
+                          "Kitchen"
+                        : mains.find((m) => m.id === (row as SubCategory).main_category_id)?.name ?? "—"}
+                    </td>
+                    <td>
+                      <button onClick={() => startEdit(row)} aria-label="Edit" className="admin-edit">
+                        <Pencil size={15} />
+                      </button>
+                    </td>
+                    <td>
+                      <button onClick={() => remove(row.id)} aria-label="Remove" className="admin-edit">
+                        <Trash2 size={15} />
+                      </button>
+                    </td>
+                  </tr>
                 );
-              }
-
-              return (
-                <li key={row.id} className="flex items-center gap-3 px-5 py-3.5">
-                  <span className="flex-1 text-sm text-navy">{row.name}</span>
-
-                  {isMain ? (
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs ${
-                        (row as MainCategory).prep_station === "bar"
-                          ? "bg-purple-bg text-purple"
-                          : (row as MainCategory).prep_station === "none"
-                            ? "bg-slate-bg text-slate-subtle"
-                            : "bg-info-bg text-info"
-                      }`}
-                    >
-                      {STATIONS.find((s) => s.value === (row as MainCategory).prep_station)
-                        ?.label ?? "Kitchen"}
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-purple-bg px-2.5 py-0.5 text-xs text-purple">
-                      {mains.find((m) => m.id === (row as SubCategory).main_category_id)?.name ??
-                        "—"}
-                    </span>
-                  )}
-
-                  <button
-                    onClick={() => startEdit(row)}
-                    aria-label="Edit"
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-muted hover:bg-info-bg hover:text-info"
-                  >
-                    <Pencil size={15} />
-                  </button>
-                  <button
-                    onClick={() => remove(row.id)}
-                    aria-label="Remove"
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-muted hover:bg-danger-bg hover:text-danger"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+              })}
+            </tbody>
+          </table>
         )}
       </div>
     </div>

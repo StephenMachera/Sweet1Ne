@@ -119,6 +119,979 @@ body {
 @keyframes gateFade { to { opacity: 1; } }
 @keyframes railMove { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
+/* =========================================================================
+   Admin console — same tokens as the public site, dark chrome.
+
+   Scoped under .admin-shell (and every rule below it prefixed admin-) so
+   none of this reaches the branch console or the guest site — both keep
+   their own palettes. Ported from the shared admin.css / admin-nav.js
+   reference; .admin-rail is one element that's a fixed sidebar on desktop
+   and a sticky top bar + slide-down menu on mobile, matching it exactly.
+   ========================================================================= */
+
+.admin-shell {
+  --bg: #050505;
+  --ivory: #e5e2e1;
+  --ivory-dim: rgba(229, 226, 225, 0.68);
+  --gold: #c9a24a;
+  --gold-line: rgba(201, 162, 74, 0.42);
+  --gold-glow: rgba(201, 162, 74, 0.12);
+  --panel: #0c0c0c;
+  --panel-2: #080808;
+
+  /* Reroutes the site-wide font-display / font-body utilities to the
+     admin-only faces loaded in (staff)/layout.tsx, without touching what
+     those utilities resolve to anywhere else (the branch console keeps
+     Fraunces / Inter, set at the same variable names one level up). */
+  --font-display: var(--font-admin-display), Georgia, serif;
+  --font-body: var(--font-admin-body), system-ui, sans-serif;
+}
+
+.admin-stage {
+  position: relative;
+  min-width: 0;
+  padding: 1.15rem 1.4rem 2.4rem;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 162, 74, 0.07), transparent 55%),
+    var(--bg);
+}
+
+.admin-rail {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 100svh;
+  padding: 1.15rem 0.85rem 1rem;
+  overflow: hidden;
+  border-right: 1px solid rgba(201, 162, 74, 0.22);
+  background: linear-gradient(180deg, #0a0a0a 0%, var(--panel-2) 100%);
+  box-shadow: inset -1px 0 0 var(--gold-glow);
+}
+
+.admin-rail-bar { display: contents; }
+
+.admin-rail-menu,
+.admin-rail-now,
+.admin-rail-veil,
+.admin-rail-bar > .admin-rail-out {
+  display: none;
+}
+
+.admin-rail-home {
+  display: block;
+  padding: 0.15rem 0 0.35rem;
+  text-align: center;
+}
+.admin-rail-home:hover { opacity: 0.92; }
+
+.admin-rail-group + .admin-rail-group { margin-top: 0.45rem; }
+
+.admin-rail-label {
+  margin: 0.15rem 0 0.25rem;
+  padding: 0 0.65rem;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(201, 162, 74, 0.55);
+}
+
+.admin-rail nav {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.02rem;
+  overflow-y: auto;
+}
+
+.admin-rail-foot {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(201, 162, 74, 0.12);
+}
+
+.admin-rail-out {
+  padding: 0 0.65rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+  cursor: pointer;
+}
+.admin-rail-out:hover { color: var(--gold); }
+
+.admin-rail nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 3px;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+}
+.admin-rail nav a:hover { color: var(--ivory); }
+.admin-rail nav a[aria-current="page"] {
+  background: var(--gold);
+  border: 1px solid var(--gold);
+  color: #0e0e0e;
+  font-weight: 600;
+  box-shadow: 0 0 24px var(--gold-glow);
+}
+.admin-rail nav a svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+  stroke: currentColor;
+  fill: none;
+}
+
+.admin-rail-menu {
+  display: none;
+  place-items: center;
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.admin-rail-menu span,
+.admin-rail-menu span::before,
+.admin-rail-menu span::after {
+  position: relative;
+  display: block;
+  width: 1.05rem;
+  height: 1.5px;
+  background: var(--gold);
+}
+.admin-rail-menu span::before,
+.admin-rail-menu span::after {
+  content: "";
+  position: absolute;
+  left: 0;
+}
+.admin-rail-menu span::before { top: -5px; }
+.admin-rail-menu span::after { top: 5px; }
+.admin-rail.is-open .admin-rail-menu span { background: transparent; }
+.admin-rail.is-open .admin-rail-menu span::before { top: 0; transform: rotate(45deg); }
+.admin-rail.is-open .admin-rail-menu span::after { top: 0; transform: rotate(-45deg); }
+
+@media (max-width: 960px) {
+  .admin-stage { padding: 0.9rem 0.9rem 2rem; }
+
+  .admin-rail {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: block;
+    height: auto;
+    padding: 0;
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid rgba(201, 162, 74, 0.22);
+    background: #0a0a0a;
+  }
+  .admin-rail-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.7rem;
+  }
+  .admin-rail-brand {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+  }
+  .admin-rail-menu {
+    display: grid;
+    flex-shrink: 0;
+    width: 2.6rem;
+    height: 2.6rem;
+    border: 1px solid rgba(201, 162, 74, 0.35);
+    border-radius: 3px;
+  }
+  .admin-rail-home {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    padding: 0;
+    text-align: left;
+  }
+  .admin-rail-home img { width: auto; height: 28px; margin: 0; }
+  .admin-rail-now {
+    display: block;
+    overflow: hidden;
+    margin: 0;
+    min-width: 0;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .admin-rail-bar > .admin-rail-out {
+    display: inline-block;
+    flex-shrink: 0;
+    padding: 0.35rem 0.15rem;
+  }
+  .admin-rail-foot { display: none; }
+  .admin-rail-veil {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    padding: 0;
+    border: 0;
+    background: rgba(5, 5, 5, 0.62);
+    cursor: pointer;
+  }
+  .admin-rail.is-open .admin-rail-veil { display: block; }
+  .admin-rail nav {
+    display: none;
+    position: fixed;
+    top: 3.7rem;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 35;
+    flex-direction: column;
+    gap: 0;
+    padding: 0.7rem 0.85rem 2.4rem;
+    overflow-y: auto;
+    background: #080808;
+    border-top: 1px solid rgba(201, 162, 74, 0.18);
+  }
+  .admin-rail.is-open nav { display: flex; }
+  .admin-rail-group {
+    padding: 0.35rem 0 0.85rem;
+    border-bottom: 1px solid rgba(201, 162, 74, 0.12);
+  }
+  .admin-rail-group + .admin-rail-group { margin-top: 0.15rem; }
+  .admin-rail-label { display: block; margin: 0 0 0.35rem; padding: 0 0.55rem; }
+  .admin-rail nav a { padding: 0.7rem 0.55rem; font-size: 0.78rem; }
+  .admin-rail nav a svg { width: 1.15rem; height: 1.15rem; }
+}
+
+/* ── Dashboard boards — house.css's .top/.places/.who/.board/.card, only
+   the pieces the dashboard page uses; more pages will pull in .crumb,
+   .kpi-strip, .sheet, etc. as they're converted. ─────────────────────── */
+
+.admin-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem 1rem;
+  margin-bottom: 1.35rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgba(201, 162, 74, 0.2);
+  background: rgba(8, 8, 8, 0.85);
+}
+
+.admin-places {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.admin-places button {
+  appearance: none;
+  background: transparent;
+  border: 1px solid rgba(201, 162, 74, 0.28);
+  color: var(--ivory-dim);
+  border-radius: 3px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.admin-places button.is-on { border-color: var(--gold); color: var(--gold); }
+
+.admin-who { margin-left: auto; font-size: 0.78rem; color: var(--ivory-dim); }
+
+.admin-clock {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ivory-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.admin-stage h1 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(1.8rem, 4vw, 2.7rem);
+  letter-spacing: -0.02em;
+  margin: 0 0 0.4rem;
+}
+.admin-dek { margin: 0 0 1rem; color: var(--ivory-dim); max-width: 36rem; }
+
+.admin-board-group { margin: 0 0 1.35rem; }
+.admin-board-group h2 {
+  margin: 0 0 0.65rem;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+  color: var(--ivory);
+}
+.admin-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+.admin-board.tight { margin: 0 0 1.2rem; }
+.admin-board.tight .admin-card { min-height: 0; }
+.admin-card {
+  background: linear-gradient(180deg, var(--panel) 0%, #0a0a0a 100%);
+  border: 1px solid var(--gold-line);
+  padding: 1.05rem 1.1rem 1.15rem;
+  min-height: 9.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(201, 162, 74, 0.06);
+}
+.admin-card h2 {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 600;
+}
+.admin-card p { margin: 0; color: var(--ivory-dim); font-size: 0.92rem; }
+.admin-card .admin-stat {
+  font-family: var(--font-display);
+  font-size: 1.85rem;
+  color: var(--ivory);
+  letter-spacing: -0.02em;
+}
+.admin-card .admin-act {
+  margin-top: auto;
+  padding-top: 0.7rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.admin-card .admin-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: auto;
+  padding-top: 0.7rem;
+}
+.admin-card .admin-acts .admin-act { margin-top: 0; padding-top: 0; }
+.admin-card.is-wait { border-style: dashed; }
+.admin-card.is-wait .admin-stat { color: var(--gold); }
+.admin-hold { color: var(--gold); }
+
+@media (max-width: 1100px) {
+  .admin-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 960px) {
+  .admin-who { display: none; }
+  .admin-top { padding: 0.45rem 0.55rem; margin-bottom: 1rem; }
+  .admin-board { grid-template-columns: 1fr; }
+}
+
+/* ── Menu page — house.css's .tools/.cats/.kpi-strip/.sheet/.toggle, plus a
+   reusable .admin-form for the item editor (kept as a centered dialog, not
+   a page-level drawer — see the note in menu/manage's page.tsx). ────────── */
+
+.admin-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 1rem;
+}
+.admin-tools input,
+.admin-tools select {
+  appearance: none;
+  background: #050505;
+  border: 1px solid rgba(201, 162, 74, 0.35);
+  border-radius: 3px;
+  padding: 0.55rem 0.7rem;
+  color: var(--ivory);
+  min-width: 12rem;
+}
+.admin-tools input:focus,
+.admin-tools select:focus { outline: none; border-color: var(--gold); }
+.admin-tools .short { min-width: 7rem; width: 7rem; }
+.admin-tools select.short { min-width: 9.5rem; }
+
+.admin-cats {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  margin: 0 0 1rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.admin-cats button {
+  appearance: none;
+  background: transparent;
+  border: 1px solid rgba(201, 162, 74, 0.28);
+  color: var(--ivory-dim);
+  border-radius: 3px;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.admin-cats button.is-on { border-color: var(--gold); color: var(--gold); }
+/* Spreads pills across the full row width instead of clustering left —
+   harmless when there's no extra space, since overflow-x still scrolls. */
+.admin-cats.is-spread { justify-content: space-between; }
+
+.admin-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0 0 1rem;
+}
+.admin-kpi-strip > div {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--gold-line);
+  background: var(--panel);
+}
+.admin-kpi-n {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  color: var(--ivory);
+  letter-spacing: -0.02em;
+}
+.admin-kpi-l {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.admin-book {
+  display: inline-block;
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid rgba(201, 162, 74, 0.9);
+  border-radius: 3px;
+  padding: 0.7rem 1.15rem;
+  font: 600 0.75rem var(--font-body);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.admin-book:hover,
+.admin-book.is-on { background: var(--gold); color: #0e0e0e; }
+.admin-book:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.admin-data-panel {
+  border: 1px solid rgba(201, 162, 74, 0.32);
+  background: var(--panel-2);
+  padding: 0.35rem 0.5rem 0.5rem;
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.06);
+  overflow-x: auto;
+}
+.admin-sheet {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.admin-sheet th,
+.admin-sheet td {
+  text-align: left;
+  padding: 0.72rem 0.65rem;
+  border-bottom: 1px solid rgba(229, 226, 225, 0.06);
+  vertical-align: top;
+}
+.admin-sheet tbody tr:hover td { background: rgba(201, 162, 74, 0.04); }
+.admin-sheet tbody tr:nth-child(even) td { background: rgba(255, 255, 255, 0.02); }
+.admin-sheet th {
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #0e0e0e;
+  font-weight: 600;
+  background: var(--gold);
+  border-bottom: 0;
+}
+.admin-data-panel .admin-sheet th:first-child { border-radius: 2px 0 0 0; }
+.admin-data-panel .admin-sheet th:last-child { border-radius: 0 2px 0 0; }
+.admin-sheet .admin-name { color: var(--ivory); }
+.admin-sheet .admin-muted { color: var(--ivory-dim); font-size: 0.82rem; }
+.admin-sheet .admin-price { white-space: nowrap; color: var(--gold); }
+.admin-sheet .admin-pic {
+  width: 3rem;
+  color: var(--ivory-dim);
+}
+.admin-sheet .admin-pic img {
+  display: block;
+  width: 2.4rem;
+  height: 2.4rem;
+  object-fit: cover;
+  border: 1px solid rgba(201, 162, 74, 0.28);
+}
+
+.admin-toggle {
+  appearance: none;
+  width: 2.4rem;
+  height: 1.25rem;
+  border-radius: 99px;
+  border: 1px solid rgba(201, 162, 74, 0.45);
+  background: #050505;
+  cursor: pointer;
+  position: relative;
+}
+.admin-toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  background: var(--ivory-dim);
+}
+.admin-toggle.is-on { background: rgba(201, 162, 74, 0.25); border-color: var(--gold); }
+.admin-toggle.is-on::after { left: auto; right: 2px; background: var(--gold); }
+
+.admin-edit {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--gold);
+  cursor: pointer;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0;
+}
+.admin-edit:hover { opacity: 0.85; }
+.admin-edit:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.admin-bit-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.admin-bit-bar button {
+  appearance: none;
+  background: transparent;
+  border: 1px solid rgba(201, 162, 74, 0.28);
+  color: var(--ivory-dim);
+  border-radius: 3px;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+.admin-bit-bar button.is-on { border-color: var(--gold); color: var(--gold); }
+
+.admin-media-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0 0 0.7rem;
+}
+.admin-media-grid button {
+  appearance: none;
+  padding: 0;
+  border: 1px solid rgba(201, 162, 74, 0.28);
+  background: #050505;
+  cursor: pointer;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  position: relative;
+}
+.admin-media-grid button img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.admin-media-grid button span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.2rem 0.25rem;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ivory);
+  background: linear-gradient(transparent, rgba(5, 5, 5, 0.88));
+}
+.admin-media-grid button.is-on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+.admin-media-grid button.is-film { background: #12100b; }
+.admin-media-grid button.is-none {
+  display: grid;
+  place-items: center;
+  color: var(--ivory-dim);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: default;
+}
+.admin-media-grid button.is-none span { position: static; padding: 0; background: none; }
+
+/* The quick-add gallery under the add-blocks bar — always 3 columns, at
+   least 3 rows, padded with empty tiles until a real media library
+   exists to fill it. */
+.admin-media-grid.is-quick { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+@media (max-width: 720px) {
+  .admin-media-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.admin-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0 0.45rem;
+}
+.admin-block-head p {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+}
+.admin-add-bit {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--gold);
+  cursor: pointer;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0;
+}
+
+/* ── Events page — house.css's .preview-next/.status/.row-acts/.empty.
+   No CTA buttons or extra stills here: the real Event schema has one
+   image and no button-list field, so the "what's next" preview only
+   shows what the backend can actually store. ────────────────────────── */
+
+.admin-preview-next {
+  position: relative;
+  min-height: 13.5rem;
+  margin: 0 0 1.2rem;
+  overflow: hidden;
+  border: 1px solid var(--gold-line);
+  background: #080808;
+}
+.admin-preview-hero {
+  position: absolute;
+  inset: 0;
+}
+.admin-preview-hero img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 28%;
+  filter: brightness(0.42) saturate(1.05);
+}
+.admin-preview-copy {
+  position: relative;
+  z-index: 1;
+  padding: 1.25rem 1.15rem 1.35rem;
+  max-width: 28rem;
+}
+.admin-preview-copy h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+  letter-spacing: -0.02em;
+  margin: 0 0 0.4rem;
+}
+.admin-preview-copy .admin-dek { margin: 0; max-width: none; }
+.admin-preview-meta {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.admin-status {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+}
+.admin-status.is-wait { color: var(--gold); }
+.admin-status.is-ok { color: var(--ivory); }
+
+.admin-row-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.75rem;
+}
+
+.admin-empty {
+  margin: 1.4rem 0 0;
+  padding: 1.2rem 1.1rem;
+  border: 1px dashed rgba(201, 162, 74, 0.28);
+  color: var(--ivory-dim);
+}
+
+.admin-preview-extras {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0.7rem 0 0;
+}
+.admin-preview-extras img {
+  width: 100%;
+  height: auto;
+  max-height: 8.5rem;
+  object-fit: cover;
+  border: 1px solid rgba(201, 162, 74, 0.28);
+  background: #050505;
+}
+.admin-preview-note {
+  margin: 0 0 0.6rem;
+  color: var(--ivory-dim);
+  font-style: italic;
+}
+.admin-preview-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+/* ── Event composer — the block stack, its per-block rows, and the CTA
+   list, all inside the .admin-drawer-edit / .admin-form editor. ───────── */
+
+.admin-layout-row {
+  margin: 0 0 0.7rem;
+  padding: 0.65rem 0.7rem 0.7rem;
+  border: 1px solid rgba(201, 162, 74, 0.22);
+  background: #080808;
+}
+.admin-layout-row .admin-block-head { margin-bottom: 0; }
+.admin-layout-row .admin-block-head p {
+  color: var(--ivory);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.82rem;
+}
+.admin-layout-row .admin-row-acts { gap: 0.5rem; }
+.admin-layout-row .admin-media-grid,
+.admin-layout-row select,
+.admin-layout-row textarea,
+.admin-layout-row input {
+  margin-top: 0.55rem;
+}
+.admin-layout-row.is-drop-target { border-color: var(--gold); }
+
+.admin-drag-handle {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0 0.15rem;
+  color: var(--gold);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: grab;
+}
+.admin-drag-handle:active { cursor: grabbing; }
+
+.admin-emoji-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  margin: 0.35rem 0 0;
+}
+.admin-emoji-bar button {
+  appearance: none;
+  background: #080808;
+  border: 1px solid rgba(201, 162, 74, 0.22);
+  border-radius: 3px;
+  padding: 0.12rem 0.28rem;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.admin-cta-stack { display: grid; gap: 0.55rem; margin: 0 0 0.7rem; }
+.admin-cta-row {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr 1fr auto;
+  gap: 0.4rem;
+  align-items: end;
+}
+.admin-cta-row label { margin: 0; }
+.admin-ghost {
+  appearance: none;
+  background: transparent;
+  border: 1px solid rgba(201, 162, 74, 0.35);
+  color: var(--gold);
+  padding: 0.55rem 0.55rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  height: 2.45rem;
+}
+
+@media (max-width: 720px) {
+  .admin-cta-row { grid-template-columns: 1fr; }
+}
+
+/* Reusable dark form, applied to the item/category editors (kept as
+   centered dialogs — see manage/page.tsx). Same field look as house.css's
+   .drawer-edit, without the fixed side-panel positioning. */
+.admin-form label {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0 0 0.8rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+}
+.admin-form input,
+.admin-form select,
+.admin-form textarea {
+  appearance: none;
+  width: 100%;
+  background: #050505;
+  border: 1px solid rgba(201, 162, 74, 0.35);
+  border-radius: 3px;
+  padding: 0.6rem 0.7rem;
+  color: var(--ivory);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.92rem;
+}
+.admin-form input:focus,
+.admin-form select:focus,
+.admin-form textarea:focus { outline: none; border-color: var(--gold); }
+.admin-form select:disabled { opacity: 0.5; }
+.admin-form textarea { min-height: 5rem; resize: vertical; }
+.admin-form .admin-row { display: flex; gap: 0.6rem; }
+.admin-form .admin-row label { flex: 1; }
+.admin-form label:has([type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.9rem;
+  color: var(--ivory);
+}
+.admin-form label:has([type="checkbox"]) input { width: auto; }
+
+@media (max-width: 1100px) {
+  .admin-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 960px) {
+  .admin-tools input,
+  .admin-tools select { min-width: 0; width: 100%; }
+  .admin-sheet { min-width: 42rem; }
+}
+
+/* ── Editor drawer — a third grid column, live while a page portals an
+   .admin-drawer-edit into #admin-drawer-slot (see admin/layout.tsx). Same
+   .admin-form field styling as the rest of the admin console. ─────────── */
+
+@media (min-width: 961px) {
+  .admin-shell:has(.admin-drawer-edit) {
+    grid-template-columns: 17rem minmax(0, 1fr) minmax(24rem, 38rem);
+  }
+}
+.admin-drawer-edit {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  background: #080808;
+  border-left: 1px solid rgba(201, 162, 74, 0.22);
+  padding: 1.2rem 1.15rem 2rem;
+  overflow: auto;
+  z-index: 4;
+}
+.admin-drawer-edit h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.5rem;
+  margin: 0 0 1rem;
+}
+
+.admin-kicker {
+  margin: 0 0 0.7rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.admin-dish-preview {
+  position: sticky;
+  top: 0.55rem;
+  z-index: 3;
+  border: 1px solid var(--gold-line);
+  background: #050505;
+  padding: 1.15rem 1.1rem 1.2rem;
+  margin: 0 0 1.2rem;
+}
+.admin-dish-preview .admin-kicker { margin: 0 0 0.65rem; }
+.admin-dish-preview h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.45rem;
+  margin: 0 0 0.35rem;
+}
+.admin-dish-preview .admin-price { margin: 0; color: var(--gold); letter-spacing: 0.06em; }
+.admin-dish-stills {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+}
+.admin-dish-stills img {
+  width: 100%;
+  height: 5.5rem;
+  object-fit: cover;
+  border: 1px solid rgba(201, 162, 74, 0.28);
+}
+.admin-dish-stills .admin-dek { grid-column: 1 / -1; margin: 0; }
+
+@media (max-width: 960px) {
+  .admin-shell:has(.admin-drawer-edit) { grid-template-columns: 1fr; }
+  .admin-drawer-edit {
+    position: relative;
+    height: auto;
+    border-left: 0;
+    border-top: 1px solid rgba(201, 162, 74, 0.22);
+  }
+  .admin-dish-preview { position: relative; top: 0; }
+}
+
 @media print {
   aside,
   header,
@@ -157,9 +1130,129 @@ body {
     background: white !important;
   }
 
-  
+
   section {
     break-inside: avoid;
     page-break-inside: avoid;
   }
+}
+
+/* ── Staff sign-in gate — public route (app/(public)/login), so it gets its
+   own scope rather than reusing .admin-shell's tokens/fonts. ───────────── */
+.gate-shell {
+  --gate-bg: #050505;
+  --gate-ivory: #e5e2e1;
+  --gate-ivory-dim: rgba(229, 226, 225, 0.68);
+  --gate-gold: #c9a24a;
+  --gate-gold-line: rgba(201, 162, 74, 0.42);
+
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 100svh;
+  overflow: hidden;
+  background: var(--gate-bg);
+  color: var(--gate-ivory);
+}
+.gate-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(to top, rgba(5, 5, 5, 0.88) 0%, rgba(5, 5, 5, 0.42) 42%, rgba(5, 5, 5, 0.55) 100%),
+    url("/images/homepage-gallery/carousel/web/01-table.jpg") 50% 42% / cover no-repeat;
+  filter: saturate(1.08);
+}
+.gate {
+  position: relative;
+  z-index: 1;
+  width: min(24rem, calc(100% - 2.4rem));
+  text-align: center;
+  padding: 2.4rem 1.7rem 2rem;
+  border: 1px solid var(--gate-gold-line);
+  background: rgba(5, 5, 5, 0.58);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:
+    inset 0 0 0 6px #050505,
+    inset 0 0 0 7px rgba(201, 162, 74, 0.16);
+}
+.gate img.mark {
+  width: min(48vw, 176px);
+  height: auto;
+  margin: 0 auto 0.95rem;
+  filter: drop-shadow(0 8px 28px rgba(0, 0, 0, 0.55));
+}
+.gate hr {
+  width: 2.2rem;
+  height: 1px;
+  margin: 0 auto 0.95rem;
+  border: 0;
+  background: var(--gate-gold);
+}
+.gate .slogan {
+  margin: 0 0 1.5rem;
+  font-family: var(--font-gate-display, Georgia, serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.15rem;
+  color: var(--gate-ivory);
+  letter-spacing: -0.01em;
+}
+.gate form { display: grid; gap: 0.85rem; text-align: left; }
+.gate label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gate-ivory-dim);
+}
+.gate input {
+  width: 100%;
+  appearance: none;
+  background: #050505;
+  border: 1px solid rgba(201, 162, 74, 0.35);
+  border-radius: 3px;
+  padding: 0.72rem 0.8rem;
+  color: var(--gate-ivory);
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 0.95rem;
+  font-family: var(--font-gate-body, inherit);
+}
+.gate input:focus {
+  outline: none;
+  border-color: var(--gate-gold);
+}
+.gate .book {
+  display: inline-block;
+  width: 100%;
+  margin-top: 0.35rem;
+  background: transparent;
+  color: var(--gate-gold);
+  border: 1px solid rgba(201, 162, 74, 0.9);
+  border-radius: 3px;
+  padding: 0.7rem 1.15rem;
+  font: 600 0.75rem var(--font-gate-body, inherit);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.gate .book:hover:not(:disabled) {
+  background: var(--gate-gold);
+  color: #0e0e0e;
+}
+.gate .book:disabled { opacity: 0.6; cursor: not-allowed; }
+.gate .hint {
+  margin: 1.15rem 0 0;
+  font-size: 0.82rem;
+  color: var(--gate-ivory-dim);
+  text-align: center;
+}
+.gate .error {
+  margin: 0 0 0.85rem;
+  font-size: 0.82rem;
+  color: var(--gate-gold);
+  text-align: center;
 }

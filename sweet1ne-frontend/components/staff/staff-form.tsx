@@ -38,6 +38,16 @@ type Option = { id: string; name: string };
 
 const MIN_PASSWORD_LENGTH = 8;
 
+// This form is portaled by @base-ui's Dialog to document.body, outside the
+// .admin-shell subtree — var(--x) tokens don't cascade there, so the admin
+// path uses literal hex/rgba values instead (same fix as the other admin
+// dialogs; see menu/events/reservations pages).
+const DIALOG_BOOK_BTN =
+  "inline-flex items-center justify-center rounded-[3px] border border-[rgba(201,162,74,0.9)] bg-transparent px-[1.15rem] py-[0.6rem] text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-[#c9a24a] hover:bg-[#c9a24a] hover:text-[#0e0e0e] disabled:opacity-50";
+const DIALOG_GHOST_BTN =
+  "px-[1.15rem] py-[0.6rem] text-[0.75rem] uppercase tracking-[0.1em] text-[rgba(229,226,225,0.68)] hover:text-[#e5e2e1]";
+const DIALOG_FIELD = "border-[rgba(201,162,74,0.35)] bg-[#050505] text-[#e5e2e1]";
+
 export function StaffForm({
   roles,
   branches,
@@ -64,15 +74,13 @@ export function StaffForm({
 
   const isBranch = tone === "branch";
 
-  const primaryButton = isBranch
-    ? "bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
-    : "bg-gold text-ink hover:bg-gold/90";
   const errorBox = isBranch
     ? "border border-danger/25 bg-danger-bg text-danger"
-    : "border border-ember/25 bg-ember-soft text-ember";
-  const hintText = isBranch ? "text-slate-muted" : "text-ink-muted";
-  const selectBorder = isBranch ? "border-slate-border" : "border-ink/15";
-  const panelBorder = isBranch ? "border-slate-border" : "border-ink/10";
+    : "border border-[rgba(201,162,74,0.35)] bg-[#050505] text-[#c9a24a]";
+  const hintText = isBranch ? "text-slate-muted" : "text-[rgba(229,226,225,0.68)]";
+  const fieldClasses = isBranch ? "border-slate-border bg-white" : DIALOG_FIELD;
+  const panelBorder = isBranch ? "border-slate-border" : "border-[rgba(201,162,74,0.35)]";
+  const labelText = isBranch ? "text-navy" : "text-[#e5e2e1]";
 
   const passwordTooShort =
     !sendInvite && password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
@@ -131,7 +139,7 @@ export function StaffForm({
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className={selectBorder}
+            className={fieldClasses}
           />
         </div>
 
@@ -141,7 +149,7 @@ export function StaffForm({
             id="staffName"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className={selectBorder}
+            className={fieldClasses}
           />
         </div>
 
@@ -151,7 +159,7 @@ export function StaffForm({
             id="staffPhone"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className={selectBorder}
+            className={fieldClasses}
           />
         </div>
 
@@ -163,7 +171,7 @@ export function StaffForm({
               className={`rounded-lg border px-4 py-3 text-sm ${
                 isBranch
                   ? "border-warning/30 bg-warning-bg text-warning"
-                  : "border-gold/30 bg-gold-soft text-[#8a6a28]"
+                  : "border-[rgba(201,162,74,0.35)] bg-[#050505] text-[#c9a24a]"
               }`}
             >
               No roles have been set up yet. Ask your director to create one before adding staff.
@@ -175,7 +183,7 @@ export function StaffForm({
                 required
                 value={roleId}
                 onChange={(e) => setRoleId(e.target.value)}
-                className={`h-10 w-full rounded-lg border bg-white px-3 text-sm ${selectBorder}`}
+                className={`h-10 w-full rounded-lg border px-3 text-sm ${fieldClasses}`}
               >
                 <option value="">Choose a role…</option>
                 {roles.map((r) => (
@@ -200,7 +208,7 @@ export function StaffForm({
               id="staffBranch"
               value={branchId}
               onChange={(e) => setBranchId(e.target.value)}
-              className={`h-10 w-full rounded-lg border bg-white px-3 text-sm ${selectBorder}`}
+              className={`h-10 w-full rounded-lg border px-3 text-sm ${fieldClasses}`}
             >
               <option value="">All branches (director level)</option>
               {branches.map((b) => (
@@ -228,7 +236,7 @@ export function StaffForm({
               className="mt-1"
             />
             <span className="text-sm">
-              <span className={isBranch ? "text-navy" : "text-ink"}>Set a password now</span>
+              <span className={labelText}>Set a password now</span>
               <span className={`mt-0.5 block text-xs ${hintText}`}>
                 You'll give them the password directly. Best for staff without an email address.
               </span>
@@ -244,7 +252,7 @@ export function StaffForm({
               className="mt-1"
             />
             <span className="text-sm">
-              <span className={isBranch ? "text-navy" : "text-ink"}>Email them an invitation</span>
+              <span className={labelText}>Email them an invitation</span>
               <span className={`mt-0.5 block text-xs ${hintText}`}>
                 They'll set their own password from a link.
               </span>
@@ -259,11 +267,11 @@ export function StaffForm({
                 type="text"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className={`font-mono ${selectBorder}`}
+                className={`font-mono ${fieldClasses}`}
               />
               <p
                 className={`text-xs ${
-                  passwordTooShort ? (isBranch ? "text-danger" : "text-ember") : hintText
+                  passwordTooShort ? (isBranch ? "text-danger" : "text-[#c9a24a]") : hintText
                 }`}
               >
                 At least {MIN_PASSWORD_LENGTH} characters. Make a note of it — you'll need to pass
@@ -274,18 +282,45 @@ export function StaffForm({
         </div>
 
         <div className="flex gap-3 pt-2">
-          <Button type="submit" disabled={saving || roles.length === 0} className={primaryButton}>
-            {saving
-              ? sendInvite
-                ? "Sending invitation…"
-                : "Creating…"
-              : sendInvite
-                ? "Send invitation"
-                : "Create staff member"}
-          </Button>
-          <Button type="button" variant="ghost" onClick={onCancel}>
-            Cancel
-          </Button>
+          {isBranch ? (
+            <>
+              <Button
+                type="submit"
+                disabled={saving || roles.length === 0}
+                className="bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
+              >
+                {saving
+                  ? sendInvite
+                    ? "Sending invitation…"
+                    : "Creating…"
+                  : sendInvite
+                    ? "Send invitation"
+                    : "Create staff member"}
+              </Button>
+              <Button type="button" variant="ghost" onClick={onCancel}>
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <>
+              <button
+                type="submit"
+                disabled={saving || roles.length === 0}
+                className={DIALOG_BOOK_BTN}
+              >
+                {saving
+                  ? sendInvite
+                    ? "Sending invitation…"
+                    : "Creating…"
+                  : sendInvite
+                    ? "Send invitation"
+                    : "Create staff member"}
+              </button>
+              <button type="button" className={DIALOG_GHOST_BTN} onClick={onCancel}>
+                Cancel
+              </button>
+            </>
+          )}
         </div>
       </fieldset>
     </form>

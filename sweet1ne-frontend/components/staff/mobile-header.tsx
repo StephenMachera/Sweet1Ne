@@ -1,18 +1,62 @@
 "use client";
 
-import { Menu } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
-export function MobileHeader({ title, onOpenMenu }: { title: string; onOpenMenu: () => void }) {
+/**
+ * The admin rail's mobile face — a sticky top bar with a hamburger, the
+ * brand mark, the current page name, and Sign out.
+ *
+ * This is `.rail-bar` from the shared admin CSS/JS: at desktop widths the
+ * stylesheet collapses it to `display: contents` and hides everything but
+ * the brand mark (`.admin-rail-home`, rendered separately by the sidebar),
+ * so this component only actually shows below the 960px breakpoint. The
+ * hamburger's bars-to-X animation is driven by the parent `.admin-rail`
+ * carrying `is-open` — see globals.css — not by anything here.
+ */
+export function MobileHeader({
+  open,
+  onToggle,
+  pageLabel,
+  brandHref,
+  onSignOut,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  pageLabel: string;
+  brandHref: string;
+  onSignOut: () => void;
+}) {
   return (
-    <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-ink/10 bg-paper/95 px-4 py-3 backdrop-blur md:hidden">
+    <div className="admin-rail-bar">
       <button
-        onClick={onOpenMenu}
-        aria-label="Open menu"
-        className="-ml-1 rounded-md p-2 text-ink hover:bg-ink/5"
+        type="button"
+        className="admin-rail-menu"
+        aria-label={open ? "Close menu" : "Open menu"}
+        aria-controls="admin-menu"
+        aria-expanded={open}
+        onClick={onToggle}
       >
-        <Menu size={22} />
+        <span />
       </button>
-      <h1 className="truncate font-display text-lg text-ink">{title}</h1>
-    </header>
+
+      <div className="admin-rail-brand">
+        <Link href={brandHref} className="admin-rail-home">
+          <Image
+            src="/images/brand/logo.png"
+            alt="Sweet1NE"
+            width={612}
+            height={408}
+            className="mx-auto w-[7.4rem]"
+            priority
+          />
+        </Link>
+        <p className="admin-rail-now">{pageLabel}</p>
+      </div>
+
+      <button type="button" className="admin-rail-out" onClick={onSignOut}>
+        Sign out
+      </button>
+    </div>
   );
 }

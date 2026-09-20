@@ -12,6 +12,9 @@ class TenantSettingsOut(BaseModel):
     currency: str
     timezone: str
 
+    # Read-only — not part of TenantSettingsIn, so it can't be changed here.
+    email: str | None = None
+
     # Privacy
     ask_for_customer_name: bool = False
     show_staff_names_to_customers: bool = True

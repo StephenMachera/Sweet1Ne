@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.security import CurrentStaff, get_current_staff, require_permission
 from app.db.session import get_db
 from app.models.branch import Branch
-from app.schemas.branch import BranchIn, BranchOut
+from app.schemas.branch import BranchIn, BranchOut, BranchUpdate
 
 router = APIRouter()
 
@@ -38,6 +38,29 @@ def create_branch(
 
     branch = Branch(**payload.model_dump(), tenant_id=staff.tenant_id)
     db.add(branch)
+    db.commit()
+    db.refresh(branch)
+    return branch
+
+
+@router.patch("/{branch_id}", response_model=BranchOut)
+def update_branch(
+    branch_id: uuid.UUID,
+    payload: BranchUpdate,
+    staff: CurrentStaff = Depends(require_permission("manage_tenant")),
+    db: Session = Depends(get_db),
+):
+    branch = db.get(Branch, branch_id)
+    if branch is None or str(branch.tenant_id) != staff.tenant_id:
+        raise HTTPException(status_code=404, detail="Branch not found")
+
+    data = payload.model_dump(exclude_unset=True)
+    settings_patch = data.pop("settings", None)
+    for field, value in data.items():
+        setattr(branch, field, value)
+    if settings_patch:
+        branch.settings = {**branch.settings, **settings_patch}
+
     db.commit()
     db.refresh(branch)
     return branch
