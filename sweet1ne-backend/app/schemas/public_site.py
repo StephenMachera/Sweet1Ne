@@ -18,6 +18,7 @@ class PublicMenuItemOut(BaseModel):
     promo_price: float | None
     promo_titles: list[str]
     picture: str | None
+    pictures: list[str] = []
     dietary_tags: list[str]
     allergen_tags: list[str]
     main_category_id: str
@@ -29,6 +30,7 @@ class PublicMenuItemOut(BaseModel):
 class PublicMenuOut(BaseModel):
     categories: list[PublicCategoryOut]
     items: list[PublicMenuItemOut]
+    allergen_notice: str | None = None
 
 class PublicLocationOut(BaseModel):
     id: str

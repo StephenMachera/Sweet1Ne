@@ -14,6 +14,7 @@ from app.models.branch import Branch
 from app.schemas.orders import OrderCreate, OrderOut, OrderUpdate, OrderItemsAdd
 
 from app.services.promos import category_map, price_for, active_promos
+from app.services import promotions as promotions_service
 
 router = APIRouter()
 @router.post("/orders", response_model=OrderOut)
@@ -59,6 +60,11 @@ def create_order(
         )
 
         db.add(order_item)
+
+    if payload.promo_code:
+        code_promo = promotions_service.code_promotion(db, branch.tenant_id, branch.id, payload.promo_code)
+        if code_promo is not None:
+            total -= promotions_service.basket_discount(code_promo, total)
 
     order.total_amount = total
     db.commit()

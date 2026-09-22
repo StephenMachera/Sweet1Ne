@@ -9,7 +9,7 @@ from app.api.v1.endpoints import (
       branch, signup, events,
       tenant, staff, reservations,
       roles, reports, newsletter, campaigns,
-      media
+      media, promotions
       )
 
 api_router = APIRouter()
@@ -36,3 +36,4 @@ api_router.include_router(reservations.router, tags=["reservations"])
 api_router.include_router(newsletter.router, tags=["newsletter"])
 api_router.include_router(campaigns.router, prefix="/campaigns", tags=["campaigns"])
 api_router.include_router(media.router, prefix="/media", tags=["media"])
+api_router.include_router(promotions.router, prefix="/promotions", tags=["promotions"])

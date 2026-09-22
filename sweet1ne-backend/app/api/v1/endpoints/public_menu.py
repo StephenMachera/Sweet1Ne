@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
@@ -12,6 +13,7 @@ from app.models.sub_menu_category import SubCategory
 from app.models.table import Table
 from app.models.branch import Branch
 from app.models.tenant import Tenant
+from app.models.analytic_events import AnalyticsEvent
 
 
 from app.schemas.main_menu_category import MainCategoryOut
@@ -19,7 +21,9 @@ from app.schemas.menu_items import MenuItemOut
 from app.schemas.sub_menu_category import SubCategoryOut
 from app.schemas.table import PublicTableOut
 
+from app.schemas.promotion import PublicPromotionOut
 from app.services.promos import active_promos, price_for, category_map
+from app.services import promotions as promotions_service
 
 router = APIRouter()
 
@@ -110,6 +114,7 @@ def public_list_menu_items(
 @router.get("/table/{qr_token}", response_model=PublicTableOut)
 def get_table_context(
     qr_token: uuid.UUID,
+    guest_id: str | None = None,
     db: Session = Depends(get_db),
 ):
     table = resolve_branch_from_qr(str(qr_token), db)
@@ -120,6 +125,16 @@ def get_table_context(
 
     tenant_blob = tenant.settings or {}
     branch_blob = branch.settings or {}
+
+    visit_count, days_since_previous = None, None
+    if guest_id:
+        visit_count, days_since_previous = promotions_service.record_visit(
+            db, tenant.id, branch.id, guest_id
+        )
+    promotion = promotions_service.resolve_for_surface(
+        db, tenant.id, branch.id, "phone",
+        visit_count=visit_count, days_since_previous=days_since_previous,
+    )
 
     return PublicTableOut(
         table_number=table.number,
@@ -135,4 +150,33 @@ def get_table_context(
         food_hygiene_rating=tenant_blob.get("food_hygiene_rating"),
         prep_minutes_min=int(branch_blob.get("prep_minutes_min", 15)),
         prep_minutes_max=int(branch_blob.get("prep_minutes_max", 25)),
+        order_mode=table.order_mode or branch_blob.get("order_mode", "waiter"),
+        promotion=PublicPromotionOut.model_validate(promotion) if promotion else None,
     )
+
+
+class DishEventIn(BaseModel):
+    menu_item_id: uuid.UUID
+    # dish_view = opened a dish's detail. dish_add = added it to the cart.
+    event_type: str
+
+
+@router.post("/events", status_code=204)
+def record_dish_event(
+    payload: DishEventIn,
+    table: Table = Depends(resolve_branch_from_qr),
+    db: Session = Depends(get_db),
+):
+    """First-party dish interest, straight from the guest's own phone —
+    real data for QR admin's 'Looked at most' / 'Quiet on the phone'.
+    Never fired by a staff preview, only a real guest device."""
+    if payload.event_type not in ("dish_view", "dish_add"):
+        return
+    db.add(
+        AnalyticsEvent(
+            branch_id=table.branch_id,
+            event_type=payload.event_type,
+            event_data={"menu_item_id": str(payload.menu_item_id)},
+        )
+    )
+    db.commit()

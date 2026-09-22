@@ -22,6 +22,10 @@ class BranchUpdate(BaseModel):
     settings: dict | None = None
 
 
+class BranchOrderModeIn(BaseModel):
+    order_mode: str  # "waiter" | "app"
+
+
 class BranchOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

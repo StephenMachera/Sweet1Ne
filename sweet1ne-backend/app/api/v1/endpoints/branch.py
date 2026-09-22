@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.security import CurrentStaff, get_current_staff, require_permission
 from app.db.session import get_db
 from app.models.branch import Branch
-from app.schemas.branch import BranchIn, BranchOut, BranchUpdate
+from app.schemas.branch import BranchIn, BranchOrderModeIn, BranchOut, BranchUpdate
 
 router = APIRouter()
 
@@ -61,6 +61,29 @@ def update_branch(
     if settings_patch:
         branch.settings = {**branch.settings, **settings_patch}
 
+    db.commit()
+    db.refresh(branch)
+    return branch
+
+
+@router.patch("/{branch_id}/order-mode", response_model=BranchOut)
+def update_branch_order_mode(
+    branch_id: uuid.UUID,
+    payload: BranchOrderModeIn,
+    staff: CurrentStaff = Depends(require_permission("manage_tables")),
+    db: Session = Depends(get_db),
+):
+    """Narrowly scoped to manage_tables (not manage_tenant, like the general
+    branch PATCH above) — this is a floor-operations setting, not company
+    configuration, so a floor manager without tenant-wide access can still
+    flip it."""
+    branch = db.get(Branch, branch_id)
+    if branch is None or str(branch.tenant_id) != staff.tenant_id:
+        raise HTTPException(status_code=404, detail="Branch not found")
+    if payload.order_mode not in ("waiter", "app"):
+        raise HTTPException(status_code=400, detail="Order mode must be 'waiter' or 'app'.")
+
+    branch.settings = {**branch.settings, "order_mode": payload.order_mode}
     db.commit()
     db.refresh(branch)
     return branch

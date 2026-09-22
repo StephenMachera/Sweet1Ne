@@ -11,6 +11,10 @@ class OrderCreate(BaseModel):
     seat_number: int | None = None
     special_request: str | None = None
     items: list[OrderItemIn]
+    # A live code-kind promotion's code, as already shown to this guest on
+    # the table phone (see PublicTableOut.promotion) — re-validated here
+    # before it's allowed to reduce what they're actually charged.
+    promo_code: str | None = None
 
 
 class OrderItemOut(BaseModel):

@@ -7,6 +7,7 @@ class MenuItemIn(BaseModel):
     description: str | None = None
     price: float
     picture: str | None = None
+    pictures: list[str] = []
     dietary_tags: list[str] = []
     allergen_tags: list[str] = []
 
@@ -20,6 +21,7 @@ class MenuItemOut(BaseModel):
     description: str | None
     price: float
     picture: str | None
+    pictures: list[str] = []
     is_available: bool
     dietary_tags: list[str]
     allergen_tags: list[str]
@@ -32,6 +34,7 @@ class MenuItemUpdate(BaseModel):
     description: str | None = None
     price: float | None = None
     picture: str | None = None
+    pictures: list[str] | None = None
     is_available: bool | None = None
     dietary_tags: list[str] | None = None
     allergen_tags: list[str] | None = None

@@ -26,6 +26,12 @@ class MenuItem(Base):
     description: Mapped[str | None] = mapped_column(String)
     price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     picture: Mapped[str | None] = mapped_column(String)
+    # Up to 5, from the media library. `picture` above always mirrors
+    # pictures[0] (or None) so every existing single-photo reader — kitchen
+    # previews, the QR "needs a picture" count, the dashboard stat — keeps
+    # working unchanged; this is the real, ordered set for the guest
+    # phone's carousel.
+    pictures: Mapped[list[str]] = mapped_column(JSONB, default=list, server_default="[]")
     is_available: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

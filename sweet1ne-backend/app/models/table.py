@@ -38,6 +38,10 @@ class Table(Base):
     qr_code_url: Mapped[str | None] = mapped_column(String)
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    # waiter | app, or null to fall back to the branch's own
+    # settings.order_mode — lets one table (e.g. the bar) diverge from the
+    # rest of the restaurant.
+    order_mode: Mapped[str | None] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

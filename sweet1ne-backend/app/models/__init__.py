@@ -17,6 +17,8 @@ from app.models.reservation import Reservation
 from app.models.newsletter_subscriber import NewsletterSubscriber
 from app.models.campigns import Campaign
 from app.models.media import Media
+from app.models.promotion import Promotion
+from app.models.guest_visit import GuestVisit
 __all__ = [
     "Tenant",
     "Branch", 
@@ -37,5 +39,7 @@ __all__ = [
     "NewsletterSubscriber",
     "Campaign",
     "Media",
+    "Promotion",
+    "GuestVisit",
 
     ]

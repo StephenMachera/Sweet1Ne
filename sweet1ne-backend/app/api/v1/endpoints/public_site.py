@@ -16,9 +16,48 @@ from app.models.tenant import Tenant
 from app.models.branch import Branch
 from app.models.table import Table
 from app.schemas.public_site import PublicMenuOut, PublicMenuItemOut, PublicCategoryOut, PublicLocationOut, CollectionOrderIn,CollectionOrderOut
+from app.schemas.promotion import PublicPromotionOut
 from app.services.promos import active_promos, category_map, price_for
+from app.services import promotions as promotions_service
 
 router = APIRouter()
+
+
+@router.get("/promotions", response_model=PublicPromotionOut | None)
+def public_promotion_for_surface(
+    surface: str,
+    branch: str | None = None,
+    guest_id: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """The one promotion (if any) that should show right now on a given
+    guest-facing surface — the homepage card after Enter, or the quiet
+    header ribbon. `branch` is a slug; omit it for the site-wide (not one
+    branch) surfaces. `guest_id` is the anonymous id the browser keeps in
+    localStorage — passing it lets "quiet"/"regular" targeting work."""
+    tenant = db.execute(select(Tenant)).scalars().first()
+    if tenant is None:
+        return None
+
+    branch_row = None
+    if branch:
+        branch_row = db.execute(
+            select(Branch).where(Branch.tenant_id == tenant.id, Branch.slug == branch)
+        ).scalars().first()
+        if branch_row is None:
+            raise HTTPException(status_code=404, detail="Branch not found")
+
+    visit_count, days_since_previous = None, None
+    if guest_id and branch_row is not None:
+        visit_count, days_since_previous = promotions_service.record_visit(
+            db, tenant.id, branch_row.id, guest_id
+        )
+
+    promotion = promotions_service.resolve_for_surface(
+        db, tenant.id, branch_row.id if branch_row else None, surface,
+        visit_count=visit_count, days_since_previous=days_since_previous,
+    )
+    return PublicPromotionOut.model_validate(promotion) if promotion else None
 
 
 @router.get("/menu", response_model=PublicMenuOut)
@@ -87,6 +126,7 @@ def public_menu(db: Session = Depends(get_db)):
             promo_price=float(discounted) if promo_titles else None,
             promo_titles=promo_titles,
             picture=item.picture,
+            pictures=item.pictures or [],
             dietary_tags=item.dietary_tags or [],
             allergen_tags=item.allergen_tags or [],
             main_category_id=str(main.id),
@@ -97,6 +137,7 @@ def public_menu(db: Session = Depends(get_db)):
     return PublicMenuOut(
         categories=list(main_categories.values()) + list(sub_categories.values()),
         items=list(merged.values()),
+        allergen_notice=(tenant.settings or {}).get("allergen_notice"),
     )
 
 @router.get("/locations", response_model=list[PublicLocationOut])

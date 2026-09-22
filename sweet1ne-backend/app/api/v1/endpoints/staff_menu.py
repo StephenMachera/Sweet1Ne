@@ -66,6 +66,15 @@ def create_sub_category(
     db.refresh(sub_category)
     return sub_category
 
+def _sync_picture(data: dict) -> dict:
+    """`picture` always mirrors pictures[0] — every older single-photo
+    reader (kitchen previews, the QR "needs a picture" count, the
+    dashboard stat) keeps working without changes."""
+    if "pictures" in data and data["pictures"] is not None:
+        data["picture"] = data["pictures"][0] if data["pictures"] else None
+    return data
+
+
 @router.post("/menu-items", response_model=MenuItemOut)
 def create_menu_item(
     payload: MenuItemIn,
@@ -80,7 +89,7 @@ def create_menu_item(
     if main_category is None or str(main_category.tenant_id) != staff.tenant_id:
         raise HTTPException(status_code=404, detail="Sub category not found")
 
-    item = MenuItem(**payload.model_dump())
+    item = MenuItem(**_sync_picture(payload.model_dump()))
     db.add(item)
     db.commit()
     db.refresh(item)
@@ -290,7 +299,7 @@ def update_menu_item(
         if new_main is None or str(new_main.tenant_id) != staff.tenant_id:
             raise HTTPException(status_code=404, detail="Target sub category not found")
 
-    updates = payload.model_dump(exclude_unset=True)
+    updates = _sync_picture(payload.model_dump(exclude_unset=True))
     for field, value in updates.items():
         setattr(item, field, value)
 

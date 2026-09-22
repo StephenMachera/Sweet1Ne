@@ -2,6 +2,8 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.promotion import PublicPromotionOut
+
 
 class TableIn(BaseModel):
     branch_id: uuid.UUID | None = None
@@ -9,12 +11,14 @@ class TableIn(BaseModel):
     number: int
     seats: int
     is_active: bool | None = None
+    order_mode: str | None = None
 
 class TableUpdate(BaseModel):
     region: str | None = None
     number: int | None = None
     seats: int | None = None
     is_active: bool | None = None
+    order_mode: str | None = None
 
 class TableOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -27,6 +31,7 @@ class TableOut(BaseModel):
     qr_token: uuid.UUID
     qr_code_url: str | None
     is_active: bool
+    order_mode: str | None
 
 class TableOptionOut(BaseModel):
     """Slim shape for staff picking a table when placing an order."""
@@ -54,3 +59,9 @@ class PublicTableOut(BaseModel):
     food_hygiene_rating: int | None = None
     prep_minutes_min: int = 15
     prep_minutes_max: int = 25
+    # Resolved: this table's own override if set, else the branch default.
+    # "waiter" means guests browse the menu but don't get an order button.
+    order_mode: str = "waiter"
+    # The live promotion (if any) targeting the table phone right now —
+    # resolved server-side from real, scheduled, switched-on promotions.
+    promotion: PublicPromotionOut | None = None

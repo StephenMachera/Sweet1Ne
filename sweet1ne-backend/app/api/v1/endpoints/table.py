@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -13,28 +14,39 @@ from app.services.qr import build_table_qr
 from app.core.supabase_client import get_supabase_admin
 from app.core.security import settings
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 # Helper Funtions
 def _generate_and_store_qr(
     db: Session,
     table: Table
-)->str:
+) -> str | None:
+    """Renders and uploads the table's QR image. Supabase Storage uploads can
+    fail transiently (network hiccups, and a storage3 bug that raises
+    UnboundLocalError instead of the real error when the request itself
+    can't complete) — this must never block creating/editing the table
+    itself, since staff can always retry via the regenerate-QR action.
+    """
     branch = db.get(Branch, table.branch_id)
-    image = build_table_qr(
-        branch_slug=branch.slug,
-        qr_token=str(table.qr_token),
-        table_number=table.number,
-        region=table.region,
-        branch_name=branch.name,
-    )
-    path = f"{branch.tenant_id}/qr/{table.qr_token}.png"
-    admin = get_supabase_admin()
-    admin.storage.from_(settings.SUPABASE_STORAGE_BUCKET).upload(
-        path,
-        image,
-        {"content-type": "image/png", "upsert": "true"}
-    )
-    return admin.storage.from_(settings.SUPABASE_STORAGE_BUCKET).get_public_url(path)
+    try:
+        image = build_table_qr(
+            branch_slug=branch.slug,
+            qr_token=str(table.qr_token),
+            table_number=table.number,
+            region=table.region,
+            branch_name=branch.name,
+        )
+        path = f"{branch.tenant_id}/qr/{table.qr_token}.png"
+        admin = get_supabase_admin()
+        admin.storage.from_(settings.SUPABASE_STORAGE_BUCKET).upload(
+            path,
+            image,
+            {"content-type": "image/png", "upsert": "true"}
+        )
+        return admin.storage.from_(settings.SUPABASE_STORAGE_BUCKET).get_public_url(path)
+    except Exception:
+        logger.exception("Failed to generate/upload QR code for table %s", table.id)
+        return None
 
 
 @router.post("/{table_id}/qr", response_model = TableOut)
@@ -52,8 +64,11 @@ def regenerate_qr(
     if staff.branch_id is not None and str(table.branch_id) != staff.branch_id:
         raise HTTPException(status_code=403, detail="Not allowed to modify this table")
 
-    
-    table.qr_code_url = _generate_and_store_qr(db, table)
+
+    qr_url = _generate_and_store_qr(db, table)
+    if qr_url is None:
+        raise HTTPException(status_code=502, detail="Couldn't generate the QR code right now. Please try again.")
+    table.qr_code_url = qr_url
     db.commit()
     db.refresh(table)
     return table
@@ -107,9 +122,11 @@ def create_table(
     db.commit()
     db.refresh(table)
 
-    table.qr_code_url = _generate_and_store_qr(db, table)
-    db.commit()
-    db.refresh(table)
+    qr_url = _generate_and_store_qr(db, table)
+    if qr_url is not None:
+        table.qr_code_url = qr_url
+        db.commit()
+        db.refresh(table)
 
     return table
 
@@ -139,9 +156,11 @@ def update_table(
 
     # The number and region are printed on the QR image, so keep it in step.
     if "number" in updates or "region" in updates:
-        table.qr_code_url = _generate_and_store_qr(db, table)
-        db.commit()
-        db.refresh(table)
+        qr_url = _generate_and_store_qr(db, table)
+        if qr_url is not None:
+            table.qr_code_url = qr_url
+            db.commit()
+            db.refresh(table)
 
     return table
 
