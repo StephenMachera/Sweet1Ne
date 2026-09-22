@@ -12,6 +12,7 @@ import type { MainCategory, SubCategory, MenuItem } from "./menu-browser";
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 const MEDIA_PAGE_SIZE = 9; // 3x3 — same grid shape as the event composer's gallery
+const MAX_PICTURES = 5; // the guest phone's carousel caps here
 
 const DIETARY = ["vegetarian", "vegan", "gluten_free", "dairy_free", "halal", "low_calorie"];
 const ALLERGENS = ["nuts", "peanuts", "dairy", "eggs", "gluten", "shellfish", "soy", "sesame"];
@@ -73,6 +74,9 @@ export type MenuItemDraft = {
   description: string;
   price: string;
   picture: string | null;
+  /** Up to 5, from the media library. The guest phone opens these as a
+   *  carousel; `picture` (above) always mirrors pictures[0]. */
+  pictures: string[];
 };
 
 export const emptyDraft = (item?: MenuItem): MenuItemDraft => ({
@@ -80,6 +84,7 @@ export const emptyDraft = (item?: MenuItem): MenuItemDraft => ({
   description: item?.description ?? "",
   price: item ? String(item.price) : "",
   picture: item?.picture ?? null,
+  pictures: item?.pictures?.length ? item.pictures : item?.picture ? [item.picture] : [],
 });
 
 export function MenuItemForm({
@@ -122,9 +127,15 @@ export function MenuItemForm({
   const draft = controlledDraft ?? internalDraft;
   const onDraftChange =
     controlledOnDraftChange ?? ((patch: Partial<MenuItemDraft>) => setInternalDraft((d) => ({ ...d, ...patch })));
-  const { title, description, price, picture } = draft;
+  const { title, description, price, pictures } = draft;
 
   const availableSubs = subs.filter((s) => s.main_category_id === mainId);
+
+  // Keeps draft.picture (read by the admin live-preview panel) mirroring
+  // pictures[0], same as the backend does on save.
+  function setPictures(next: string[]) {
+    onDraftChange({ pictures: next, picture: next[0] ?? null });
+  }
 
   function toggle(list: string[], setList: (v: string[]) => void, tag: string) {
     setList(list.includes(tag) ? list.filter((t) => t !== tag) : [...list, tag]);
@@ -155,11 +166,23 @@ export function MenuItemForm({
         throw new Error(body.detail ?? "Upload failed.");
       }
       const { url } = await res.json();
-      onDraftChange({ picture: url });
+      setPictures([...pictures, url].slice(0, MAX_PICTURES));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't upload that photo.");
     } finally {
       setUploading(false);
+    }
+  }
+
+  function removePicture(url: string) {
+    setPictures(pictures.filter((p) => p !== url));
+  }
+
+  function togglePicture(url: string) {
+    if (pictures.includes(url)) {
+      removePicture(url);
+    } else if (pictures.length < MAX_PICTURES) {
+      setPictures([...pictures, url]);
     }
   }
 
@@ -179,7 +202,7 @@ export function MenuItemForm({
         title,
         description: description || null,
         price: Number(price),
-        picture,
+        pictures,
         dietary_tags: dietary,
         allergen_tags: allergens,
       };
@@ -216,24 +239,31 @@ export function MenuItemForm({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="item-pic">Photo</Label>
-            {picture ? (
-              <div className="relative overflow-hidden rounded-xl border border-slate-border">
-                <img src={picture} alt="" className="h-40 w-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => onDraftChange({ picture: null })}
-                  className="absolute right-2 top-2 rounded-md bg-navy/70 px-2.5 py-1 text-xs text-white hover:bg-navy"
-                >
-                  Remove
-                </button>
+            <Label htmlFor="item-pic">
+              Photos <span className="font-normal text-slate-muted">({pictures.length}/{MAX_PICTURES})</span>
+            </Label>
+            {pictures.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {pictures.map((url) => (
+                  <div key={url} className="relative overflow-hidden rounded-xl border border-slate-border">
+                    <img src={url} alt="" className="h-24 w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removePicture(url)}
+                      className="absolute right-1 top-1 rounded-md bg-navy/70 px-1.5 py-0.5 text-[10px] text-white hover:bg-navy"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
               </div>
-            ) : (
+            )}
+            {pictures.length < MAX_PICTURES && (
               <label
                 htmlFor="item-pic"
-                className="flex h-32 cursor-pointer items-center justify-center rounded-xl border border-dashed border-slate-border bg-slate-bg/40 text-sm text-slate-muted hover:border-emerald/50"
+                className="flex h-24 cursor-pointer items-center justify-center rounded-xl border border-dashed border-slate-border bg-slate-bg/40 text-sm text-slate-muted hover:border-emerald/50"
               >
-                {uploading ? "Uploading…" : "Click to upload a photo"}
+                {uploading ? "Uploading…" : "Click to add a photo"}
               </label>
             )}
             <input
@@ -371,16 +401,20 @@ export function MenuItemForm({
         )}
 
         <div className="admin-block-head">
-          <p>Pictures</p>
-          {picture && (
-            <button type="button" className="admin-add-bit" onClick={() => onDraftChange({ picture: null })}>
+          <p>
+            Pictures <span className="admin-muted">({pictures.length}/{MAX_PICTURES})</span>
+          </p>
+          {pictures.length > 0 && (
+            <button type="button" className="admin-add-bit" onClick={() => setPictures([])}>
               Clear
             </button>
           )}
         </div>
         {/* Pulled from the real /admin/media library — a 3×3 grid, same
             shape as the event composer's gallery, with a "More" button
-            to reveal the next nine once the library outgrows one page. */}
+            to reveal the next nine once the library outgrows one page.
+            Up to 5 selections — the guest phone opens them as a carousel,
+            in the order picked. */}
         <div className="admin-media-grid is-quick">
           {Array.from({ length: Math.max(MEDIA_PAGE_SIZE, Math.min(visibleMedia, media.length)) }, (_, i) => {
             const item = media[i];
@@ -392,17 +426,19 @@ export function MenuItemForm({
               );
             }
             const thumb = mediaThumb(item);
-            const selected = picture === thumb;
+            const order = pictures.indexOf(thumb);
+            const selected = order !== -1;
             return (
               <button
                 key={item.id}
                 type="button"
                 className={`${item.kind === "video" ? "is-film " : ""}${selected ? "is-on" : ""}`.trim()}
                 aria-pressed={selected}
-                onClick={() => onDraftChange({ picture: selected ? null : thumb })}
+                disabled={!selected && pictures.length >= MAX_PICTURES}
+                onClick={() => togglePicture(thumb)}
               >
                 {thumb && <img src={thumb} alt="" />}
-                <span>{item.label}</span>
+                <span>{selected ? `${order + 1} · ${item.label}` : item.label}</span>
               </button>
             );
           })}

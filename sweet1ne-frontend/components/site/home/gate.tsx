@@ -42,7 +42,7 @@ export default function Gate() {
             Enter Sweet1NE
           </button>
           <Link href="/locations" className="book">
-            Book a table
+            Reservations
           </Link>
         </div>
       </div>

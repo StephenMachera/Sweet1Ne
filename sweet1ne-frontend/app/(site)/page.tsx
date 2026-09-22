@@ -1,6 +1,7 @@
 import { StageProvider } from "@/components/site/home/stage-provider";
 import Gate from "@/components/site/home/gate";
 import Cinema from "@/components/site/home/cinema";
+import { PromoCard } from "@/components/site/home/promo-card";
 import House from "@/components/site/home/house";
 import Plates from "@/components/site/home/plates";
 import Mood from "@/components/site/home/mood";
@@ -23,6 +24,7 @@ export default function HomePage() {
       <div className="home-page">
         <Gate />
         <Cinema />
+        <PromoCard />
         <House />
         <Plates />
         <Mood />

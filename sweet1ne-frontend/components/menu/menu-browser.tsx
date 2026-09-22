@@ -28,6 +28,7 @@ export type MenuItem = {
   description: string | null;
   price: number;
   picture: string | null;
+  pictures: string[];
   is_available: boolean;
   dietary_tags: string[];
   allergen_tags: string[];

@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { StaffForm, type StaffMember } from "@/components/staff/staff-form";
 import { StaffDetail } from "@/components/staff/staff-detail";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 const BRANCH_KEY = "sweet1ne_staff_branch_filter";
 
@@ -176,7 +177,7 @@ export default function StaffPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+        <AdminLoading />
       ) : visible.length === 0 ? (
         <p className="admin-empty">
           {manageable.length === 0

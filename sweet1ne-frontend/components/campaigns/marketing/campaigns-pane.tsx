@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useMediaLibrary, mediaThumb } from "@/lib/use-media-library";
 import { EmojiField } from "@/components/ui/emoji-field";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 const MEDIA_PAGE_SIZE = 9;
@@ -191,7 +192,7 @@ export function CampaignsPane() {
       {editing ? (
         <LivePreview id={editingId!} />
       ) : loading ? (
-        <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+        <AdminLoading />
       ) : campaigns.length === 0 ? (
         <p className="admin-empty">
           No campaigns yet. Build an email from blocks — a heading, some text, a picture, a
@@ -571,7 +572,7 @@ function CampaignEditorDrawer({
   return (
     <aside className="admin-drawer-edit is-wide">
       {loading || !campaign ? (
-        <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+        <AdminLoading />
       ) : (
         <>
           <div className="mb-1 flex items-start justify-between gap-3">

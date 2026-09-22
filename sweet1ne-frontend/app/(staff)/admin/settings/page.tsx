@@ -9,6 +9,7 @@ import { useMe, hasPermission } from "@/lib/use-me";
 import { SettingsSection, Toggle } from "@/components/settings/settings-shell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -125,7 +126,7 @@ export default function AdminSettingsPage() {
   }
 
   if (meLoading || !me || !canEdit || loading) {
-    return <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>;
+    return <AdminLoading />;
   }
 
   const dirty = Object.keys(draft).length > 0;

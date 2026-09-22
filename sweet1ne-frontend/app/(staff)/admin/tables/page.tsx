@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { TableForm, type Table } from "@/components/tables/table-form";
 import { TableCard } from "@/components/tables/table-card";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 const BRANCH_KEY = "sweet1ne_admin_tables_branch";
 
@@ -100,7 +101,7 @@ export default function AdminTablesPage() {
   }
 
   if (meLoading || !me || !canManage) {
-    return <p className="text-sm text-ink-muted">Loading…</p>;
+    return <AdminLoading />;
   }
 
   const branchById = new Map(branches.map((b) => [b.id, b]));
@@ -191,7 +192,7 @@ export default function AdminTablesPage() {
       )}
 
       {loading ? (
-        <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+        <AdminLoading />
       ) : visible.length === 0 ? (
         <p className="admin-empty">
           {tables.length === 0
@@ -199,7 +200,7 @@ export default function AdminTablesPage() {
             : "No tables match these filters."}
         </p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="admin-tables-grid">
           {visible.map((table) => (
             <TableCard
               key={table.id}

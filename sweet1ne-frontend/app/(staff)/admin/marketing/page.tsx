@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { SubscriberList } from "@/components/campaigns/marketing/subscriber-list";
 import { CampaignsPane } from "@/components/campaigns/marketing/campaigns-pane";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 export default function AdminMarketingPage() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function AdminMarketingPage() {
   }, [me, loading, canManage, router]);
 
   if (loading || !me || !canManage) {
-    return <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>;
+    return <AdminLoading />;
   }
 
   return (

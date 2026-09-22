@@ -8,6 +8,7 @@ import { apiFetch } from "@/lib/api";
 import { StationBoard } from "@/components/station/station-board";
 import type { StationLabels } from "@/components/station/station-screen";
 import { EightySix } from "@/components/floor/eighty-six";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 type Branch = { id: string; name: string; settings?: { toast?: string } };
 
@@ -74,7 +75,7 @@ export function FloorAdminPage({ station }: { station: "kitchen" | "bar" }) {
   }, [branchFilter, station]);
 
   if (meLoading || !me || !canAccess) {
-    return <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>;
+    return <AdminLoading />;
   }
 
   return (

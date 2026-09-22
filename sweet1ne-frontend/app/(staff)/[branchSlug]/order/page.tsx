@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { useGuestTheme, ThemeToggle } from "@/components/guest/guest-theme";
 import { effectivePrice } from "@/lib/pricing";
+import { getGuestId } from "@/lib/guest-id";
+import { CTA_PRESETS, type PromotionCtaKind } from "@/lib/promotion-blocks";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -39,6 +41,25 @@ type TableContext = {
   food_hygiene_rating: number | null;
   prep_minutes_min: number;
   prep_minutes_max: number;
+  /** "waiter" — this table doesn't order from the phone; the menu still
+   *  shows, just without any way to add items. Set per-branch (with an
+   *  optional per-table override) from /admin/qr. */
+  order_mode: string;
+  /** A real, live promotion targeting the table phone right now — resolved
+   *  server-side. Only a "code" kind one affects the total, automatically;
+   *  the guest never types anything. */
+  promotion: {
+    id: string;
+    kind: string;
+    title: string;
+    kicker: string | null;
+    dek: string | null;
+    cta: PromotionCtaKind;
+    cta_label: string | null;
+    code: string | null;
+    offer: "none" | "percent" | "pounds";
+    off: number | null;
+  } | null;
 };
 
 type MainCategory = { id: string; name: string; sort_order: number };
@@ -50,6 +71,7 @@ type MenuItem = {
   description: string | null;
   price: number;
   picture: string | null;
+  pictures: string[];
   is_available: boolean;
   dietary_tags: string[];
   allergen_tags: string[];
@@ -124,6 +146,8 @@ export default function GuestOrderPage({
   const [mains, setMains] = useState<MainCategory[]>([]);
   const [subs, setSubs] = useState<SubCategory[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [detailItem, setDetailItem] = useState<MenuItem | null>(null);
+  const [detailIndex, setDetailIndex] = useState(0);
 
   const [activeMain, setActiveMain] = useState<string | null>(null);
   const [activeSub, setActiveSub] = useState<string | null>(null);
@@ -159,8 +183,9 @@ export default function GuestOrderPage({
       return;
     }
 
+    const guestId = getGuestId();
     Promise.all([
-      publicFetch(`/public/menu/table/${qrToken}`),
+      publicFetch(`/public/menu/table/${qrToken}${guestId ? `?guest_id=${guestId}` : ""}`),
       publicFetch(`/public/menu/main-categories?qr_token=${qrToken}`),
       publicFetch(`/public/menu/sub-categories?qr_token=${qrToken}`),
       publicFetch(`/public/menu/menu-items?qr_token=${qrToken}`),
@@ -245,8 +270,39 @@ export default function GuestOrderPage({
   }, 0);
   const saving = cartFullTotal - cartTotal;
 
+  // Automatic — the guest never types a code. Computed from the real cart
+  // total, never an invented figure.
+  const codePromo = context?.promotion?.kind === "code" ? context.promotion : null;
+  const codeDiscount = codePromo
+    ? codePromo.offer === "percent" && codePromo.off
+      ? cartTotal * (codePromo.off / 100)
+      : codePromo.offer === "pounds" && codePromo.off
+        ? Math.min(codePromo.off, cartTotal)
+        : 0
+    : 0;
+  const payableTotal = Math.max(0, cartTotal - codeDiscount);
+
+  const canOrder = context?.order_mode !== "waiter";
+
   function change(itemId: string, delta: number) {
+    if (!canOrder) return;
+    const wasEmpty = !(cart[itemId] > 0);
     setCart((prev) => ({ ...prev, [itemId]: Math.max(0, (prev[itemId] ?? 0) + delta) }));
+    if (delta > 0 && wasEmpty) {
+      publicFetch(`/public/menu/events?qr_token=${qrToken}`, {
+        method: "POST",
+        body: JSON.stringify({ menu_item_id: itemId, event_type: "dish_add" }),
+      }).catch(() => {});
+    }
+  }
+
+  function openDetail(item: MenuItem) {
+    setDetailItem(item);
+    setDetailIndex(0);
+    publicFetch(`/public/menu/events?qr_token=${qrToken}`, {
+      method: "POST",
+      body: JSON.stringify({ menu_item_id: item.id, event_type: "dish_view" }),
+    }).catch(() => {});
   }
 
   function openCheckout() {
@@ -268,13 +324,14 @@ export default function GuestOrderPage({
               method: "POST",
               body: JSON.stringify({ items: lines }),
             })
-          : await publicFetch("/public/orders", {
+          : await publicFetch(`/public/orders?qr_token=${qrToken}`, {
               method: "POST",
               body: JSON.stringify({
                 qr_token: qrToken,
                 seat_number: seatNumber ? Number(seatNumber) : null,
                 special_request: specialRequest || null,
                 items: lines,
+                promo_code: codePromo?.code ?? null,
               }),
             });
 
@@ -352,6 +409,32 @@ export default function GuestOrderPage({
             className="mb-4 rounded-xl border border-guest-accent/30 bg-guest-accent-soft px-4 py-3 text-sm"
           >
             {error}
+          </div>
+        )}
+
+        {context?.promotion && (
+          <div className="mb-5 rounded-2xl border border-guest-accent/40 bg-guest-accent-soft px-4 py-3">
+            {context.promotion.kicker && (
+              <p className="text-xs font-semibold uppercase tracking-wide text-guest-accent">
+                {context.promotion.kicker}
+              </p>
+            )}
+            <p className="font-display text-base">{context.promotion.title}</p>
+            {context.promotion.dek && (
+              <p className="mt-1 text-sm text-guest-muted">{context.promotion.dek}</p>
+            )}
+            {context.promotion.kind === "code" && context.promotion.code ? (
+              <p className="mt-2 text-sm font-medium text-guest-accent">
+                Code {context.promotion.code} — applied automatically to your basket
+              </p>
+            ) : (
+              <a
+                href={CTA_PRESETS[context.promotion.cta].href}
+                className="mt-2 inline-block text-sm font-medium text-guest-accent underline underline-offset-4"
+              >
+                {context.promotion.cta_label || CTA_PRESETS[context.promotion.cta].label}
+              </a>
+            )}
           </div>
         )}
 
@@ -484,6 +567,7 @@ export default function GuestOrderPage({
                 {visibleItems.map((item) => {
                   const qty = cart[item.id] ?? 0;
                   const discounted = item.promo_price != null;
+                  const gallery = item.pictures?.length ? item.pictures : item.picture ? [item.picture] : [];
 
                   return (
                     <li
@@ -492,7 +576,14 @@ export default function GuestOrderPage({
                         discounted ? "border-guest-accent/50" : "border-guest-border"
                       }`}
                     >
-                      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-guest-elevated">
+                      <button
+                        type="button"
+                        onClick={() => gallery.length > 0 && openDetail(item)}
+                        aria-label={gallery.length > 0 ? `See photos of ${item.title}` : undefined}
+                        className={`relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-guest-elevated ${
+                          gallery.length > 0 ? "cursor-pointer" : "cursor-default"
+                        }`}
+                      >
                         {item.picture && (
                           <>
                             <img
@@ -514,7 +605,12 @@ export default function GuestOrderPage({
                             Offer
                           </span>
                         )}
-                      </div>
+                        {gallery.length > 1 && (
+                          <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                            1/{gallery.length}
+                          </span>
+                        )}
+                      </button>
 
                       <div className="flex min-w-0 flex-1 flex-col">
                         <h3 className="font-display text-base leading-snug">{item.title}</h3>
@@ -571,7 +667,9 @@ export default function GuestOrderPage({
                             </span>
                           )}
 
-                          {qty > 0 ? (
+                          {!canOrder ? (
+                            <span className="text-xs text-guest-muted">Ask a waiter</span>
+                          ) : qty > 0 ? (
                             <div className="flex items-center gap-1 rounded-full border border-guest-border p-1">
                               <button
                                 onClick={() => change(item.id, -1)}
@@ -652,9 +750,15 @@ export default function GuestOrderPage({
                       <span className="tabular-nums">{money.format(saving)}</span>
                     </div>
                   )}
+                  {codeDiscount > 0 && (
+                    <div className="flex items-center justify-between text-sm text-guest-accent">
+                      <span>Code {codePromo!.code}</span>
+                      <span className="tabular-nums">-{money.format(codeDiscount)}</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-guest-muted">Total</span>
-                    <span className="font-semibold tabular-nums">{money.format(cartTotal)}</span>
+                    <span className="font-semibold tabular-nums">{money.format(payableTotal)}</span>
                   </div>
                 </div>
                 <button
@@ -668,7 +772,9 @@ export default function GuestOrderPage({
               <div className="rounded-2xl border border-dashed border-guest-border p-8 text-center">
                 <ShoppingBag size={24} className="mx-auto text-guest-muted" />
                 <p className="mt-3 text-sm text-guest-muted">
-                  Tap Add on anything you fancy and it'll appear here.
+                  {canOrder
+                    ? "Tap Add on anything you fancy and it'll appear here."
+                    : "Browse the menu, then ask a waiter to order for you."}
                 </p>
               </div>
             )}
@@ -695,10 +801,15 @@ export default function GuestOrderPage({
               {cartCount} item{cartCount === 1 ? "" : "s"}
             </span>
             <span className="flex-1 text-right">
-              <span className="font-semibold tabular-nums">{money.format(cartTotal)}</span>
+              <span className="font-semibold tabular-nums">{money.format(payableTotal)}</span>
               {saving > 0 && (
                 <span className="ml-2 text-xs font-medium text-guest-accent">
                   save {money.format(saving)}
+                </span>
+              )}
+              {codeDiscount > 0 && (
+                <span className="ml-2 text-xs font-medium text-guest-accent">
+                  code {codePromo!.code}
                 </span>
               )}
             </span>
@@ -741,7 +852,7 @@ export default function GuestOrderPage({
             {sheetStep === "details" ? (
               <div className="space-y-5 px-5 pb-6">
                 <p className="text-sm text-guest-muted">
-                  Both of these are optional — skip straight ahead if there's nothing to add.
+                  Both of these are optional — skip straight ahead if there&apos;s nothing to add.
                 </p>
 
                 <div className="space-y-1.5">
@@ -866,10 +977,16 @@ export default function GuestOrderPage({
                       <span className="tabular-nums">{money.format(saving)}</span>
                     </div>
                   )}
+                  {codeDiscount > 0 && (
+                    <div className="flex items-center justify-between text-sm text-guest-accent">
+                      <span>Code {codePromo!.code}</span>
+                      <span className="tabular-nums">-{money.format(codeDiscount)}</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <span className="text-guest-muted">Total</span>
                     <span className="font-display text-2xl tabular-nums">
-                      {money.format(cartTotal)}
+                      {money.format(payableTotal)}
                     </span>
                   </div>
                 </div>
@@ -892,6 +1009,80 @@ export default function GuestOrderPage({
           </div>
         </div>
       )}
+
+      {detailItem && (
+        <DishCarousel
+          item={detailItem}
+          index={detailIndex}
+          onIndexChange={setDetailIndex}
+          onClose={() => setDetailItem(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function DishCarousel({
+  item,
+  index,
+  onIndexChange,
+  onClose,
+}: {
+  item: MenuItem;
+  index: number;
+  onIndexChange: (i: number) => void;
+  onClose: () => void;
+}) {
+  const gallery = item.pictures?.length ? item.pictures : item.picture ? [item.picture] : [];
+  const safeIndex = Math.min(index, Math.max(gallery.length - 1, 0));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
+      <div className="relative w-full max-w-lg overflow-hidden rounded-t-3xl border border-guest-border bg-guest-card sm:rounded-3xl">
+        <div className="relative aspect-square bg-guest-elevated">
+          {gallery[safeIndex] && (
+            <img src={gallery[safeIndex]} alt="" className="h-full w-full object-cover" />
+          )}
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white"
+          >
+            <X size={18} />
+          </button>
+          {gallery.length > 1 && (
+            <>
+              <button
+                onClick={() => onIndexChange((safeIndex - 1 + gallery.length) % gallery.length)}
+                aria-label="Previous photo"
+                className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white"
+              >
+                ‹
+              </button>
+              <button
+                onClick={() => onIndexChange((safeIndex + 1) % gallery.length)}
+                aria-label="Next photo"
+                className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white"
+              >
+                ›
+              </button>
+              <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
+                {gallery.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`h-1.5 w-1.5 rounded-full ${i === safeIndex ? "bg-white" : "bg-white/40"}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+        <div className="p-5">
+          <h3 className="font-display text-lg">{item.title}</h3>
+          {item.description && <p className="mt-1 text-sm text-guest-muted">{item.description}</p>}
+        </div>
+      </div>
     </div>
   );
 }

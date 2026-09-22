@@ -12,6 +12,7 @@ import {
 } from "@/components/staff/role-form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 // The deactivate-confirmation dialog is portaled by @base-ui to
 // document.body, outside .admin-shell — var(--x) tokens don't cascade
@@ -126,7 +127,7 @@ export default function RolesPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+        <AdminLoading />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
           {/* Role list */}

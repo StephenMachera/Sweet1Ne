@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import type { MainCategory, MenuItem, SubCategory } from "@/components/menu/menu-browser";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 /**
  * The "86" tab shared by admin Kitchen and Bar — the same menu items and
@@ -100,7 +101,7 @@ export function EightySix({ station, branchId }: { station: "kitchen" | "bar"; b
       </div>
 
       {loading ? (
-        <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+        <AdminLoading />
       ) : visible.length === 0 ? (
         <p className="admin-empty">Nothing on this filter.</p>
       ) : (

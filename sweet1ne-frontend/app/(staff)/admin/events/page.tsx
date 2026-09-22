@@ -16,6 +16,7 @@ import {
   type NoteBlock,
 } from "@/components/events/event-blocks";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 // Literal colors, not var(--gold-line) etc — Dialog portals to
 // document.body, outside .admin-shell, so those custom properties (only
@@ -203,7 +204,7 @@ export default function AdminEventsPage() {
   }
 
   if (meLoading || !me || !canManage) {
-    return <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>;
+    return <AdminLoading />;
   }
 
   function matchesPlace(event: Event) {
@@ -329,7 +330,7 @@ export default function AdminEventsPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+        <AdminLoading />
       ) : visible.length === 0 ? (
         <p className="admin-empty">
           No nights listed. Public What&rsquo;s next stays empty until you add one. If more than one is

@@ -16,6 +16,7 @@ id: string;
   qr_token?: string;
   qr_code_url?: string | null;
   is_active: boolean;
+  order_mode?: string | null;
 };
 
 type Branch  = { id: string; name: string };
@@ -40,6 +41,7 @@ export function TableForm({
   const [number, setNumber] = useState(table ? String(table.number) : "");
   const [seats, setSeats] = useState(table ? String(table.seats) : "2");
   const [region, setRegion] = useState(table?.region ?? "");
+  const [orderMode, setOrderMode] = useState(table?.order_mode ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,7 +62,7 @@ export function TableForm({
         number: Number(number),
         seats: Number(seats),
         region: region || null,
-        ...(table ? {} : { branch_id: branchId || null }),
+        ...(table ? { order_mode: orderMode || null } : { branch_id: branchId || null }),
       };
 
       const saved = table
@@ -211,6 +213,17 @@ export function TableForm({
             placeholder="e.g. Patio, Main floor, Bar"
           />
         </label>
+
+        {table && (
+          <label>
+            How this table orders
+            <select value={orderMode} onChange={(e) => setOrderMode(e.target.value)}>
+              <option value="">Same as restaurant</option>
+              <option value="waiter">Ask a waiter</option>
+              <option value="app">Order on the phone</option>
+            </select>
+          </label>
+        )}
 
         <div className="flex gap-3 pt-1">
           <button type="submit" className="admin-book" disabled={saving}>

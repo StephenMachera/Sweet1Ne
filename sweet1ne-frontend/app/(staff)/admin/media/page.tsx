@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useMe, hasPermission } from "@/lib/use-me";
 import type { MediaItem, MediaKind } from "@/lib/use-media-library";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -127,7 +128,7 @@ export default function AdminMediaPage() {
   }
 
   if (meLoading || !me || !canManage) {
-    return <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>;
+    return <AdminLoading />;
   }
 
   return (
@@ -181,7 +182,7 @@ export default function AdminMediaPage() {
       </form>
 
       {loading ? (
-        <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+        <AdminLoading />
       ) : (
         <div className="admin-media-grid">
           {items.map((m) => {

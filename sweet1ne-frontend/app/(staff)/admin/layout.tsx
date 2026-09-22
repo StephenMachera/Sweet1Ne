@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMe } from "@/lib/use-me";
 import { Sidebar } from "@/components/staff/sidebar";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (loading || !me || me.branch_id !== null) {
     return (
       <div className="admin-shell flex min-h-[100svh] items-center justify-center bg-[var(--bg)]">
-        <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+        <AdminLoading />
       </div>
     );
   }

@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -299,7 +300,11 @@ export function SubscriberList({
       )}
 
       {loading ? (
-        <p className={`text-sm ${isBranch ? muted : "text-[var(--ivory-dim)]"}`}>Loading…</p>
+        isBranch ? (
+          <p className={`text-sm ${muted}`}>Loading…</p>
+        ) : (
+          <AdminLoading />
+        )
       ) : visible.length === 0 ? (
         isBranch ? (
           <div className="rounded-xl border border-dashed border-slate-border px-6 py-16 text-center">

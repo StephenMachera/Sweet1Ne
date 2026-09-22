@@ -7,6 +7,7 @@ import { ChevronDown } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { OrderSummary } from "@/components/orders/order-summary";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 type OrderItem = {
   id: string;
@@ -155,7 +156,7 @@ export default function AdminOrdersPage() {
   }
 
   if (meLoading || !me || !canView) {
-    return <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>;
+    return <AdminLoading />;
   }
 
   const visible = lookupResult ? [lookupResult] : orders;
@@ -407,7 +408,7 @@ export default function AdminOrdersPage() {
               </div>
 
               {loading ? (
-                <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+                <AdminLoading />
               ) : visible.length === 0 ? (
                 <p className="admin-empty">No orders match these filters.</p>
               ) : (

@@ -3,20 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { COURSES, MENU } from "@/lib/menu-content";
+import type { Chapter } from "@/lib/menu-content";
 
 /**
  * Circular emblems rather than text chips. Sits below the header and tracks
  * which chapter you're reading.
  *
- * Sides and Kids have no emblem — short sections, and giving them one would
- * imply an equivalence that isn't there. They're reached by scrolling.
+ * A chapter with no curated photography has no emblem — short or
+ * unphotographed sections, reached by scrolling instead of implying an
+ * equivalence that isn't there.
  */
-export function CourseNav() {
-  const [active, setActive] = useState(COURSES[0]);
+export function CourseNav({ chapters, courseIds }: { chapters: Chapter[]; courseIds: string[] }) {
+  const [active, setActive] = useState(courseIds[0] ?? "");
   const railRef = useRef<HTMLElement>(null);
 
-  const courses = MENU.filter((chapter) => COURSES.includes(chapter.id));
+  const courses = chapters.filter((chapter) => courseIds.includes(chapter.id));
 
   function jumpTo(id: string) {
     const target = document.getElementById(id);
@@ -38,13 +39,13 @@ export function CourseNav() {
       { rootMargin: "-40% 0px -45% 0px", threshold: 0.1 }
     );
 
-    COURSES.forEach((id) => {
+    courseIds.forEach((id) => {
       const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [courseIds]);
 
   // Keep the active emblem in view — on a phone the rail scrolls, and the
   // current one drifting off the edge would make the nav useless.

@@ -1,16 +1,18 @@
 /**
- * The menu, as eight chapters.
- *
- * A placeholder while the real items go into the database. Organised
- * differently from the PDF — salads sit with starters, sides and sauces are
- * one chapter, and everything drinkable is "the bar".
+ * The menu, built from the real backend list (`/public/site/menu`) — the
+ * same dishes and photos staff edit on the Menu dashboard, and the same
+ * list the table phone reads. This file only supplies the shapes and the
+ * decorative, non-dish photography (course-disc emblems, chapter bleeds)
+ * that the real menu has no field for; every dish, price, description and
+ * photo below comes from the API, never invented here.
  */
 
 export type Dish = {
+  id: string;
   name: string;
   price?: string;
   description?: string;
-  /** One dish per chapter gets a circular photograph and the full width. */
+  /** A dish with a real photo gets the circular thumbnail treatment. */
   featured?: boolean;
   image?: string;
 };
@@ -18,366 +20,116 @@ export type Dish = {
 export type Chapter = {
   id: string;
   kicker: string;
-  /** This cut of the menu sets every course as its kicker alone — "gold
-   *  kickers only, no poetic headlines or ledes". Kept optional for a
-   *  future cut that brings a headline back. */
   heading?: string;
   lede?: string;
-  /** Sides and Kids have no emblem — they're short sections. */
+  /** Decorative only — set when the category name matches one of the
+   *  curated house photo sets below. Not stored on the category itself. */
   mark?: string;
-  /** How the mark and the course disc are framed. Circular crops are
-   *  unforgiving, so most need nudging. */
   markPosition?: string;
-  /** A full-width band above the list. */
   bleed?: { src: string; alt: string };
-  /** Three portrait shots above the list. */
   shots?: string[];
   dishes: Dish[];
 };
 
+export type PublicMenuItem = {
+  id: string;
+  title: string;
+  description: string | null;
+  price: number;
+  promo_price: number | null;
+  picture: string | null;
+  pictures: string[];
+  main_category_id: string;
+};
+
+export type PublicCategory = { id: string; name: string; parent_id: string | null };
+
+export type PublicMenuData = {
+  categories: PublicCategory[];
+  items: PublicMenuItem[];
+  allergen_notice: string | null;
+};
+
 const PHOTO = "/images/homepage-gallery/menu";
 
-export const MENU: Chapter[] = [
+const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
+
+/** Best-effort match from a real category's name to the house's curated,
+ *  non-dish photography — the same static photos the template shipped
+ *  with. A category that doesn't match any of these just lists plainly,
+ *  same as "Sides" or "Kids" always did. */
+const CURATED: { test: RegExp; mark: string; markPosition: string; bleed?: { src: string; alt: string }; shots?: string[] }[] = [
+  { test: /starter/i, mark: `${PHOTO}/photo-starters.jpg`, markPosition: "48% 38%" },
+  { test: /main/i, mark: `${PHOTO}/photo-mains.jpg`, markPosition: "50% 48%" },
+  { test: /pasta/i, mark: `${PHOTO}/photo-pasta-prawns.jpg`, markPosition: "50% 46%" },
   {
-    id: "starters",
-    kicker: "Starters",
-    mark: `${PHOTO}/photo-starters.jpg`,
-    markPosition: "48% 38%",
-    dishes: [
-      {
-        name: "Baobun Duo — Prawns or Oxtail",
-        price: "£11.50",
-        description:
-          "Steamed buns. Crispy tempura prawns or slow-braised oxtail, hoisin, pickled slaw.",
-        featured: true,
-        image: `${PHOTO}/photo-starters.jpg`,
-      },
-      {
-        name: "Crab Croquettes, Pepper Emulsion",
-        price: "£9.50",
-        description: "Golden crab and potato, roasted pepper sauce.",
-      },
-      { name: "Crispy Calamari", price: "£9.00", description: "Light batter, house dip, lemon." },
-      {
-        name: "Jollof Sushi Roll",
-        price: "£10.50",
-        description:
-          "Jollof rice, salmon and plantain or vegetables. Salmon £10.50 · Veg £9.50",
-      },
-      {
-        name: "Tempura Prawns",
-        price: "£9.50",
-        description: "Seasoned batter, sweet chilli, spring onion.",
-      },
-      {
-        name: "Sweet1ne Street Tacos — Chicken or Beef",
-        price: "£11.50",
-        description: "Jerk chicken or smoky beef, salsa, avocado mousse.",
-      },
-      {
-        name: "Wings — Spicy or BBQ",
-        price: "£8.00",
-        description: "Spicy rub or house-smoked BBQ.",
-      },
-      {
-        name: "Charred Garlic Bread, Herb Butter",
-        price: "£4.50",
-        description: "Toasted baguette, garlic and parsley butter.",
-      },
-      {
-        name: "Oxtail Bruschetta, Basil Crème",
-        price: "£9.50",
-        description: "Shredded oxtail on sourdough, whipped basil crème.",
-      },
-      {
-        name: "Curry Goat Spring Rolls, Scotch Bonnet Drizzle",
-        price: "£9.50",
-        description: "Hand-rolled, sweet chilli and Scotch bonnet.",
-      },
-      {
-        name: "Mini Asun Sliders, Charred Tomato Jam",
-        price: "£9.50",
-        description: "Smoked goat in brioche, tomato and pepper jam.",
-      },
-      {
-        name: "Grilled Tiger Prawn Skewers, Citrus Herb Oil",
-        price: "£9.50",
-        description: "Garlic, lime and coriander, chargrilled.",
-      },
-      {
-        name: "Roasted Sweetcorn Velouté",
-        price: "£8.50",
-        description: "Smoked paprika oil, garlic bread.",
-      },
-      {
-        name: "Confit Duck, Kale & Pomegranate",
-        price: "£16.50",
-        description: "Salad. Raspberry–plum gastrique.",
-      },
-      {
-        name: "Sweet1ne Garden Salad",
-        price: "£11.50",
-        description: "Seasonal greens, avocado, citrus-mustard.",
-      },
-    ],
-  },
-  {
-    id: "mains",
-    kicker: "Mains",
-    mark: `${PHOTO}/photo-mains.jpg`,
-    markPosition: "50% 48%",
-    dishes: [
-      {
-        name: "Lamb Cutlets, Plantain Mash",
-        price: "£23.00",
-        description:
-          "Charcoal-grilled. Plantain mash or mashed potato, sauce of your choosing.",
-        featured: true,
-        image: `${PHOTO}/photo-mains.jpg`,
-      },
-      {
-        name: "Seared Loch Duart Salmon",
-        price: "£22.00",
-        description: "Baby potatoes, greens, citrus beurre blanc.",
-      },
-      {
-        name: "9oz Dry-Aged Ribeye",
-        price: "£19.00",
-        description: "Grilled vegetables, roast garlic jus.",
-      },
-      {
-        name: "24K 9oz Ribeye & Lobster",
-        price: "£100.00",
-        description: "Gold-leaf ribeye, lobster tail, two large sides.",
-      },
-      {
-        name: "Surf & Turf",
-        price: "£47.00",
-        description: "9oz steak, lobster tail, garlic-herb butter.",
-      },
-      {
-        name: "The Big Chopper Feast",
-        price: "£39.00",
-        description:
-          "Mac & cheese, lamb chops or oxtail, wings or chicken, rice, plantain, slaw.",
-      },
-      {
-        name: "Grilled Giant Prawns",
-        price: "£22.50",
-        description: "Shell-on, house glaze, lemon.",
-      },
-      { name: "Oxtail", price: "£22.50", description: "Slow-braised. Rice or roti." },
-      {
-        name: "Curry Goat",
-        price: "£23.50",
-        description: "Scotch bonnet, thyme, allspice. Rice or roti.",
-      },
-      {
-        name: "Sweet Jerk BBQ Chicken",
-        price: "£18.50",
-        description: "Steamed rice and coleslaw.",
-      },
-      {
-        name: "Beef Burger with Fries",
-        price: "£14.50",
-        description: "Brioche, house sauce, slaw.",
-      },
-      {
-        name: "Vegan Burger with Fries",
-        price: "£12.50",
-        description: "Avocado, slaw, herb mayo.",
-      },
-    ],
-  },
-  {
-    id: "pasta",
-    kicker: "Pasta",
-    mark: `${PHOTO}/photo-pasta-prawns.jpg`,
-    markPosition: "50% 46%",
-    dishes: [
-      {
-        name: "Chef’s Special — Prawns & Chicken",
-        price: "£28.00",
-        description: "Prawns, jerk chicken, smoked turkey sausage.",
-        featured: true,
-        image: `${PHOTO}/photo-pasta-prawns.jpg`,
-      },
-      {
-        name: "Rasta Pasta — Jerk Chicken",
-        price: "£18.50",
-        description: "Creamy penne, peppers, jerk chicken, garlic bread.",
-      },
-      {
-        name: "Lobster Tail Pasta",
-        price: "£35.50",
-        description: "Jerk-spiced cream, micro coriander.",
-      },
-      {
-        name: "Seafood Linguine",
-        price: "£28.00",
-        description: "Mussels, prawns, crab, roasted tomato.",
-      },
-      {
-        name: "Rasta Pasta — Vegan",
-        price: "£14.50",
-        description: "Same bold flavours, plant-based.",
-      },
-    ],
-  },
-  {
-    id: "seafood",
-    kicker: "Seafood",
+    test: /seafood|boil/i,
     mark: `${PHOTO}/photo-seafood.jpg`,
     markPosition: "48% 55%",
-    bleed: {
-      src: `${PHOTO}/photo-boil-table.jpg`,
-      alt: "Sweet1ne loaded seafood boil",
-    },
-    dishes: [
-      {
-        name: "Sweet1ne Loaded Seafood Boil",
-        price: "£74.99",
-        description:
-          "Snow crab, lobster, jumbo prawns, mussels, sausage, potatoes, corn, eggs. Cajun garlic butter. For sharing.",
-        featured: true,
-        image: `${PHOTO}/photo-boil-lemon.jpg`,
-      },
-      {
-        name: "Grilled Giant Prawns",
-        price: "£22.50",
-        description: "Chargrilled, house sauce, lemon.",
-      },
-      {
-        name: "Build your boil",
-        price: "—",
-        description:
-          "Snow crab or lobster £22 · Jumbo prawns or mussels £10.50 · Sausage, potato or corn £5 · Eggs £3",
-      },
-    ],
+    bleed: { src: `${PHOTO}/photo-boil-table.jpg`, alt: "Sweet1ne loaded seafood boil" },
   },
+  { test: /dessert/i, mark: `${PHOTO}/photo-desserts.jpg`, markPosition: "40% 58%" },
   {
-    id: "sides",
-    kicker: "Sides & sauces",
-    dishes: [
-      { name: "Rasta Pasta", price: "£12.50" },
-      {
-        name: "Cheesy Oxtail Dumpling",
-        price: "£11.50",
-        description: "Add mac & cheese £3",
-      },
-      { name: "Mac & Cheese", price: "£8.00", description: "Regular £8 · Crab £11.50" },
-      { name: "Seafood Rice", price: "£10.50" },
-      { name: "Loaded Fries", price: "£11.50" },
-      { name: "Jollof Rice", price: "£6.00", description: "Small £6 · Large £8" },
-      { name: "Rice & Peas", price: "£6.00", description: "Small £6 · Large £8" },
-      { name: "Creamy Mashed Potatoes", price: "£8.00" },
-      { name: "Country Corn — Cajun or Garlic Butter", price: "£6.00" },
-      { name: "Sautéed Broccoli", price: "£6.00" },
-      { name: "Steamed Rice", price: "£6.00" },
-      { name: "Noodles", price: "£4.00" },
-      { name: "Plantain or Fries", price: "£5.00" },
-      { name: "Spicy Green Herb Sauce", price: "£4.00" },
-      { name: "Calm-Cas Red Coriander (VG)", price: "£3.00" },
-      { name: "Sweet Steph Garlic Butter", price: "£5.00" },
-      { name: "Big T Jerk BBQ", price: "£4.00" },
-      { name: "Sweet1ne House Sauce", price: "£3.00" },
-      { name: "Sweet1ne Cajun Sauce", price: "£5.00", description: "Mild or hot" },
-      { name: "Garlic Butter", price: "£4.00" },
-    ],
-  },
-  {
-    id: "kids",
-    kicker: "Kids",
-    dishes: [
-      { name: "Mac ’n’ Cheese", price: "£4.00" },
-      { name: "BBQ Wings & Fries", price: "£7.50" },
-      { name: "Beef Burger & Fries", price: "£8.50" },
-    ],
-  },
-  {
-    id: "desserts",
-    kicker: "Desserts",
-    mark: `${PHOTO}/photo-desserts.jpg`,
-    markPosition: "40% 58%",
-    dishes: [
-      {
-        name: "Yaji Cinnamon French Toast",
-        price: "£9.00",
-        description: "Brioche, yaji and cinnamon, zobo berry sauce.",
-        featured: true,
-        image: `${PHOTO}/photo-desserts.jpg`,
-      },
-      {
-        name: "Rum Sticky Toffee Pudding",
-        price: "£12.50",
-        description: "Dark rum toffee, Madagascan vanilla ice cream.",
-      },
-      { name: "Cheesecake", price: "£11.50", description: "Oreo Crumble or Lotus Biscoff." },
-      { name: "Apple Crumble", price: "£10.50", description: "Custard or ice cream." },
-      {
-        name: "Salted Caramel Puff Puff",
-        price: "£10.50",
-        description: "West African dough, white chocolate cream.",
-      },
-      {
-        name: "Ice Cream",
-        price: "from £7",
-        description: "Oreo £7 · Vanilla £8 · Strawberry £8 · Alphonso mango £10",
-      },
-    ],
-  },
-  {
-    id: "bar",
-    kicker: "The bar",
+    test: /\bbar\b|drink|cocktail/i,
     mark: `${PHOTO}/photo-bar-globe.jpg`,
     markPosition: "50% 36%",
-    shots: [
-      `${PHOTO}/photo-bar-globe.jpg`,
-      `${PHOTO}/photo-bar-umbrellas.jpg`,
-      `${PHOTO}/photo-bar-rose.jpg`,
-    ],
-    dishes: [
-      {
-        name: "Exotic Pina Colada",
-        price: "£13.00",
-        featured: true,
-        image: `${PHOTO}/photo-bar-globe.jpg`,
-      },
-      { name: "Velvet Bubblegum Mojito", price: "£13.00" },
-      { name: "Sweet1ne Special", price: "£13.00" },
-      { name: "Inferno Spicy Margarita", price: "£13.00" },
-      { name: "Moonlight Mojito", price: "£13.00" },
-      { name: "Midnight Pornstar Martini", price: "£13.00" },
-      { name: "Temptress Martini", price: "£13.00" },
-      { name: "Luscious Strawberry Daiquiri", price: "£13.00" },
-      { name: "Tahitian Mai Tai", price: "£13.00" },
-      { name: "Long Island Blur", price: "£13.00" },
-      { name: "Margarita Fiesta", price: "£13.00" },
-      { name: "Sapphire Blue Lagoon", price: "£13.00" },
-      { name: "Rum Punch", price: "£11.00" },
-      { name: "Pineapple Punch", price: "£9.00" },
-      { name: "Guinness Punch", price: "£9.00" },
-      { name: "Midair Carousel", price: "£30.00", description: "Shared between four." },
-      { name: "Wine — Rosé, White or Red", price: "£25.00" },
-      { name: "Prosecco", price: "£35.00" },
-      { name: "Belaire Rosé", price: "£90.00" },
-      { name: "Moët Brut", price: "£120.00" },
-      { name: "Nigerian Fanta", price: "£6.50" },
-      { name: "Supermalt", price: "£4.00" },
-      { name: "Juice", price: "£3.00", description: "Apple · Orange" },
-      { name: "Water", price: "from £3", description: "Small £3 · Large £6" },
-      {
-        name: "Spirits",
-        price: "from £80",
-        description:
-          "Azul, Casamigos, Hennessy, Courvoisier, Cîroc, Grey Goose, house tequila — ask your server.",
-      },
-    ],
+    shots: [`${PHOTO}/photo-bar-globe.jpg`, `${PHOTO}/photo-bar-umbrellas.jpg`, `${PHOTO}/photo-bar-rose.jpg`],
   },
 ];
 
-export const MENU_NOTE =
-  "Tell your server about allergies before you order. Not every ingredient is listed. Confirm with your server if you need to.";
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "") || "chapter";
+}
 
-/** The six that get an emblem in the course rail. */
-export const COURSES = ["starters", "mains", "pasta", "seafood", "desserts", "bar"];
+function priceLabel(item: PublicMenuItem): string {
+  return gbp.format(item.promo_price ?? item.price);
+}
+
+/** Builds the chapter list from the real menu, and which chapters get a
+ *  course-nav emblem (only the ones with curated photography — an
+ *  unphotographed section is reached by scrolling, same as before). */
+export function buildMenu(data: PublicMenuData): { chapters: Chapter[]; courseIds: string[] } {
+  const mainCategories = data.categories.filter((c) => c.parent_id === null);
+  const usedIds = new Set<string>();
+
+  const chapters: Chapter[] = mainCategories.map((main) => {
+    let id = slugify(main.name);
+    while (usedIds.has(id)) id = `${id}-2`;
+    usedIds.add(id);
+
+    const dishes = data.items
+      .filter((item) => item.main_category_id === main.id)
+      .map((item) => ({
+        id: item.id,
+        name: item.title,
+        price: priceLabel(item),
+        description: item.description ?? undefined,
+        featured: Boolean(item.picture),
+        image: item.picture ?? undefined,
+      }));
+
+    const curated = CURATED.find((c) => c.test.test(main.name));
+
+    return {
+      id,
+      kicker: main.name,
+      mark: curated?.mark,
+      markPosition: curated?.markPosition,
+      bleed: curated?.bleed,
+      shots: curated?.shots,
+      dishes,
+    };
+  });
+
+  const nonEmpty = chapters.filter((c) => c.dishes.length > 0);
+  const courseIds = nonEmpty.filter((c) => c.mark).map((c) => c.id);
+
+  return { chapters: nonEmpty, courseIds };
+}
+
+export const MENU_NOTE_FALLBACK =
+  "Tell your server about allergies before you order. Not every ingredient is listed. Confirm with your server if you need to.";

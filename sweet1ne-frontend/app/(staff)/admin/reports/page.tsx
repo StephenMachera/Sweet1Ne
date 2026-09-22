@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { ReportView } from "@/components/reports/report-view";
 import { GeneralReport } from "@/components/reports/general-report";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 export default function AdminReportsPage() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function AdminReportsPage() {
   }, [me, loading, canView, router]);
 
   if (loading || !me || !canView) {
-    return <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>;
+    return <AdminLoading />;
   }
 
   return (

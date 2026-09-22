@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useMe, hasPermission } from "@/lib/use-me";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -187,7 +188,7 @@ export default function AdminLeadsPage() {
   }
 
   if (meLoading || !me || !canManage) {
-    return <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>;
+    return <AdminLoading />;
   }
 
   const all = subscribers.length;
@@ -274,7 +275,7 @@ export default function AdminLeadsPage() {
       {importNote && <p className="admin-dek">{importNote}</p>}
 
       {loading ? (
-        <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+        <AdminLoading />
       ) : visible.length === 0 ? (
         <p className="admin-empty">No leads on this filter.</p>
       ) : (

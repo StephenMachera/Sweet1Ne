@@ -6,6 +6,7 @@ import { Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 type Branch = { id: string; name: string };
 
@@ -124,7 +125,7 @@ export default function AdminInboxPage() {
   }
 
   if (meLoading || !me || !canManage) {
-    return <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>;
+    return <AdminLoading />;
   }
 
   const branchScoped = enquiries.filter((r) => !branchFilter || r.branch_id === branchFilter);
@@ -221,7 +222,7 @@ export default function AdminInboxPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+        <AdminLoading />
       ) : visible.length === 0 ? (
         <p className="admin-empty">No enquiries from Contact.</p>
       ) : (

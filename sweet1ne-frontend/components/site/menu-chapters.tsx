@@ -3,17 +3,17 @@
 import Image from "next/image";
 import Slogan from "@/components/site/slogan";
 import { SiteFooter } from "./site-footer";
-import { MENU, MENU_NOTE, type Chapter, type Dish } from "@/lib/menu-content";
+import { MENU_NOTE_FALLBACK, type Chapter, type Dish } from "@/lib/menu-content";
 
-export function MenuChapters() {
+export function MenuChapters({ chapters, note }: { chapters: Chapter[]; note: string | null }) {
   return (
     <>
-      {MENU.map((chapter) => (
+      {chapters.map((chapter) => (
         <MenuChapter key={chapter.id} chapter={chapter} />
       ))}
 
       <p className="note">
-        {MENU_NOTE}
+        {note || MENU_NOTE_FALLBACK}
       </p>
 
       {/* The closing invitation — centred, with room above and below. */}
@@ -102,7 +102,7 @@ function MenuChapter({ chapter }: { chapter: Chapter }) {
 
       <div className="list">
         {chapter.dishes.map((dish) => (
-          <DishRow key={dish.name} dish={dish} />
+          <DishRow key={dish.id} dish={dish} />
         ))}
       </div>
     </section>

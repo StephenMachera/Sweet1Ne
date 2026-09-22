@@ -118,6 +118,151 @@ export function PromoForm({
     }
   }
 
+  if (!isBranch) {
+    return (
+      <form onSubmit={handleSubmit} className="admin-form">
+        <fieldset disabled={saving} className="contents">
+          {error && (
+            <p role="alert" className="admin-hold mb-3 text-sm">
+              {error}
+            </p>
+          )}
+
+          <label>
+            Name
+            <input
+              required
+              placeholder="e.g. Clearing the fridge"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </label>
+
+          <label>
+            Description
+            <input value={description} onChange={(e) => setDescription(e.target.value)} />
+          </label>
+
+          {branches && !promo && (
+            <label>
+              Branch
+              <select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+                <option value="">All branches</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <p className="admin-kicker">What does this apply to?</p>
+          <div className="admin-cats" role="group" aria-label="Applies to">
+            <button type="button" className={targetType === "item" ? "is-on" : undefined} onClick={() => setTargetType("item")}>
+              One item
+            </button>
+            <button
+              type="button"
+              className={targetType === "category" ? "is-on" : undefined}
+              onClick={() => setTargetType("category")}
+            >
+              A whole category
+            </button>
+          </div>
+
+          {targetType === "item" ? (
+            <select value={itemId} onChange={(e) => setItemId(e.target.value)}>
+              <option value="">Choose an item…</option>
+              {items.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.title}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+              <option value="">Choose a category…</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <p className="admin-kicker">How much off?</p>
+          <div className="admin-cats" role="group" aria-label="Discount type">
+            <button
+              type="button"
+              className={discountType === "percentage" ? "is-on" : undefined}
+              onClick={() => setDiscountType("percentage")}
+            >
+              Percentage off
+            </button>
+            <button
+              type="button"
+              className={discountType === "fixed_price" ? "is-on" : undefined}
+              onClick={() => setDiscountType("fixed_price")}
+            >
+              Set a new price
+            </button>
+          </div>
+
+          {discountType === "percentage" ? (
+            <label>
+              Percent off
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={percent}
+                onChange={(e) => setPercent(e.target.value)}
+              />
+            </label>
+          ) : (
+            <label>
+              Promotional price (£)
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={fixedPrice}
+                onChange={(e) => setFixedPrice(e.target.value)}
+              />
+              <span className="text-xs text-[var(--ivory-dim)]">
+                Overrides any percentage discounts on the same item.
+              </span>
+            </label>
+          )}
+
+          <div className="admin-row">
+            <label>
+              Starts
+              <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+            </label>
+            <label>
+              Ends
+              <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+            </label>
+          </div>
+          <p className="text-xs text-[var(--ivory-dim)]" style={{ marginTop: "-0.5rem" }}>
+            Leave either blank for no limit.
+          </p>
+
+          <div className="flex gap-3 pt-1">
+            <button type="submit" className="admin-book" disabled={saving}>
+              {saving ? "Saving…" : promo ? "Save changes" : "Create discount"}
+            </button>
+            <button type="button" className="admin-book" onClick={onCancel}>
+              Cancel
+            </button>
+          </div>
+        </fieldset>
+      </form>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit}>
       <fieldset disabled={saving} className="space-y-5">

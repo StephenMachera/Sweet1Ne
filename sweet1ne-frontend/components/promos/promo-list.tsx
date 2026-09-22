@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Pencil, Plus, Tag, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { PromoForm, type Promo } from "./promo-form";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 type Option = { id: string; name: string };
 
@@ -42,6 +44,12 @@ export function PromoList({
   const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Promo | undefined>();
+  const [drawerSlot, setDrawerSlot] = useState<Element | null>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reading a real DOM node from a sibling tree, only available after commit
+    setDrawerSlot(document.getElementById("admin-drawer-slot"));
+  }, []);
 
   const isBranch = tone === "branch";
 
@@ -105,6 +113,7 @@ export function PromoList({
 
   const live = promos.filter(isLive);
 
+  if (isBranch) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -264,5 +273,108 @@ export function PromoList({
         </DialogContent>
       </Dialog>
     </div>
+  );
+  }
+
+  return (
+    <>
+      <p className="admin-dek">
+        Discounts on real menu items or a whole category — automatic, shown right on the menu.
+        {" "}{live.length} live of {promos.length}.
+      </p>
+
+      {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
+
+      <div className="admin-tools">
+        <button
+          type="button"
+          className="admin-book"
+          onClick={() => {
+            setEditing(undefined);
+            setFormOpen(true);
+          }}
+        >
+          New discount
+        </button>
+      </div>
+
+      {loading ? (
+        <AdminLoading />
+      ) : promos.length === 0 ? (
+        <p className="admin-empty">No discounts yet. Create one to discount an item or a whole category.</p>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {promos.map((promo) => {
+            const running = isLive(promo);
+            return (
+              <article key={promo.id} className={running ? "admin-card" : "admin-card is-wait"}>
+                <h2>{promo.title}</h2>
+                <p className="admin-stat">
+                  {promo.discount_type === "percentage"
+                    ? `${promo.discount_percent}% off`
+                    : gbp.format(promo.fixed_price ?? 0)}
+                </p>
+                {promo.description && <p>{promo.description}</p>}
+                <p className="text-[var(--ivory-dim)]">
+                  {promo.target_name ?? "—"} · {windowLabel(promo)}
+                  {showBranchPicker &&
+                    ` · ${promo.branch_id ? branches.find((b) => b.id === promo.branch_id)?.name ?? "one branch" : "All branches"}`}
+                </p>
+                <p className="admin-status" style={{ marginTop: "0.4rem" }}>
+                  {promo.is_active ? (running ? "Live" : "Scheduled") : "Off"}
+                </p>
+                <div className="admin-row-acts" style={{ marginTop: "0.6rem" }}>
+                  <button
+                    type="button"
+                    className="admin-edit"
+                    onClick={() => {
+                      setEditing(promo);
+                      setFormOpen(true);
+                    }}
+                  >
+                    Edit
+                  </button>
+                  {promo.is_active ? (
+                    <button type="button" className="admin-edit" onClick={() => remove(promo)}>
+                      Turn off
+                    </button>
+                  ) : (
+                    <button type="button" className="admin-edit" onClick={() => reactivate(promo)}>
+                      Turn back on
+                    </button>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      {formOpen &&
+        drawerSlot &&
+        createPortal(
+          <aside className="admin-drawer-edit is-builder">
+            <h2>{editing ? "Edit discount" : "New discount"}</h2>
+            <p className="admin-dek">Customers see this reflected in the real price on the menu.</p>
+            <PromoForm
+              promo={editing}
+              branches={showBranchPicker ? branches : undefined}
+              tone={tone}
+              onSaved={(saved) => {
+                setPromos((prev) =>
+                  editing ? prev.map((p) => (p.id === saved.id ? saved : p)) : [saved, ...prev]
+                );
+                setFormOpen(false);
+                setEditing(undefined);
+              }}
+              onCancel={() => {
+                setFormOpen(false);
+                setEditing(undefined);
+              }}
+            />
+          </aside>,
+          drawerSlot
+        )}
+    </>
   );
 }

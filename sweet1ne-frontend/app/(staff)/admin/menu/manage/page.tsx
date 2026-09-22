@@ -11,6 +11,7 @@ import { MenuItemForm, emptyDraft, type MenuItemDraft } from "@/components/menu/
 import { BranchScopePicker, type Branch, type Scope } from "@/components/menu/branch-scope-picker";
 import type { MainCategory, MenuItem, SubCategory } from "@/components/menu/menu-browser";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
 const SCOPE_KEY = "sweet1ne_admin_menu_scope";
@@ -149,7 +150,7 @@ export default function AdminMenuManagePage() {
   }
 
   if (meLoading || !me || !canEdit) {
-    return <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>;
+    return <AdminLoading />;
   }
 
   const subById = new Map(subs.map((s) => [s.id, s]));
@@ -294,7 +295,7 @@ export default function AdminMenuManagePage() {
           )}
 
           {loading ? (
-            <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+            <AdminLoading />
           ) : visibleItems.length === 0 ? (
             <p className="admin-hold px-5 py-10 text-center text-sm">
               {items.length === 0

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 type Branch = { id: string; name: string; phone: string | null };
 
@@ -41,7 +42,7 @@ export default function AdminReservationsPage() {
   }, [router]);
 
   if (meLoading || !me || !canManage) {
-    return <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>;
+    return <AdminLoading />;
   }
 
   return (

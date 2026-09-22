@@ -84,10 +84,14 @@ body.is-gated {
 }
 
 body.is-gated .site-header,
-body.is-gated .pause {
+body.is-gated .pause,
+body.is-gated .site-ribbon {
   opacity: 0;
   pointer-events: none;
 }
+
+/* Pushes the fixed header down to clear the promo ribbon above it. */
+body.has-ribbon .site-header { top: 2.25rem; }
 
 @media (prefers-reduced-motion: reduce) {
   html {

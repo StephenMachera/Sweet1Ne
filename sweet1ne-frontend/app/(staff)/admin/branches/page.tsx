@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 type Place = "both" | "lewisham" | "chingford";
 
@@ -102,7 +103,7 @@ export default function AdminBranchesPage() {
   }
 
   if (meLoading || !me || !canManage) {
-    return <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>;
+    return <AdminLoading />;
   }
 
   const visible = branches.filter((b) => place === "both" || b.slug.includes(place));
@@ -131,7 +132,7 @@ export default function AdminBranchesPage() {
       {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
 
       {loading ? (
-        <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>
+        <AdminLoading />
       ) : (
         <section className="admin-board" aria-label="Restaurants">
           {visible.map((branch) => (

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bodoni_Moda, Hanken_Grotesk } from "next/font/google";
 import { SiteHeader } from "@/components/site/site-header";
+import { PromoRibbon } from "@/components/site/promo-ribbon";
 import { BookingModal } from "@/components/site/booking-modal";
 import { EventPopup } from "@/components/site/event-popup";
 import { Analytics } from "@/components/site/analytics";
@@ -52,6 +53,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     >
       <SmoothScroll>
         <SiteHeader />
+        <PromoRibbon />
         {/* A full-width block so pages can centre their own containers —
             without it, mx-auto has nothing to centre within. */}
         <main className="w-full">{children}</main>
