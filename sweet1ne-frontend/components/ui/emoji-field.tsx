@@ -19,12 +19,14 @@ export function EmojiField({
   placeholder,
   required,
   multiline,
+  disabled,
 }: {
   value: string;
   onChange: (next: string) => void;
   placeholder?: string;
   required?: boolean;
   multiline?: boolean;
+  disabled?: boolean;
 }) {
   const ref = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
@@ -51,6 +53,7 @@ export function EmojiField({
           ref={ref as React.RefObject<HTMLTextAreaElement>}
           value={value}
           placeholder={placeholder}
+          disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
         />
       ) : (
@@ -59,16 +62,19 @@ export function EmojiField({
           required={required}
           value={value}
           placeholder={placeholder}
+          disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
         />
       )}
-      <div className="admin-emoji-bar">
-        {COMPOSER_EMOJI.map((emoji) => (
-          <button key={emoji} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => insertEmoji(emoji)}>
-            {emoji}
-          </button>
-        ))}
-      </div>
+      {!disabled && (
+        <div className="admin-emoji-bar">
+          {COMPOSER_EMOJI.map((emoji) => (
+            <button key={emoji} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => insertEmoji(emoji)}>
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
     </>
   );
 }

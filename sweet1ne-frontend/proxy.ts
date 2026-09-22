@@ -97,5 +97,12 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Static assets under public/ (images, videos, fonts) are excluded
+  // alongside _next/static and _next/image — Next's image optimizer makes
+  // an internal request for these to build the optimized version, and that
+  // request arrives with no Host header, which the allowlist check above
+  // would otherwise reject with a 403 (surfacing as "isn't a valid image").
+  matcher: [
+    "/((?!_next/static|_next/image|favicon\\.ico|images/|videos/|fonts/).*)",
+  ],
 };

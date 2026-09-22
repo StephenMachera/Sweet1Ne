@@ -101,11 +101,16 @@ export function ReportView({
   title,
   palette,
   showBranchComparison,
+  hideHeader = false,
 }: {
   title: string;
   palette: Palette;
   /** Directors only — enables the branch filter and comparison chart. */
   showBranchComparison: boolean;
+  /** Admin-only — the unified /admin/reports page renders its own h1/dek
+   *  above a General/Revenue tab switcher, so this skips the duplicate
+   *  on-screen header. The print-only header stays either way. */
+  hideHeader?: boolean;
 }) {
   const [period, setPeriod] = useState("weekly");
   const [branchId, setBranchId] = useState("");
@@ -143,23 +148,35 @@ export function ReportView({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
-        <div>
-          <h1 className={`text-2xl font-semibold sm:text-3xl ${palette.text}`}>{title}</h1>
-          <p className={`mt-1 text-sm ${palette.muted}`}>
-            {data?.range_label ?? "—"}
-            {selectedBranchName && ` · ${selectedBranchName}`}
-          </p>
+      {hideHeader ? (
+        <div className="flex justify-end print:hidden">
+          <button
+            onClick={() => window.print()}
+            className={`inline-flex h-10 items-center gap-1.5 rounded-lg border px-4 text-sm ${palette.border} ${palette.muted}`}
+          >
+            <Printer size={15} />
+            Print report
+          </button>
         </div>
+      ) : (
+        <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
+          <div>
+            <h1 className={`text-2xl font-semibold sm:text-3xl ${palette.text}`}>{title}</h1>
+            <p className={`mt-1 text-sm ${palette.muted}`}>
+              {data?.range_label ?? "—"}
+              {selectedBranchName && ` · ${selectedBranchName}`}
+            </p>
+          </div>
 
-        <button
-          onClick={() => window.print()}
-          className={`inline-flex h-10 items-center gap-1.5 rounded-lg border px-4 text-sm ${palette.border} ${palette.muted}`}
-        >
-          <Printer size={15} />
-          Print report
-        </button>
-      </div>
+          <button
+            onClick={() => window.print()}
+            className={`inline-flex h-10 items-center gap-1.5 rounded-lg border px-4 text-sm ${palette.border} ${palette.muted}`}
+          >
+            <Printer size={15} />
+            Print report
+          </button>
+        </div>
+      )}
 
       {/* Print-only header */}
       <div className="hidden print:block">

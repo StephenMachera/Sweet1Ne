@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { ReportView } from "@/components/reports/report-view";
+import { GeneralReport } from "@/components/reports/general-report";
 
 export default function AdminReportsPage() {
   const router = useRouter();
   const { me, loading } = useMe();
   const canView = hasPermission(me, "access_reports");
+
+  const [tab, setTab] = useState<"general" | "revenue">("general");
 
   useEffect(() => {
     if (loading || !me) return;
@@ -16,26 +19,53 @@ export default function AdminReportsPage() {
   }, [me, loading, canView, router]);
 
   if (loading || !me || !canView) {
-    return <p className="text-sm text-ink-muted">Loading…</p>;
+    return <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>;
   }
 
   return (
-    <ReportView
-      title="Reports"
-      showBranchComparison
-      palette={{
-        accent: "#D4A853",
-        accentSoft: "#FBF3E3",
-        text: "text-ink",
-        muted: "text-ink-muted",
-        card: "bg-white",
-        border: "border-ink/8",
-        activeTab: "bg-ink text-paper",
-        inactiveTab: "border border-ink/12 bg-white text-ink-muted hover:text-ink",
-        positive: "text-sage",
-        negative: "text-ember",
-        series: ["#D4A853", "#6B7F5E", "#2F7D7F", "#6B5B95", "#C1502E", "#B8496B"],
-      }}
-    />
+    <>
+      <div className="admin-top">
+        <p className="admin-who">{me?.email ?? "—"}</p>
+      </div>
+
+      <h1>Reports</h1>
+      <p className="admin-dek">
+        What filled the floor. One ID per promotion or mail — the same ID on the Google, Meta and
+        Instagram tags. Booked and sat wait for SevenRooms and Toast.
+      </p>
+
+      <div className="admin-cats" role="group" aria-label="View">
+        <button type="button" className={tab === "general" ? "is-on" : undefined} onClick={() => setTab("general")}>
+          General
+        </button>
+        <button type="button" className={tab === "revenue" ? "is-on" : undefined} onClick={() => setTab("revenue")}>
+          Revenue reports
+        </button>
+      </div>
+
+      {tab === "general" ? (
+        <GeneralReport />
+      ) : (
+        <ReportView
+          title="Revenue reports"
+          showBranchComparison
+          hideHeader
+          palette={{
+            accent: "#c9a24a",
+            accentSoft: "rgba(201,162,74,0.12)",
+            text: "text-[var(--ivory)]",
+            muted: "text-[var(--ivory-dim)]",
+            card: "bg-[var(--panel-2)]",
+            border: "border-[var(--gold-line)]",
+            activeTab: "bg-[var(--gold)] text-[#0e0e0e]",
+            inactiveTab:
+              "border border-[var(--gold-line)] bg-[var(--panel)] text-[var(--ivory-dim)] hover:text-[var(--ivory)]",
+            positive: "text-[var(--gold)]",
+            negative: "text-[var(--ivory-dim)]",
+            series: ["#c9a24a", "#7c9473", "#4a8f91", "#8a7bab", "#b8724a", "#a15c78"],
+          }}
+        />
+      )}
+    </>
   );
 }

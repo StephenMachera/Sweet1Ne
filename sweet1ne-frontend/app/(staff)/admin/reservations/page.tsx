@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
-import { ReservationList } from "@/components/reservations/reservation-list";
 
 type Branch = { id: string; name: string; phone: string | null };
 
@@ -19,26 +18,27 @@ export default function AdminReservationsPage() {
   const canManage = hasPermission(me, "manage_reservations");
 
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [enquiryCount, setEnquiryCount] = useState<number | null>(null);
+  const [state, setState] = useState<"all" | "open" | "done">("all");
+  const [query, setQuery] = useState("");
 
-  const loadEnquiries = useCallback(() => {
-    // Just for the card's stat — the real list below does its own fetching.
-    apiFetch("/reservations?status=pending")
-      .then((rows: { reservation_type: string }[]) =>
-        setEnquiryCount(rows.filter((r) => r.reservation_type === "enquiry").length)
-      )
-      .catch(() => setEnquiryCount(null));
-  }, []);
+  // No booking sync is wired up yet — this stays empty until SevenRooms is
+  // connected. The states/search filters below are real, just inert until
+  // then, matching the reference template exactly.
+  const bookings: never[] = [];
 
   useEffect(() => {
     apiFetch("/branches").then(setBranches).catch(() => setBranches([]));
-    loadEnquiries();
-  }, [loadEnquiries]);
+  }, []);
 
   useEffect(() => {
     if (meLoading || !me) return;
     if (!canManage) router.replace("/admin/dashboard");
   }, [meLoading, me, canManage, router]);
+
+  // Old bookmarks/links to the enquiries section now belong on Inbox.
+  useEffect(() => {
+    if (window.location.hash === "#messages") router.replace("/admin/inbox");
+  }, [router]);
 
   if (meLoading || !me || !canManage) {
     return <p className="text-sm text-[var(--ivory-dim)]">Loading…</p>;
@@ -51,12 +51,12 @@ export default function AdminReservationsPage() {
       </div>
 
       <h1>Reservations</h1>
-      <p className="admin-dek">Bookings wait for SevenRooms. Contact-page enquiries are live below.</p>
+      <p className="admin-dek">{bookings.length} bookings · SevenRooms not connected</p>
 
-      <section className="admin-board tight" aria-label="Reservation sources">
+      <section className="admin-board tight" aria-label="Bookings">
         <article className="admin-card is-wait">
           <h2>Bookings</h2>
-          <Stat value={null} />
+          <p className="admin-stat admin-hold">—</p>
           <p>SevenRooms not connected. Guests book from the website.</p>
           <div className="admin-acts">
             {branches
@@ -68,23 +68,40 @@ export default function AdminReservationsPage() {
               ))}
           </div>
         </article>
-
-        <article className="admin-card">
-          <h2>Inquiry</h2>
-          <Stat value={enquiryCount} />
-          <p>Messages sent from the website&rsquo;s contact page, waiting for an answer.</p>
-        </article>
       </section>
 
-      {/* Same list, same accept/reject logic as reservation bookings would
-          use — filtered to enquiry-type rows only, since Bookings above
-          stays a placeholder until SevenRooms is connected. */}
-      <ReservationList tone="admin" reservationTypes={["enquiry"]} hideHeader onDecided={loadEnquiries} />
+      <div className="admin-cats" role="group" aria-label="Status">
+        <button type="button" className={state === "all" ? "is-on" : undefined} onClick={() => setState("all")}>
+          All
+        </button>
+        <button type="button" className={state === "open" ? "is-on" : undefined} onClick={() => setState("open")}>
+          Open
+        </button>
+        <button type="button" className={state === "done" ? "is-on" : undefined} onClick={() => setState("done")}>
+          Done
+        </button>
+      </div>
+      <div className="admin-tools">
+        <input type="search" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
+      </div>
+
+      {bookings.length === 0 ? (
+        <p className="admin-empty">No bookings. SevenRooms is not connected.</p>
+      ) : (
+        <div className="admin-data-panel">
+          <table className="admin-sheet">
+            <thead>
+              <tr>
+                <th>From</th>
+                <th>Party</th>
+                <th>Restaurant</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody />
+          </table>
+        </div>
+      )}
     </>
   );
-}
-
-function Stat({ value }: { value: number | null }) {
-  if (value === null) return <p className="admin-stat admin-hold">—</p>;
-  return <p className="admin-stat">{value}</p>;
 }

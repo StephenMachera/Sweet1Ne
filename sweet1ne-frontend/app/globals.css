@@ -154,6 +154,12 @@ body {
   background:
     radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 162, 74, 0.07), transparent 55%),
     var(--bg);
+  /* .admin-board below responds to this element's actual rendered width via
+     @container, not the viewport — needed because opening a drawer
+     (.admin-drawer-edit) shrinks this column well before the viewport
+     itself gets any narrower, and a @media breakpoint can't see that. */
+  container-type: inline-size;
+  container-name: admin-stage;
 }
 
 .admin-rail {
@@ -452,6 +458,12 @@ body {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.85rem;
 }
+@container admin-stage (max-width: 1100px) {
+  .admin-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container admin-stage (max-width: 960px) {
+  .admin-board { grid-template-columns: 1fr; }
+}
 .admin-board.tight { margin: 0 0 1.2rem; }
 .admin-board.tight .admin-card { min-height: 0; }
 .admin-card {
@@ -499,14 +511,9 @@ body {
 .admin-card.is-wait .admin-stat { color: var(--gold); }
 .admin-hold { color: var(--gold); }
 
-@media (max-width: 1100px) {
-  .admin-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
 @media (max-width: 960px) {
   .admin-who { display: none; }
   .admin-top { padding: 0.45rem 0.55rem; margin-bottom: 1rem; }
-  .admin-board { grid-template-columns: 1fr; }
 }
 
 /* ── Menu page — house.css's .tools/.cats/.kpi-strip/.sheet/.toggle, plus a
@@ -1058,6 +1065,26 @@ body {
   background: #050505;
   padding: 1.15rem 1.1rem 1.2rem;
   margin: 0 0 1.2rem;
+}
+
+/* Campaign editor's live preview — same sticky dark-card treatment as the
+   menu dish preview, holding a real rendered-email iframe rather than a
+   hand-built DOM replica (so it never drifts from what actually sends). */
+.admin-mail-preview {
+  position: sticky;
+  top: 0.55rem;
+  z-index: 3;
+  border: 1px solid var(--gold-line);
+  background: #050505;
+  margin: 0 0 1.2rem;
+  overflow: hidden;
+}
+.admin-mail-preview iframe {
+  display: block;
+  width: 100%;
+  height: 70vh;
+  border: 0;
+  background: #050505;
 }
 .admin-dish-preview .admin-kicker { margin: 0 0 0.65rem; }
 .admin-dish-preview h2 {

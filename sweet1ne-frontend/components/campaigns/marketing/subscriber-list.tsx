@@ -37,9 +37,13 @@ type Stats = {
 export function SubscriberList({
   tone,
   canSendCampaigns,
+  hideHeader = false,
 }: {
   tone: "admin" | "branch";
   canSendCampaigns: boolean;
+  /** Admin-only — the unified /admin/marketing page renders its own h1/dek
+   *  above a List/Campaigns tab switcher, so this skips the duplicate. */
+  hideHeader?: boolean;
 }) {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -53,16 +57,16 @@ export function SubscriberList({
 
   const card = isBranch
     ? "border-slate-bg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-    : "border-ink/8 bg-white shadow-[0_1px_3px_rgba(20,24,28,0.04)]";
-  const text = isBranch ? "text-navy" : "text-ink";
-  const muted = isBranch ? "text-slate-muted" : "text-ink-muted";
-  const subtle = isBranch ? "text-slate-subtle" : "text-ink-muted";
+    : "border-[var(--gold-line)] bg-[var(--panel-2)]";
+  const text = isBranch ? "text-navy" : "text-[var(--ivory)]";
+  const muted = isBranch ? "text-slate-muted" : "text-[var(--ivory-dim)]";
+  const subtle = isBranch ? "text-slate-subtle" : "text-[var(--ivory-dim)]";
   const primary = isBranch
     ? "bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
-    : "bg-gold text-ink hover:bg-gold/90";
-  const activeBadge = isBranch ? "bg-success-bg text-success" : "bg-sage-soft text-sage";
-  const inactiveBadge = isBranch ? "bg-slate-bg text-slate-subtle" : "bg-ink/5 text-ink-muted";
-  const headerRow = isBranch ? "bg-slate-bg/40" : "bg-[#FBFCFD]";
+    : "bg-[var(--gold)] text-[#0e0e0e] hover:opacity-90";
+  const activeBadge = isBranch ? "bg-success-bg text-success" : "admin-status is-ok";
+  const inactiveBadge = isBranch ? "bg-slate-bg text-slate-subtle" : "admin-status";
+  const headerRow = isBranch ? "bg-slate-bg/40" : "";
 
   const load = useCallback(() => {
     setLoading(true);
@@ -117,49 +121,57 @@ export function SubscriberList({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className={`text-2xl font-semibold sm:text-3xl ${text}`}>Marketing</h1>
-          <p className={`mt-1 text-sm ${subtle}`}>
-            Everyone who's agreed to hear from Sweet1NE
-          </p>
-        </div>
+      {isBranch ? (
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className={`text-2xl font-semibold sm:text-3xl ${text}`}>Marketing</h1>
+            <p className={`mt-1 text-sm ${subtle}`}>
+              Everyone who's agreed to hear from Sweet1NE
+            </p>
+          </div>
 
-                <div className="flex flex-wrap gap-2">
-          {canSendCampaigns && (
-            <Link
-              href="/admin/marketing/campaigns"
-              className="inline-flex h-10 items-center rounded-lg bg-gold px-4 text-sm font-medium text-ink transition-colors hover:bg-gold/90"
+          <div className="flex flex-wrap gap-2">
+            {canSendCampaigns && (
+              <Link
+                href="/admin/marketing/campaigns"
+                className="inline-flex h-10 items-center rounded-lg bg-gold px-4 text-sm font-medium text-ink transition-colors hover:bg-gold/90"
+              >
+                <Send size={16} className="mr-1.5" />
+                Campaigns
+              </Link>
+            )}
+
+            <Button
+              variant={canSendCampaigns ? "ghost" : "default"}
+              onClick={exportCsv}
+              disabled={exporting || !stats?.subscribed}
+              className={canSendCampaigns ? "" : primary}
             >
-              <Send size={16} className="mr-1.5" />
-              Campaigns
-            </Link>
-          )}
-
-          <Button
-            variant={canSendCampaigns ? "ghost" : "default"}
-            onClick={exportCsv}
-            disabled={exporting || !stats?.subscribed}
-            className={canSendCampaigns ? "" : primary}
-          >
-            <Download size={16} className="mr-1.5" />
-            {exporting ? "Preparing…" : "Export CSV"}
-          </Button>
+              <Download size={16} className="mr-1.5" />
+              {exporting ? "Preparing…" : "Export CSV"}
+            </Button>
+          </div>
         </div>
-      </div>
-
-      {error && (
-        <div
-          role="alert"
-          className={`rounded-xl px-4 py-3 text-sm ${
-            isBranch
-              ? "border border-danger/25 bg-danger-bg text-danger"
-              : "border border-ember/25 bg-ember-soft text-ember"
-          }`}
-        >
-          {error}
-        </div>
+      ) : (
+        !hideHeader && (
+          <>
+            <h1>Marketing</h1>
+            <p className="admin-dek">Everyone who&rsquo;s agreed to hear from Sweet1NE</p>
+          </>
+        )
       )}
+
+      {error &&
+        (isBranch ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-danger/25 bg-danger-bg px-4 py-3 text-sm text-danger"
+          >
+            {error}
+          </div>
+        ) : (
+          <p className="admin-hold text-sm">{error}</p>
+        ))}
 
       {/* The list is company-wide, so a branch manager should know that
           what they're looking at isn't only their own customers. */}
@@ -174,86 +186,137 @@ export function SubscriberList({
         </div>
       )}
 
-      {stats && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            icon={<Users size={18} strokeWidth={1.5} />}
-            label="On the list"
-            value={stats.subscribed}
-            tone={tone}
-            accent="primary"
-          />
-          <StatCard
-            icon={<TrendingUp size={18} strokeWidth={1.5} />}
-            label="From the website"
-            value={stats.from_website}
-            tone={tone}
-            accent="info"
-          />
-          <StatCard
-            icon={<Mail size={18} strokeWidth={1.5} />}
-            label="From bookings"
-            value={stats.from_reservations}
-            tone={tone}
-            accent="success"
-          />
-          <StatCard
-            icon={<UserMinus size={18} strokeWidth={1.5} />}
-            label="Opted out"
-            value={stats.unsubscribed}
-            tone={tone}
-            accent="muted"
-          />
+      {stats &&
+        (isBranch ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              icon={<Users size={18} strokeWidth={1.5} />}
+              label="On the list"
+              value={stats.subscribed}
+              tone={tone}
+              accent="primary"
+            />
+            <StatCard
+              icon={<TrendingUp size={18} strokeWidth={1.5} />}
+              label="From the website"
+              value={stats.from_website}
+              tone={tone}
+              accent="info"
+            />
+            <StatCard
+              icon={<Mail size={18} strokeWidth={1.5} />}
+              label="From bookings"
+              value={stats.from_reservations}
+              tone={tone}
+              accent="success"
+            />
+            <StatCard
+              icon={<UserMinus size={18} strokeWidth={1.5} />}
+              label="Opted out"
+              value={stats.unsubscribed}
+              tone={tone}
+              accent="muted"
+            />
+          </div>
+        ) : (
+          <div className="admin-kpi-strip" aria-label="Summary">
+            <div>
+              <span className="admin-kpi-n">{stats.subscribed}</span>
+              <span className="admin-kpi-l">On the list</span>
+            </div>
+            <div>
+              <span className="admin-kpi-n">{stats.from_website}</span>
+              <span className="admin-kpi-l">From the website</span>
+            </div>
+            <div>
+              <span className="admin-kpi-n">{stats.from_reservations}</span>
+              <span className="admin-kpi-l">From bookings</span>
+            </div>
+            <div>
+              <span className="admin-kpi-n">{stats.unsubscribed}</span>
+              <span className="admin-kpi-l">Opted out</span>
+            </div>
+          </div>
+        ))}
+
+      {isBranch ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-[220px] flex-1">
+            <Search
+              size={16}
+              className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 ${muted}`}
+            />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by email"
+              className="border-slate-border pl-9"
+            />
+          </div>
+
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+              showAll
+                ? "bg-navy text-white"
+                : "border border-slate-border bg-white text-slate-subtle hover:text-navy"
+            }`}
+          >
+            {showAll ? "Showing everyone" : "Active only"}
+          </button>
+        </div>
+      ) : (
+        <div className="admin-cats" role="group" aria-label="Status">
+          <button
+            type="button"
+            className={!showAll ? "is-on" : undefined}
+            onClick={() => setShowAll(false)}
+          >
+            Active only
+          </button>
+          <button
+            type="button"
+            className={showAll ? "is-on" : undefined}
+            onClick={() => setShowAll(true)}
+          >
+            Showing everyone
+          </button>
         </div>
       )}
-
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[220px] flex-1">
-          <Search
-            size={16}
-            className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 ${muted}`}
-          />
-          <Input
+      {!isBranch && (
+        <div className="admin-tools">
+          <input
+            type="search"
+            className="flex-1"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by email"
-            className={`pl-9 ${isBranch ? "border-slate-border" : ""}`}
           />
+          <button type="button" className="admin-book" onClick={exportCsv} disabled={exporting || !stats?.subscribed}>
+            {exporting ? "Preparing…" : "Export CSV"}
+          </button>
         </div>
-
-        <button
-          onClick={() => setShowAll((v) => !v)}
-          className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-            showAll
-              ? isBranch
-                ? "bg-navy text-white"
-                : "bg-ink text-paper"
-              : isBranch
-                ? "border border-slate-border bg-white text-slate-subtle hover:text-navy"
-                : "border border-ink/12 bg-white text-ink-muted hover:text-ink"
-          }`}
-        >
-          {showAll ? "Showing everyone" : "Active only"}
-        </button>
-      </div>
+      )}
 
       {loading ? (
-        <p className={`text-sm ${muted}`}>Loading…</p>
+        <p className={`text-sm ${isBranch ? muted : "text-[var(--ivory-dim)]"}`}>Loading…</p>
       ) : visible.length === 0 ? (
-        <div
-          className={`rounded-xl border border-dashed px-6 py-16 text-center ${
-            isBranch ? "border-slate-border" : "border-ink/15"
-          }`}
-        >
-          <Mail size={26} strokeWidth={1} className={`mx-auto ${muted}`} />
-          <p className={`mt-3 text-sm ${muted}`}>
+        isBranch ? (
+          <div className="rounded-xl border border-dashed border-slate-border px-6 py-16 text-center">
+            <Mail size={26} strokeWidth={1} className={`mx-auto ${muted}`} />
+            <p className={`mt-3 text-sm ${muted}`}>
+              {query ? "Nobody matches that search." : "Nobody's subscribed yet."}
+            </p>
+          </div>
+        ) : (
+          <p className="admin-empty">
             {query ? "Nobody matches that search." : "Nobody's subscribed yet."}
           </p>
-        </div>
-      ) : (
+        )
+      ) : isBranch ? (
         <div className={`overflow-x-auto rounded-xl border ${card}`}>
           <table className="w-full min-w-[560px] text-sm">
-            <thead className={`border-b ${isBranch ? "border-slate-bg" : "border-ink/8"} ${headerRow}`}>
+            <thead className={`border-b border-slate-bg ${headerRow}`}>
               <tr className={`text-left text-[11px] uppercase tracking-[0.14em] ${muted}`}>
                 <th className="px-5 py-3 font-medium">Email</th>
                 <th className="px-5 py-3 font-medium">Came from</th>
@@ -261,7 +324,7 @@ export function SubscriberList({
                 <th className="px-5 py-3 font-medium">Status</th>
               </tr>
             </thead>
-            <tbody className={`divide-y ${isBranch ? "divide-slate-bg" : "divide-ink/5"}`}>
+            <tbody className="divide-y divide-slate-bg">
               {visible.map((subscriber) => (
                 <tr key={subscriber.id}>
                   <td className="px-5 py-3.5">
@@ -285,6 +348,45 @@ export function SubscriberList({
                         subscriber.is_subscribed ? activeBadge : inactiveBadge
                       }`}
                     >
+                      {subscriber.is_subscribed ? "Active" : "Opted out"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="admin-data-panel">
+          <table className="admin-sheet">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Came from</th>
+                <th>Agreed</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((subscriber) => (
+                <tr key={subscriber.id}>
+                  <td>
+                    <a href={`mailto:${subscriber.email}`} className="admin-name">
+                      {subscriber.email}
+                    </a>
+                  </td>
+                  <td className="admin-muted">
+                    {subscriber.source === "reservation" ? "A booking" : "The website"}
+                  </td>
+                  <td className="admin-muted">
+                    {new Date(subscriber.consented_at).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </td>
+                  <td>
+                    <span className={subscriber.is_subscribed ? activeBadge : inactiveBadge}>
                       {subscriber.is_subscribed ? "Active" : "Opted out"}
                     </span>
                   </td>

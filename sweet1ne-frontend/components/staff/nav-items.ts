@@ -34,11 +34,11 @@ export type NavGroup = {
 };
 
 // Regrouped to the five sections in the spec: Overview · Guest site · Floor ·
-// People · System. Four items below (Media, QR Codes, Inbox, Leads) don't
-// have a page yet and are gated on the closest existing permission as a
-// placeholder — see the note above each. None of that is settled backend
-// policy, just enough to keep the sidebar's filtering correct until a real
-// permission key exists for them.
+// People · System. Two items below (Media, QR Codes) don't have a page yet
+// and are gated on the closest existing permission as a placeholder — see
+// the note above each. None of that is settled backend policy, just enough
+// to keep the sidebar's filtering correct until a real permission key
+// exists for them.
 export const NAV_GROUPS: NavGroup[] = [
   {
     heading: "Overview",
