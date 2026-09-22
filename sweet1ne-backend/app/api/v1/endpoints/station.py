@@ -36,6 +36,7 @@ STATION_PERMISSIONS = {
 @router.get("/{station}/orders", response_model=list[StationOrderOut])
 def list_station_orders(
     station: str,
+    branch_id: uuid.UUID | None = None,
     staff: CurrentStaff = Depends(require_permission(*STATION_PERMISSIONS.values())),
     db: Session = Depends(get_db),
 ):
@@ -72,6 +73,11 @@ def list_station_orders(
     )
     if staff.branch_id is not None:
         statement = statement.where(Table.branch_id == staff.branch_id)
+    elif branch_id is not None:
+        # Only an unscoped (admin/director) caller can narrow this way — a
+        # branch-scoped staff member is already pinned to their own branch
+        # above, and letting them override it would defeat that check.
+        statement = statement.where(Table.branch_id == branch_id)
 
     grouped: dict[uuid.UUID, StationOrderOut] = {}
 

@@ -130,6 +130,9 @@ def duplicate_campaign(
         subject=original.subject,
         preheader=original.preheader,
         blocks=original.blocks,
+        audience=original.audience,
+        channels=original.channels,
+        map_id=original.map_id,
         status="draft",
     )
     db.add(copy)
@@ -221,12 +224,17 @@ async def _send_to_list(campaign_id: uuid.UUID, tenant_id: uuid.UUID) -> None:
         if campaign is None:
             return
 
-        subscribers = db.execute(
-            select(NewsletterSubscriber).where(
-                NewsletterSubscriber.tenant_id == tenant_id,
-                NewsletterSubscriber.is_subscribed == True,
-            )
-        ).scalars().all()
+        statement = select(NewsletterSubscriber).where(
+            NewsletterSubscriber.tenant_id == tenant_id,
+            NewsletterSubscriber.is_subscribed == True,
+        )
+        # "active" means everyone subscribed, regardless of how they joined.
+        if campaign.audience == "website":
+            statement = statement.where(NewsletterSubscriber.source == "website")
+        elif campaign.audience == "booking":
+            statement = statement.where(NewsletterSubscriber.source == "reservation")
+
+        subscribers = db.execute(statement).scalars().all()
 
         sent = 0
         failed = 0
@@ -285,15 +293,19 @@ def send_campaign(
     if not campaign.blocks:
         raise HTTPException(status_code=400, detail="There's nothing in this campaign yet.")
 
-    recipients = db.execute(
-        select(NewsletterSubscriber).where(
-            NewsletterSubscriber.tenant_id == staff.tenant_id,
-            NewsletterSubscriber.is_subscribed == True,
-        )
-    ).scalars().all()
+    recipients_stmt = select(NewsletterSubscriber).where(
+        NewsletterSubscriber.tenant_id == staff.tenant_id,
+        NewsletterSubscriber.is_subscribed == True,
+    )
+    if campaign.audience == "website":
+        recipients_stmt = recipients_stmt.where(NewsletterSubscriber.source == "website")
+    elif campaign.audience == "booking":
+        recipients_stmt = recipients_stmt.where(NewsletterSubscriber.source == "reservation")
+
+    recipients = db.execute(recipients_stmt).scalars().all()
 
     if not recipients:
-        raise HTTPException(status_code=400, detail="Nobody is subscribed yet.")
+        raise HTTPException(status_code=400, detail="Nobody matches that audience yet.")
 
     # Marked before the work starts, so a second click can't send it twice.
     campaign.status = "sending"

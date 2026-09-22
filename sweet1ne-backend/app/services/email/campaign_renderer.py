@@ -13,9 +13,18 @@ what stops a campaign looking nothing like Sweet1NE.
 from html import escape
 from typing import Any
 
-from app.services.email.templates._layout import ( 
+from app.core.config import settings
+from app.services.email.templates._layout import (
     GOLD, HAIRLINE_FAINT, IVORY, IVORY_DIM, MUTED, wrap
     )
+
+# Where a CTA preset kind actually points on the guest site. "url" isn't
+# here — that's a marketer-typed custom link, handled separately in _ctas.
+CTA_PRESET_PATHS: dict[str, tuple[str, str]] = {
+    "book": ("/reservations", "Book"),
+    "menu": ("/menu", "Menu"),
+    "order": ("/order", "Order"),
+}
 
 
 def _heading(block: dict[str, Any]) -> str:
@@ -133,6 +142,86 @@ def _quote(block: dict[str, Any]) -> str:
           </td></tr>"""
 
 
+def _logo(block: dict[str, Any]) -> str:
+    """A repeated/resized mark mid-email — the header already carries one
+    fixed-size logo (see _layout.wrap); this is for a marketer who wants a
+    bigger one before a sign-off, say."""
+    width = {"s": "56", "m": "90", "l": "140"}.get(block.get("size", "m"), "90")
+    align = "center" if block.get("align", "center") == "center" else "left"
+
+    if settings.EMAIL_LOGO_URL:
+        mark = f"""<img src="{escape(settings.EMAIL_LOGO_URL)}" alt="Sweet1NE" width="{width}"
+                 style="display:inline-block;width:{width}px;height:auto;border:0;" />"""
+    else:
+        mark = f"""<span style="font-family:Georgia,'Times New Roman',serif;font-size:22px;color:{GOLD};">Sweet1NE</span>"""
+
+    return f"""
+          <tr><td style="padding:10px 40px 6px;text-align:{align};">
+            {mark}
+          </td></tr>"""
+
+
+def _note(block: dict[str, Any]) -> str:
+    """A smaller aside — a booking note or fine print, not the main copy."""
+    text = escape(block.get("text", ""))
+    if not text:
+        return ""
+
+    return f"""
+          <tr><td style="padding:0 40px 14px;">
+            <p style="margin:0;font-size:13px;line-height:1.6;color:{MUTED};">{text}</p>
+          </td></tr>"""
+
+
+def _slogan(block: dict[str, Any]) -> str:
+    """The site's italic tagline, same treatment it gets everywhere else."""
+    text = escape(block.get("text", "") or "Always in the mood for you.")
+
+    return f"""
+          <tr><td style="padding:10px 40px 4px;text-align:center;">
+            <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:17px;color:{IVORY};">
+              {text}
+            </p>
+          </td></tr>"""
+
+
+def _ctas(block: dict[str, Any]) -> str:
+    """One or more buttons in a row — each item resolves the same way a
+    single _button block would, just several side by side."""
+    items = block.get("items", [])
+    buttons = []
+    for item in items:
+        kind = item.get("kind", "url")
+        if kind in CTA_PRESET_PATHS:
+            path, preset_label = CTA_PRESET_PATHS[kind]
+            href = f"{settings.FRONTEND_URL}{path}"
+            label = item.get("label") or preset_label
+        else:
+            href = item.get("href", "")
+            label = item.get("label", "")
+        if not label or not href:
+            continue
+        buttons.append(
+            f"""<td style="padding:0 8px 0 0;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td style="background-color:{GOLD};">
+                      <a href="{escape(href)}" style="display:inline-block;padding:15px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;letter-spacing:0.2px;color:#0e0e0e;text-decoration:none;">
+                        {escape(label)}
+                      </a>
+                    </td></tr>
+                  </table>
+                </td>"""
+        )
+    if not buttons:
+        return ""
+
+    align = block.get("align", "left")
+    return f"""
+          <tr><td style="padding:8px 40px 28px;" align="{align}">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>{"".join(buttons)}</tr></table>
+          </td></tr>"""
+
+
 def _divider(_block: dict[str, Any]) -> str:
     return f"""
           <tr><td style="padding:6px 40px 26px;">
@@ -149,13 +238,18 @@ def _spacer(_block: dict[str, Any]) -> str:
 
 RENDERERS = {
     "eyebrow": _eyebrow,
+    "kicker": _eyebrow,  # same small-caps label treatment, template's name for it
     "heading": _heading,
     "paragraph": _paragraph,
     "quote": _quote,
     "image": _image,
     "button": _button,
+    "ctas": _ctas,
     "divider": _divider,
     "spacer": _spacer,
+    "logo": _logo,
+    "note": _note,
+    "slogan": _slogan,
 }
 
 

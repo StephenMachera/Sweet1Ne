@@ -32,6 +32,16 @@ class Campaign(Base):
     # draft | sending | sent | failed
     status: Mapped[str] = mapped_column(String, nullable=False, server_default="draft")
 
+    # active (all subscribed) | website | qr | booking — filters the
+    # subscriber list by NewsletterSubscriber.source at send time.
+    audience: Mapped[str] = mapped_column(String, nullable=False, server_default="active")
+    # Which ad platforms this same promotion also ran on — informational,
+    # shown next to the campaign, not acted on by the backend.
+    channels: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    # UTM campaign id, shared with the matching promotion/event if there is
+    # one — purely for the marketer's own tagging, not read anywhere else.
+    map_id: Mapped[str | None] = mapped_column(String)
+
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     sent_count: Mapped[int] = mapped_column(Integer, server_default="0")
     failed_count: Mapped[int] = mapped_column(Integer, server_default="0")

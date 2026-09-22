@@ -23,3 +23,21 @@ class SubscriberStats(BaseModel):
     unsubscribed: int
     from_website: int
     from_reservations: int
+
+
+class SubscriberCreateIn(BaseModel):
+    email: EmailStr
+    source: str = "import"
+    consented: bool = False
+
+
+class SubscriberCreateOut(BaseModel):
+    subscriber: SubscriberOut
+    # False when an existing row was updated instead of a new one made —
+    # lets the caller (manual add or a CSV import loop) tally
+    # added/updated/skipped the same way the reference template does.
+    created: bool
+
+
+class SubscriberToggleIn(BaseModel):
+    is_subscribed: bool

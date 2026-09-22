@@ -1,5 +1,6 @@
 import csv
 import io
+import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -18,9 +19,27 @@ from app.models.tenant import Tenant
 from app.services.email.client import send_email
 from app.services.email.templates import newsletter_welcome
 
-from app.schemas.newsletter import SubscribeIn, SubscriberOut, SubscriberStats
+from app.schemas.newsletter import (
+    SubscribeIn,
+    SubscriberCreateIn,
+    SubscriberCreateOut,
+    SubscriberOut,
+    SubscriberStats,
+    SubscriberToggleIn,
+)
 
 router = APIRouter()
+
+
+def _subscriber_out(r: NewsletterSubscriber) -> SubscriberOut:
+    return SubscriberOut(
+        id=str(r.id),
+        email=r.email,
+        source=r.source,
+        is_subscribed=r.is_subscribed,
+        consented_at=r.consented_at,
+        unsubscribed_at=r.unsubscribed_at,
+    )
 
 
 
@@ -104,17 +123,69 @@ def list_subscribers(
         statement.order_by(NewsletterSubscriber.consented_at.desc())
     ).scalars().all()
 
-    return [
-        SubscriberOut(
-            id=str(r.id),
-            email=r.email,
-            source=r.source,
-            is_subscribed=r.is_subscribed,
-            consented_at=r.consented_at,
-            unsubscribed_at=r.unsubscribed_at,
-        )
-        for r in rows
-    ]
+    return [_subscriber_out(r) for r in rows]
+
+
+@router.post("/newsletter/subscribers", response_model=SubscriberCreateOut)
+def create_subscriber(
+    payload: SubscriberCreateIn,
+    staff: CurrentStaff = Depends(require_permission("manage_marketing")),
+    db: Session = Depends(get_db),
+):
+    """Manual add, and what a CSV import calls once per row — email is
+    unique across the whole table, so an existing address is updated
+    (added/updated/skipped, same distinction the CSV importer needs) rather
+    than rejected."""
+    email = payload.email.strip().lower()
+
+    existing = db.execute(
+        select(NewsletterSubscriber).where(NewsletterSubscriber.email == email)
+    ).scalars().first()
+
+    if existing:
+        if str(existing.tenant_id) != staff.tenant_id:
+            raise HTTPException(status_code=409, detail="That email is already on another company's list.")
+        existing.source = payload.source
+        if payload.consented and not existing.is_subscribed:
+            existing.is_subscribed = True
+            existing.unsubscribed_at = None
+            existing.consented_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(existing)
+        return SubscriberCreateOut(subscriber=_subscriber_out(existing), created=False)
+
+    subscriber = NewsletterSubscriber(
+        tenant_id=staff.tenant_id,
+        email=email,
+        source=payload.source,
+        is_subscribed=payload.consented,
+    )
+    db.add(subscriber)
+    db.commit()
+    db.refresh(subscriber)
+    return SubscriberCreateOut(subscriber=_subscriber_out(subscriber), created=True)
+
+
+@router.patch("/newsletter/subscribers/{subscriber_id}", response_model=SubscriberOut)
+def toggle_subscriber(
+    subscriber_id: uuid.UUID,
+    payload: SubscriberToggleIn,
+    staff: CurrentStaff = Depends(require_permission("manage_marketing")),
+    db: Session = Depends(get_db),
+):
+    subscriber = db.get(NewsletterSubscriber, subscriber_id)
+    if subscriber is None or str(subscriber.tenant_id) != staff.tenant_id:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    subscriber.is_subscribed = payload.is_subscribed
+    if payload.is_subscribed:
+        subscriber.unsubscribed_at = None
+    else:
+        subscriber.unsubscribed_at = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(subscriber)
+    return _subscriber_out(subscriber)
 
 
 @router.get("/newsletter/stats", response_model=SubscriberStats)
