@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import { openBookingModal } from "./booking-modal";
 
 const NAV = [
   { href: "/menu", label: "MENU" },
@@ -137,8 +136,16 @@ export function SiteHeader() {
 
           <div className="flex items-center gap-3">
             {/* Ghost rather than a solid slab — a filled gold button over
-                film reads as an advert. */}
-            <Link href="/locations" className="book">
+                film reads as an advert. Styled directly here rather than
+                the shared .book class, which only has rules scoped to
+                specific page wrappers (.home-page .book, .menu-page .book,
+                …) and renders unstyled on every page that isn't one of
+                those — the header shows on all of them. */}
+            <Link
+              href="/locations"
+              className="rounded-[4px] border border-[rgba(201,162,74,.9)] px-5 py-3 text-[13px] font-semibold text-[var(--gold)] transition-colors hover:bg-[var(--gold)] hover:text-[#0e0e0e] sm:px-6 sm:text-sm"
+              style={{ textShadow: "none" }}
+            >
               Reservations
             </Link>
 
