@@ -1,11 +1,55 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Script from "next/script";
 import { Check } from "lucide-react";
 import { trackConversion } from "./analytics";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+
+// Mirrors app/schemas/reservation.py's _looks_like_a_name — same rule, so a
+// visitor gets told immediately instead of waiting on a round trip just to
+// be rejected by the same check on the server.
+function looksLikeAName(name: string): boolean {
+  const trimmed = name.trim();
+  if (trimmed.length < 2 || trimmed.length > 100) return false;
+  if (!trimmed.includes(" ")) return false;
+  return /^[a-zA-Z '.-]+$/.test(trimmed);
+}
+
+// FastAPI returns a plain string for a raised HTTPException, but a list of
+// {msg, loc, ...} objects for a Pydantic validation failure — this reads
+// either shape and always returns something readable.
+function extractErrorMessage(body: unknown): string {
+  const detail = (body as { detail?: unknown } | null)?.detail;
+  if (typeof detail === "string" && detail) return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    const msg = detail[0]?.msg;
+    if (typeof msg === "string") return msg.replace(/^Value error,\s*/, "");
+  }
+  return "Something went wrong.";
+}
+
+// Cloudflare's script attaches this once it loads — not shipped with any
+// TypeScript types of its own, so this describes just the two calls used
+// below.
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        container: HTMLElement,
+        options: {
+          sitekey: string;
+          callback: (token: string) => void;
+          "expired-callback"?: () => void;
+        }
+      ) => string;
+      reset: (widgetId: string) => void;
+    };
+  }
+}
 
 const TOPICS = [
   "General question",
@@ -30,10 +74,21 @@ export function ContactForm() {
   const [branchId, setBranchId] = useState("");
   const [branches, setBranches] = useState<Branch[]>([]);
   const [message, setMessage] = useState("");
+  // Honeypot — real visitors never see this field (hidden below); a bot
+  // filling in every input it finds gives itself away by filling this one.
+  const [website, setWebsite] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Turnstile — the widget below issues a one-time token once a visitor
+  // completes it; that token (not any of the form fields) is what proves
+  // the submission came from a real browser and not a bot script.
+  const [turnstileReady, setTurnstileReady] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileContainerRef = useRef<HTMLDivElement>(null);
+  const turnstileWidgetIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     fetch(`${API_URL}/public/site/locations`)
@@ -45,9 +100,37 @@ export function ContactForm() {
       .catch(() => {});
   }, []);
 
+  // Runs once the Cloudflare script has loaded (see the <Script onLoad>
+  // below) — that script exposes window.turnstile, which we then use to
+  // draw the widget into the empty <div> further down.
+  useEffect(() => {
+    if (!turnstileReady || !turnstileContainerRef.current || !window.turnstile) return;
+    if (!TURNSTILE_SITE_KEY) return;
+
+    turnstileWidgetIdRef.current = window.turnstile.render(turnstileContainerRef.current, {
+      sitekey: TURNSTILE_SITE_KEY,
+      callback: setTurnstileToken,
+      // A token left too long unused expires; clearing it here means
+      // handleSubmit correctly asks for a fresh one instead of sending a
+      // dead token to the backend.
+      "expired-callback": () => setTurnstileToken(""),
+    });
+  }, [turnstileReady]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!looksLikeAName(name)) {
+      setError("Please enter your full name (first and last).");
+      return;
+    }
+
+    if (TURNSTILE_SITE_KEY && !turnstileToken) {
+      setError("Please complete the verification below before sending.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -62,18 +145,27 @@ export function ContactForm() {
           reservation_type: "enquiry",
           occasion: topic,
           notes: message,
+          website,
+          turnstile_token: turnstileToken,
         }),
       });
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail ?? "Something went wrong.");
+        throw new Error(extractErrorMessage(body));
       }
 
       trackConversion("Contact", { content_category: topic });
       setDone(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
+      // Turnstile tokens are single-use — whether the backend rejected it or
+      // some other error happened, the old token is now spent either way,
+      // so get a fresh one ready for the retry.
+      if (turnstileWidgetIdRef.current && window.turnstile) {
+        window.turnstile.reset(turnstileWidgetIdRef.current);
+      }
+      setTurnstileToken("");
     } finally {
       setSubmitting(false);
     }
@@ -108,6 +200,14 @@ export function ContactForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {TURNSTILE_SITE_KEY && (
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+          strategy="lazyOnload"
+          onLoad={() => setTurnstileReady(true)}
+        />
+      )}
+
       {error && (
         <p
           role="alert"
@@ -116,6 +216,22 @@ export function ContactForm() {
           {error}
         </p>
       )}
+
+      {/* Honeypot — off-screen, never focusable or visible to a real
+          visitor, tabIndex -1 so keyboard/tab order skips it too. */}
+      <div aria-hidden style={{ position: "absolute", left: "-9999px", top: "auto", width: 1, height: 1, overflow: "hidden" }}>
+        <label>
+          Website
+          <input
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+          />
+        </label>
+      </div>
 
       <label className="block">
         <span className={labelClass}>What&apos;s it about?</span>
@@ -196,10 +312,12 @@ export function ContactForm() {
         />
       </label>
 
+      {TURNSTILE_SITE_KEY && <div ref={turnstileContainerRef} />}
+
       <div>
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
           className="border border-[rgba(201,162,74,.9)] px-[1.15rem] py-[0.65rem] text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[var(--gold)] transition-colors hover:bg-[var(--gold)] hover:text-[#0e0e0e] disabled:opacity-50"
           style={{ borderRadius: "3px" }}
         >

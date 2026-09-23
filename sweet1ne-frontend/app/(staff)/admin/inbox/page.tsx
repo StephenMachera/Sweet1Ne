@@ -2,11 +2,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Eye } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { AdminLoading } from "@/components/admin/admin-loading";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+const DARK_DIALOG =
+  "border border-[rgba(201,162,74,0.42)] bg-[#0c0c0c] text-[#e5e2e1] sm:max-w-sm";
+const DIALOG_BOOK_BTN =
+  "inline-block rounded-[3px] border border-[rgba(201,162,74,0.9)] bg-transparent px-[1.15rem] py-[0.7rem] text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-[#c9a24a] hover:bg-[#c9a24a] hover:text-[#0e0e0e]";
+const DIALOG_GHOST_BTN =
+  "inline-block rounded-[3px] border border-[rgba(229,226,225,0.25)] bg-transparent px-[1.15rem] py-[0.7rem] text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-[#e5e2e1] hover:bg-[rgba(229,226,225,0.08)]";
 
 type Branch = { id: string; name: string };
 
@@ -49,6 +57,7 @@ export default function AdminInboxPage() {
   const [editing, setEditing] = useState<Enquiry | null>(null);
   const [replyText, setReplyText] = useState("");
   const [drawerSlot, setDrawerSlot] = useState<Element | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Enquiry | null>(null);
 
   const load = useCallback(() => {
     apiFetch("/reservations")
@@ -121,6 +130,18 @@ export default function AdminInboxPage() {
       setError(err instanceof Error ? err.message : "Couldn't mark that done.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function remove(row: Enquiry) {
+    setConfirmDelete(null);
+    setError(null);
+    try {
+      await apiFetch(`/reservations/${row.id}`, { method: "DELETE" });
+      setEnquiries((prev) => prev.filter((r) => r.id !== row.id));
+      if (editing?.id === row.id) setEditing(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't remove that.");
     }
   }
 
@@ -253,7 +274,7 @@ export default function AdminInboxPage() {
                     <td>
                       <span className={st.cls}>{st.text}</span>
                     </td>
-                    <td>
+                    <td className="admin-row-acts">
                       <button
                         type="button"
                         className="admin-edit"
@@ -264,6 +285,14 @@ export default function AdminInboxPage() {
                         }}
                       >
                         <Eye size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-edit"
+                        aria-label="Remove"
+                        onClick={() => setConfirmDelete(row)}
+                      >
+                        <Trash2 size={15} />
                       </button>
                     </td>
                   </tr>
@@ -330,12 +359,39 @@ export default function AdminInboxPage() {
                   <button type="button" className="admin-book" onClick={() => setEditing(null)}>
                     Close
                   </button>
+                  <button
+                    type="button"
+                    className="admin-book"
+                    onClick={() => setConfirmDelete(editing)}
+                  >
+                    Remove
+                  </button>
                 </div>
               </fieldset>
             </form>
           </aside>,
           drawerSlot
         )}
+
+      <Dialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <DialogContent className={DARK_DIALOG}>
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl text-[#e5e2e1]">Remove this?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-[#a8a4a2]">
+            {confirmDelete?.name} — this removes it for good, not just marks it done. Use this for
+            spam, not a real enquiry you just don&apos;t want to answer yet.
+          </p>
+          <div className="mt-4 flex justify-end gap-2">
+            <button type="button" className={DIALOG_GHOST_BTN} onClick={() => setConfirmDelete(null)}>
+              Cancel
+            </button>
+            <button type="button" className={DIALOG_BOOK_BTN} onClick={() => confirmDelete && remove(confirmDelete)}>
+              Remove
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

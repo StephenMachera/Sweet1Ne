@@ -1,7 +1,19 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+
+
+def _looks_like_a_name(name: str) -> bool:
+    """Real names have a space (first + last) and are made of letters and
+    the odd apostrophe/hyphen — not a single unbroken run of random-cased
+    letters, which is what every bot submission so far has looked like."""
+    stripped = name.strip()
+    if not (2 <= len(stripped) <= 100):
+        return False
+    if " " not in stripped:
+        return False
+    return all(c.isalpha() or c in " '-." for c in stripped)
 
 
 class ReservationIn(BaseModel):
@@ -15,6 +27,21 @@ class ReservationIn(BaseModel):
     occasion: str | None = None
     notes: str | None = None
     marketing_consent: bool = False
+    # Honeypot — a real visitor never sees or fills this field (hidden by
+    # CSS on the real form); a bot filling in every field it finds does.
+    # Anything here means silently drop the submission, not save it.
+    website: str = ""
+    # Cloudflare Turnstile's token — only the Contact form's widget sends
+    # one today, so this is only required (checked in the endpoint) when
+    # reservation_type == "enquiry".
+    turnstile_token: str = ""
+
+    @field_validator("name")
+    @classmethod
+    def _validate_name(cls, value: str) -> str:
+        if not _looks_like_a_name(value):
+            raise ValueError("Please enter your full name.")
+        return value
 
 
 class ReservationDecision(BaseModel):

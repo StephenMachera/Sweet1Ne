@@ -33,5 +33,10 @@ class Settings(BaseSettings):
 
     EMAIL_LOGO_URL: str = ""
 
+    # Cloudflare Turnstile — verifies a contact-form submission was made by
+    # a real visitor, not a bot. Empty by default so nothing breaks before
+    # this is configured; the endpoint that uses it checks for that.
+    TURNSTILE_SECRET_KEY: str = ""
+
 
 settings = Settings()

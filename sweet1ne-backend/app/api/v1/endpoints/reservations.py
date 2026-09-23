@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime, time, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
@@ -20,6 +20,7 @@ from app.schemas.reservation import (
     ReservationPublicOut,
 )
 from app.services.email.client import send_email
+from app.services.turnstile import verify_turnstile
 from app.services.email.templates import (
     enquiry_notification,
     reservation_confirmed,
@@ -51,14 +52,34 @@ def _to_out(db: Session, reservation: Reservation) -> ReservationOut:
 @router.post("/public/reservations", response_model=ReservationPublicOut)
 async def create_reservation(
     payload: ReservationIn,
+    request: Request,
     background: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     """A request, not a booking — nothing is confirmed until a manager says so."""
+    if payload.website:
+        # Honeypot tripped — a real visitor never sees this field. Report
+        # success without touching the database, so whatever's submitting
+        # this has no way to tell it was caught and doesn't come back
+        # smarter.
+        return ReservationPublicOut(
+            id=uuid.uuid4(),
+            status="pending",
+            branch_name="",
+            requested_at=payload.requested_at,
+        )
+
     if payload.reservation_type not in VALID_TYPES:
         raise HTTPException(status_code=400, detail="Unknown reservation type")
 
     is_enquiry = payload.reservation_type == "enquiry"
+
+    # Only the Contact form's widget sends a token today — a real booking
+    # made through the reservation form never gets asked for one.
+    if is_enquiry:
+        client_ip = request.client.host if request.client else None
+        if not await verify_turnstile(payload.turnstile_token, client_ip):
+            raise HTTPException(status_code=400, detail="Please try that again.")
 
     # An enquiry has no party or date — it's a message, not a booking.
     if not is_enquiry:
@@ -277,3 +298,21 @@ async def decide_reservation(
             )
 
     return _to_out(db, reservation)
+
+
+@router.delete("/reservations/{reservation_id}", status_code=204)
+def delete_reservation(
+    reservation_id: uuid.UUID,
+    staff: CurrentStaff = Depends(require_permission("manage_reservations")),
+    db: Session = Depends(get_db),
+):
+    """For obvious spam — a real declined/cancelled booking stays on record
+    instead; this is only for rows that were never a real enquiry."""
+    reservation = db.get(Reservation, reservation_id)
+    if reservation is None or str(reservation.tenant_id) != staff.tenant_id:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+    if staff.branch_id is not None and str(reservation.branch_id) != staff.branch_id:
+        raise HTTPException(status_code=403, detail="Not allowed to remove this")
+
+    db.delete(reservation)
+    db.commit()
