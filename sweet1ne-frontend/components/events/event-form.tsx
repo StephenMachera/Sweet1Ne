@@ -285,6 +285,7 @@ function BranchEventForm({ event, branches, onSaved, onCancel }: BranchProps) {
               required
               value={startsAt}
               onChange={(e) => setStartsAt(e.target.value)}
+              onClick={(e) => e.currentTarget.showPicker?.()}
               className="border-slate-border"
             />
           </div>
@@ -295,6 +296,7 @@ function BranchEventForm({ event, branches, onSaved, onCancel }: BranchProps) {
               type="datetime-local"
               value={endsAt}
               onChange={(e) => setEndsAt(e.target.value)}
+              onClick={(e) => e.currentTarget.showPicker?.()}
               className="border-slate-border"
             />
             <p className="text-xs text-slate-muted">Optional.</p>
@@ -609,8 +611,10 @@ function LayoutEditor({
 
 function AdminEventForm({ event, branches, draft, onDraftChange, onSaved, onCancel }: AdminProps) {
   const [slug, setSlug] = useState(event?.slug ?? "");
-  const [slugTouched, setSlugTouched] = useState(Boolean(event));
-  const [priceNote, setPriceNote] = useState(event?.price_note ?? "");
+  // No manual override UI in this tone anymore — always follows the title.
+  const slugTouched = Boolean(event);
+  // No entry-price UI in this tone anymore — carries over unchanged.
+  const priceNote = event?.price_note ?? "";
   const [branchId, setBranchId] = useState(event?.branch_id ?? "");
   const [isFeatured, setIsFeatured] = useState(event?.is_featured ?? true);
   const [saving, setSaving] = useState(false);
@@ -692,11 +696,22 @@ function AdminEventForm({ event, branches, draft, onDraftChange, onSaved, onCanc
 
         <label>
           Date
-          <input type="datetime-local" required value={startsAt} onChange={(e) => onDraftChange({ startsAt: e.target.value })} />
+          <input
+            type="datetime-local"
+            required
+            value={startsAt}
+            onChange={(e) => onDraftChange({ startsAt: e.target.value })}
+            onClick={(e) => e.currentTarget.showPicker?.()}
+          />
         </label>
         <label>
           Ends
-          <input type="datetime-local" value={endsAt} onChange={(e) => onDraftChange({ endsAt: e.target.value })} />
+          <input
+            type="datetime-local"
+            value={endsAt}
+            onChange={(e) => onDraftChange({ endsAt: e.target.value })}
+            onClick={(e) => e.currentTarget.showPicker?.()}
+          />
         </label>
 
         {branches && !event && (
@@ -724,29 +739,8 @@ function AdminEventForm({ event, branches, draft, onDraftChange, onSaved, onCanc
         </label>
 
         <label>
-          Web address
-          <input
-            required
-            value={slug}
-            onChange={(e) => {
-              setSlugTouched(true);
-              setSlug(slugify(e.target.value));
-            }}
-          />
-        </label>
-
-        <label>
           Copy
           <EmojiField multiline value={description} onChange={(v) => onDraftChange({ description: v })} />
-        </label>
-
-        <label>
-          Entry
-          <input
-            placeholder="e.g. £25 per person, Free entry, Booking required"
-            value={priceNote}
-            onChange={(e) => setPriceNote(e.target.value)}
-          />
         </label>
 
         {hasBlock(layout, "ctas") && (

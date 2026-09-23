@@ -496,6 +496,7 @@ export function StaffDetail({
                       type="date"
                       value={value("date_of_birth")}
                       onChange={(e) => set("date_of_birth", e.target.value)}
+                      onClick={(e) => e.currentTarget.showPicker?.()}
                     />
                   </div>
                   <div className="space-y-1">
@@ -558,6 +559,7 @@ export function StaffDetail({
                   type="date"
                   value={dateValue("hire_date")}
                   onChange={(e) => set("hire_date", e.target.value || null)}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
                 />
               </div>
               <div className="space-y-1">

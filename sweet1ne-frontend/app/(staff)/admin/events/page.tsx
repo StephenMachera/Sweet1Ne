@@ -35,7 +35,7 @@ const EMPTY_STILL = "/images/homepage-gallery/events/poster-events.jpg";
 // The site wordmark itself, not a media library row — same as the
 // reference's own SWEET1NE_MEDIA.LOGO constant, kept separate from the
 // general library of staff-added photos/GIFs/films.
-const LOGO_SRC = "/images/homepage-gallery/story/logo.png";
+const LOGO_SRC = "/images/brand/logo.png";
 const LOGO_WIDTH: Record<LogoBlock["size"], string> = { s: "4.6rem", m: "7.2rem", l: "10.5rem" };
 
 type PreviewData = {

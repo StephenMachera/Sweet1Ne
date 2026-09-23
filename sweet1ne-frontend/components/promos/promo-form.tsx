@@ -239,11 +239,21 @@ export function PromoForm({
           <div className="admin-row">
             <label>
               Starts
-              <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+              <input
+                type="datetime-local"
+                value={startsAt}
+                onChange={(e) => setStartsAt(e.target.value)}
+                onClick={(e) => e.currentTarget.showPicker?.()}
+              />
             </label>
             <label>
               Ends
-              <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+              <input
+                type="datetime-local"
+                value={endsAt}
+                onChange={(e) => setEndsAt(e.target.value)}
+                onClick={(e) => e.currentTarget.showPicker?.()}
+              />
             </label>
           </div>
           <p className="text-xs text-[var(--ivory-dim)]" style={{ marginTop: "-0.5rem" }}>
@@ -446,6 +456,7 @@ export function PromoForm({
               type="datetime-local"
               value={startsAt}
               onChange={(e) => setStartsAt(e.target.value)}
+              onClick={(e) => e.currentTarget.showPicker?.()}
               className={border}
             />
           </div>
@@ -456,6 +467,7 @@ export function PromoForm({
               type="datetime-local"
               value={endsAt}
               onChange={(e) => setEndsAt(e.target.value)}
+              onClick={(e) => e.currentTarget.showPicker?.()}
               className={border}
             />
           </div>

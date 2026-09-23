@@ -20,8 +20,12 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         // Every uploaded image — menu photos, staff portraits, branch shots,
-        // QR codes — comes from Supabase Storage.
-        hostname: "dfcebvjkwnwfsfpuckkj.supabase.co",
+        // QR codes — comes from Supabase Storage. Wildcarded rather than
+        // one project's hostname, since local dev points at its own
+        // separate Supabase project (a different subdomain) — hardcoding
+        // just production's here silently 500s next/image everywhere a
+        // real photo renders in dev.
+        hostname: "*.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
     ],

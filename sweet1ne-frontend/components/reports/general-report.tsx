@@ -9,17 +9,8 @@ type Campaign = {
   name: string;
   map_id: string | null;
   status: string;
-  channels: { google?: boolean; meta?: boolean; instagram?: boolean };
   created_at: string;
 };
-
-function channelList(c: Campaign) {
-  const list = ["Mail"];
-  if (c.channels?.google) list.push("Google");
-  if (c.channels?.meta) list.push("Meta");
-  if (c.channels?.instagram) list.push("Instagram");
-  return list.join(" · ");
-}
 
 /**
  * The "General" tab of /admin/reports — a first-party campaign map (which
@@ -83,8 +74,20 @@ export function GeneralReport() {
   return (
     <>
       <div className="admin-tools">
-        <input type="date" aria-label="From" value={from} onChange={(e) => setFrom(e.target.value)} />
-        <input type="date" aria-label="To" value={to} onChange={(e) => setTo(e.target.value)} />
+        <input
+          type="date"
+          aria-label="From"
+          value={from}
+          onChange={(e) => setFrom(e.target.value)}
+          onClick={(e) => e.currentTarget.showPicker?.()}
+        />
+        <input
+          type="date"
+          aria-label="To"
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          onClick={(e) => e.currentTarget.showPicker?.()}
+        />
       </div>
 
       <section className="admin-board tight" aria-label="What we know">
@@ -153,7 +156,7 @@ export function GeneralReport() {
                       <span className="admin-name">{c.name}</span>
                     </td>
                     <td className="admin-muted">{c.map_id}</td>
-                    <td className="admin-muted">{channelList(c)}</td>
+                    <td className="admin-muted">Mail</td>
                     <td className="admin-muted">—</td>
                     <td className="admin-muted">—</td>
                     <td className="admin-muted">—</td>

@@ -67,6 +67,7 @@ const AUDIENCE_LABELS: Record<string, string> = {
 
 type Block = Record<string, any> & { type: string };
 type CtaItem = { kind: string; label: string; href: string };
+type PreviewDraft = { name: string; subject: string; preheader: string | null; blocks: Block[] };
 
 type CampaignCtaKind = "book" | "menu" | "order";
 const CTA_PRESETS: Record<CampaignCtaKind, string> = {
@@ -111,6 +112,7 @@ export function CampaignsPane() {
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<Campaign | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [previewDraft, setPreviewDraft] = useState<PreviewDraft | null>(null);
   const [drawerSlot, setDrawerSlot] = useState<Element | null>(null);
 
   const load = useCallback(
@@ -190,7 +192,7 @@ export function CampaignsPane() {
       </div>
 
       {editing ? (
-        <LivePreview id={editingId!} />
+        <LivePreview draft={previewDraft} />
       ) : loading ? (
         <AdminLoading />
       ) : campaigns.length === 0 ? (
@@ -296,7 +298,11 @@ export function CampaignsPane() {
         createPortal(
           <CampaignEditorDrawer
             id={editingId}
-            onClose={() => setEditingId(null)}
+            onClose={() => {
+              setEditingId(null);
+              setPreviewDraft(null);
+            }}
+            onDraftChange={setPreviewDraft}
             onSaved={(updated) =>
               setCampaigns((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))
             }
@@ -380,40 +386,30 @@ function CampaignRow({
 }
 
 /** Live preview replacing the table while a campaign is open for editing.
- *  Renders the SAME html the real send/test-send would produce (fetched
- *  from /campaigns/preview), just re-fetched on a short debounce as the
- *  draft changes — kept in its own component so its polling doesn't cause
- *  the drawer's own state/effects to re-run. */
-function LivePreview({ id }: { id: string }) {
+ *  Renders the SAME html the real send/test-send would produce, straight
+ *  from the drawer's own in-memory draft (lifted up via onDraftChange) —
+ *  a short debounce on the network call, not a fixed poll, so it reflects
+ *  what's being typed right now rather than what was last saved. */
+function LivePreview({ draft }: { draft: PreviewDraft | null }) {
   const [html, setHtml] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!draft) return;
     let cancelled = false;
 
-    function fetchOnce(payload: { name: string; subject: string; preheader: string | null; blocks: Block[] }) {
-      apiFetch("/campaigns/preview", { method: "POST", body: JSON.stringify(payload) })
+    const timer = setTimeout(() => {
+      apiFetch("/campaigns/preview", { method: "POST", body: JSON.stringify(draft) })
         .then(({ html }) => !cancelled && setHtml(html))
         .catch(() => {})
         .finally(() => !cancelled && setLoading(false));
-    }
+    }, 250);
 
-    // The drawer owns the actual draft state — reading the campaign fresh
-    // on a short poll is simpler than threading live form state through a
-    // portal boundary, and a couple-hundred-ms lag is invisible here.
-    function poll() {
-      apiFetch(`/campaigns/${id}`)
-        .then((c) => fetchOnce({ name: c.name, subject: c.subject, preheader: c.preheader, blocks: c.blocks ?? [] }))
-        .catch(() => setLoading(false));
-    }
-
-    poll();
-    const timer = setInterval(poll, 1500);
     return () => {
       cancelled = true;
-      clearInterval(timer);
+      clearTimeout(timer);
     };
-  }, [id]);
+  }, [draft]);
 
   return (
     <div className="admin-mail-preview">
@@ -429,10 +425,12 @@ function LivePreview({ id }: { id: string }) {
 function CampaignEditorDrawer({
   id,
   onClose,
+  onDraftChange,
   onSaved,
 }: {
   id: string;
   onClose: () => void;
+  onDraftChange: (draft: PreviewDraft) => void;
   onSaved: (campaign: Campaign) => void;
 }) {
   const [campaign, setCampaign] = useState<Campaign | null>(null);
@@ -481,6 +479,12 @@ function CampaignEditorDrawer({
       .then(setSubscriberStats)
       .catch(() => setSubscriberStats(null));
   }, [id]);
+
+  // Mirrors the live edit buffer up to the parent on every change, so the
+  // preview beside it renders exactly what's on screen right now.
+  useEffect(() => {
+    onDraftChange({ name, subject, preheader: preheader || null, blocks });
+  }, [name, subject, preheader, blocks, onDraftChange]);
 
   function updateBlock(index: number, patch: Partial<Block>) {
     setBlocks((prev) => prev.map((b, i) => (i === index ? { ...b, ...patch } : b)));
@@ -648,8 +652,7 @@ function CampaignEditorDrawer({
               />
             </label>
             <p className="!mb-2 !mt-[-0.4rem] text-xs normal-case tracking-normal text-[var(--ivory-dim)]">
-              Same ID as the promotion if this mail is that offer. Put it on Google, Meta and
-              Instagram too.
+              Same ID as the promotion if this mail is that offer.
             </p>
             <div className="!mb-3 flex items-center gap-2 rounded-[3px] border border-[var(--gold-line)] bg-[#050505] px-3 py-2">
               <span className="!mb-0 text-[0.68rem] uppercase tracking-[0.14em] text-[var(--gold)]">
@@ -664,37 +667,6 @@ function CampaignEditorDrawer({
                 Copy
               </button>
             </div>
-
-            <p className="!mb-2 text-[0.68rem] uppercase tracking-[0.14em] text-[var(--ivory-dim)]">
-              Also ran on
-            </p>
-            <label className="!mb-1 flex items-center gap-2 !normal-case !tracking-normal text-sm text-[var(--ivory)]">
-              <input
-                type="checkbox"
-                checked={Boolean(channels.google)}
-                disabled={readOnly}
-                onChange={(e) => setChannels((c) => ({ ...c, google: e.target.checked }))}
-              />
-              Google
-            </label>
-            <label className="!mb-1 flex items-center gap-2 !normal-case !tracking-normal text-sm text-[var(--ivory)]">
-              <input
-                type="checkbox"
-                checked={Boolean(channels.meta)}
-                disabled={readOnly}
-                onChange={(e) => setChannels((c) => ({ ...c, meta: e.target.checked }))}
-              />
-              Meta
-            </label>
-            <label className="!mb-3 flex items-center gap-2 !normal-case !tracking-normal text-sm text-[var(--ivory)]">
-              <input
-                type="checkbox"
-                checked={Boolean(channels.instagram)}
-                disabled={readOnly}
-                onChange={(e) => setChannels((c) => ({ ...c, instagram: e.target.checked }))}
-              />
-              Instagram
-            </label>
 
             <label className="!mb-0">
               Audience

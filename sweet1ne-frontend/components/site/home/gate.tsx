@@ -34,7 +34,7 @@ export default function Gate() {
       {/* Class names from home.html — the mark, rule and buttons are styled
           and animated by the shared .gate-mark / .gate-acts / .book rules. */}
       <div className="gate-mark relative z-10">
-        <img src="/images/homepage-gallery/story/logo.png" alt="Sweet1NE" />
+        <img src="/images/brand/logo.png" alt="Sweet1NE" />
         <hr />
 
         <div className="gate-acts">

@@ -32,7 +32,6 @@ type Kind = "notice" | "invite" | "mail" | "code";
 type Offer = "none" | "percent" | "pounds";
 type Who = "all" | "quiet" | "regular";
 type Surfaces = { enter: boolean; ribbon: boolean; phone: boolean; mail: boolean };
-type Channels = { google: boolean; meta: boolean; instagram: boolean };
 type Look = { still: string; tone: string; align: string };
 
 type Promotion = {
@@ -54,7 +53,6 @@ type Promotion = {
   quiet_days: number;
   regular_visits: number;
   surfaces: Surfaces;
-  channels: Channels;
   layout: PromotionBlock[];
   look: Look;
   map_id: string | null;
@@ -114,7 +112,6 @@ function emptyDraft(branchId: string | null): Draft {
     quiet_days: 50,
     regular_visits: 4,
     surfaces: { ...defs },
-    channels: { google: false, meta: false, instagram: false },
     layout: defaultPromotionLayout(),
     look: { still: "left", tone: "glass", align: "left" },
     map_id: null,
@@ -244,7 +241,6 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
       quiet_days: p.quiet_days,
       regular_visits: p.regular_visits,
       surfaces: p.surfaces,
-      channels: p.channels,
       layout: p.layout.length ? p.layout : defaultPromotionLayout(),
       look: p.look,
       map_id: p.map_id,
@@ -341,8 +337,6 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
   const live = promotions.filter((p) => statusOf(p) === "live");
   const liveOnSurface = (s: keyof Surfaces) =>
     live.filter((p) => matchesPlace(p) && p.surfaces[s]).sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
-  const liveOnChannel = (c: keyof Channels) =>
-    live.filter((p) => matchesPlace(p) && p.channels[c]).sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
 
   const campaignTag = `utm_campaign=${slugify(draft.map_id || draft.title) || "your-id"}`;
 
@@ -509,30 +503,6 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
               );
             })}
           </div>
-
-          <div className="admin-board-group">
-            <h2>Paid tiles</h2>
-            <p className="admin-dek">The same words, put on Google, Meta or Instagram. Not live ads.</p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {(
-              [
-                ["google", "Google"],
-                ["meta", "Meta"],
-                ["instagram", "Instagram"],
-              ] as [keyof Channels, string][]
-            ).map(([key, label]) => {
-              const p = liveOnChannel(key);
-              return (
-                <article key={key} className="admin-card">
-                  <h2>
-                    {label} <span className="text-[var(--ivory-dim)]">{p ? "Live" : "Off"}</span>
-                  </h2>
-                  {p ? <PromotionPreview data={p} /> : <p className="admin-empty">Nothing live here.</p>}
-                </article>
-              );
-            })}
-          </div>
         </>
       )}
 
@@ -659,26 +629,6 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
                     </label>
                   ))}
                 </div>
-                <p className="admin-kicker">Paid tiles</p>
-                <div className="admin-row" style={{ flexWrap: "wrap" }}>
-                  {(
-                    [
-                      ["google", "Google"],
-                      ["meta", "Meta"],
-                      ["instagram", "Instagram"],
-                    ] as [keyof Channels, string][]
-                  ).map(([key, label]) => (
-                    <label key={key}>
-                      <input
-                        type="checkbox"
-                        checked={draft.channels[key]}
-                        onChange={(e) => patch({ channels: { ...draft.channels, [key]: e.target.checked } })}
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-
                 <label>
                   Who sees this
                   <select value={draft.who} onChange={(e) => patch({ who: e.target.value as Who })}>
@@ -776,11 +726,22 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
                   <div className="admin-row">
                     <label>
                       From
-                      <input type="date" required value={draft.starts_at} onChange={(e) => patch({ starts_at: e.target.value })} />
+                      <input
+                        type="date"
+                        required
+                        value={draft.starts_at}
+                        onChange={(e) => patch({ starts_at: e.target.value })}
+                        onClick={(e) => e.currentTarget.showPicker?.()}
+                      />
                     </label>
                     <label>
                       To
-                      <input type="date" value={draft.ends_at ?? ""} onChange={(e) => patch({ ends_at: e.target.value || null })} />
+                      <input
+                        type="date"
+                        value={draft.ends_at ?? ""}
+                        onChange={(e) => patch({ ends_at: e.target.value || null })}
+                        onClick={(e) => e.currentTarget.showPicker?.()}
+                      />
                     </label>
                   </div>
                   <label>

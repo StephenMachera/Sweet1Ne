@@ -31,8 +31,7 @@ export default function AdminReportsPage() {
 
       <h1>Reports</h1>
       <p className="admin-dek">
-        What filled the floor. One ID per promotion or mail — the same ID on the Google, Meta and
-        Instagram tags. Booked and sat wait for SevenRooms and Toast.
+        What filled the floor. One ID per promotion or mail. Booked and sat wait for SevenRooms and Toast.
       </p>
 
       <div className="admin-cats" role="group" aria-label="View">

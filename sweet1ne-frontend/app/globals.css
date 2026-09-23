@@ -1032,6 +1032,27 @@ body {
   color: var(--ivory);
 }
 .admin-form label:has([type="checkbox"]) input { width: auto; }
+.admin-form input[type="checkbox"] {
+  accent-color: var(--gold);
+  width: 1.05rem;
+  height: 1.05rem;
+  cursor: pointer;
+}
+
+/* Native date pickers render a calendar-icon indicator that stays
+   near-black by default — invisible against this dark theme, which is why
+   it read as "no picker, just typing". Brightened and made clickable
+   across the whole field, not just the tiny icon. Scoped to the whole
+   shell (not just .admin-form) so admin-tools' date filters get it too. */
+.admin-shell input[type="date"],
+.admin-shell input[type="datetime-local"] {
+  cursor: pointer;
+}
+.admin-shell input[type="date"]::-webkit-calendar-picker-indicator,
+.admin-shell input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(72%) sepia(23%) saturate(638%) hue-rotate(358deg) brightness(93%) contrast(89%);
+  cursor: pointer;
+}
 
 .admin-drawer-fold {
   margin: 0 0 1rem;

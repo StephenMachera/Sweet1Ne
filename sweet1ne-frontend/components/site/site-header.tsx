@@ -12,7 +12,7 @@ const NAV = [
   { href: "/order", label: "ORDER" },
   { href: "/story", label: "OUR STORY" },
   { href: "/events", label: "EVENTS" },
-  { href: "/locations", label: "RESERVATIONS" },
+  { href: "/locations", label: "BOOK A TABLE" },
   { href: "/contact", label: "CONTACT" },
 ];
 
@@ -138,15 +138,9 @@ export function SiteHeader() {
           <div className="flex items-center gap-3">
             {/* Ghost rather than a solid slab — a filled gold button over
                 film reads as an advert. */}
-            <button
-              type="button"
-              onClick={openBookingModal}
-              className="border border-[rgba(201,162,74,.9)] px-5 py-3 text-[13px] font-semibold text-[var(--gold)] transition-colors hover:bg-[var(--gold)] hover:text-[#0e0e0e] sm:px-6 sm:text-sm"
-              style={{ borderRadius: "4px" }}
-            >
-              Book
-              <span className="hidden sm:inline"> a table</span>
-            </button>
+            <Link href="/locations" className="book">
+              Reservations
+            </Link>
 
             <button
               onClick={() => setOpen((v) => !v)}

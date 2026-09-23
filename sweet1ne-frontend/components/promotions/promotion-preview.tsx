@@ -11,7 +11,7 @@ import {
   type NoteBlock,
 } from "@/lib/promotion-blocks";
 
-const LOGO_SRC = "/images/homepage-gallery/story/logo.png";
+const LOGO_SRC = "/images/brand/logo.png";
 const LOGO_WIDTH: Record<LogoBlock["size"], string> = { s: "4.6rem", m: "7.2rem", l: "10.5rem" };
 
 export type PromotionPreviewData = {
