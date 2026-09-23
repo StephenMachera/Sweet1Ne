@@ -106,9 +106,13 @@ def public_menu(db: Session = Depends(get_db)):
                 id=str(sub.id), name=sub.name, parent_id=str(main.id)
             )
 
-        # Merge on title within the same subcategory — the same dish at two
-        # branches is one entry on the public menu.
-        key = f"{sub.name}::{item.title}".lower()
+        # Merge on title within the same main + sub category — the same
+        # dish at two branches is one entry on the public menu. Main
+        # category is part of the key too, not just sub, since a generic
+        # subcategory name like "General" can legitimately repeat under
+        # several different main categories without meaning the dishes
+        # under it are the same dish.
+        key = f"{main.name}::{sub.name}::{item.title}".lower()
 
         if key in merged:
             existing = merged[key]

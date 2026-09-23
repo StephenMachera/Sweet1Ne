@@ -61,7 +61,6 @@ def create_promotion(
 
     data = payload.model_dump(exclude={"branch_id"})
     data["surfaces"] = payload.surfaces.model_dump()
-    data["channels"] = payload.channels.model_dump()
     data["look"] = payload.look.model_dump()
 
     promotion = Promotion(
@@ -89,8 +88,6 @@ def update_promotion(
     updates = payload.model_dump(exclude_unset=True)
     if "surfaces" in updates and updates["surfaces"] is not None:
         updates["surfaces"] = payload.surfaces.model_dump()
-    if "channels" in updates and updates["channels"] is not None:
-        updates["channels"] = payload.channels.model_dump()
     if "look" in updates and updates["look"] is not None:
         updates["look"] = payload.look.model_dump()
 

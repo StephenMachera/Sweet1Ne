@@ -12,12 +12,6 @@ class PromotionSurfaces(BaseModel):
     mail: bool = False
 
 
-class PromotionChannels(BaseModel):
-    google: bool = False
-    meta: bool = False
-    instagram: bool = False
-
-
 class PromotionLook(BaseModel):
     still: str = "left"
     tone: str = "glass"
@@ -42,7 +36,6 @@ class PromotionIn(BaseModel):
     quiet_days: int = 50
     regular_visits: int = 4
     surfaces: PromotionSurfaces = PromotionSurfaces()
-    channels: PromotionChannels = PromotionChannels()
     layout: list[dict[str, Any]] = []
     look: PromotionLook = PromotionLook()
     map_id: str | None = None
@@ -66,7 +59,6 @@ class PromotionUpdate(BaseModel):
     quiet_days: int | None = None
     regular_visits: int | None = None
     surfaces: PromotionSurfaces | None = None
-    channels: PromotionChannels | None = None
     layout: list[dict[str, Any]] | None = None
     look: PromotionLook | None = None
     map_id: str | None = None
@@ -93,7 +85,6 @@ class PromotionOut(BaseModel):
     quiet_days: int
     regular_visits: int
     surfaces: dict[str, Any]
-    channels: dict[str, Any]
     layout: list[dict[str, Any]]
     look: dict[str, Any]
     map_id: str | None
