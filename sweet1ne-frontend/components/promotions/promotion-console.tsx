@@ -390,119 +390,129 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
         </div>
       </div>
 
-      <div className="admin-cats" role="group" aria-label="View">
-        <button type="button" className={view === "board" ? "is-on" : undefined} onClick={() => setView("board")}>
-          Board
-        </button>
-        <button type="button" className={view === "look" ? "is-on" : undefined} onClick={() => setView("look")}>
-          Look
-        </button>
-      </div>
-
-      {view === "board" ? (
+      {formOpen ? (
+        <div className="admin-board-group">
+          <h2>{editingId ? "Editing" : "New promotion"}</h2>
+          <p className="admin-dek">Live — updates as you fill in the drawer.</p>
+          <PromotionPreview data={draft} />
+        </div>
+      ) : (
         <>
-          <div className="admin-cats" role="group" aria-label="Status">
-            {(["all", "live", "draft", "ended"] as const).map((s) => (
-              <button key={s} type="button" className={stateFilter === s ? "is-on" : undefined} onClick={() => setStateFilter(s)}>
-                {s === "all" ? "All" : s === "live" ? "Live" : s === "draft" ? "Draft" : "Ended"}
-              </button>
-            ))}
-          </div>
-
-          <div className="admin-tools">
-            <input type="search" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
-            <button type="button" className="admin-book" onClick={openAdd}>
-              Add promotion
+          <div className="admin-cats" role="group" aria-label="View">
+            <button type="button" className={view === "board" ? "is-on" : undefined} onClick={() => setView("board")}>
+              Board
+            </button>
+            <button type="button" className={view === "look" ? "is-on" : undefined} onClick={() => setView("look")}>
+              Look
             </button>
           </div>
 
-          {visible.length === 0 ? (
-            <p className="admin-empty">No promotions. Add one when a real offer exists.</p>
-          ) : (
-            <div className="admin-data-panel">
-              <table className="admin-sheet">
-                <thead>
-                  <tr>
-                    <th>On</th>
-                    <th>Promotion</th>
-                    <th>Purpose</th>
-                    <th>Shows</th>
-                    <th>Who</th>
-                    <th>Status</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visible.map((p) => {
-                    const st = statusOf(p);
-                    return (
-                      <tr key={p.id}>
-                        <td>
-                          <button
-                            type="button"
-                            aria-label="On"
-                            className={`admin-toggle${p.is_on ? " is-on" : ""}`}
-                            onClick={() => toggleOn(p)}
-                          />
-                        </td>
-                        <td>
-                          <span className="admin-name">{p.title}</span>
-                          {p.code && <div className="admin-muted">{p.code}</div>}
-                        </td>
-                        <td className="admin-muted">{kindLabel(p.kind)}</td>
-                        <td className="admin-muted">{showsOf(p)}</td>
-                        <td className="admin-muted">{whoOf(p)}</td>
-                        <td>
-                          <span
-                            className={`admin-status${st === "draft" || st === "scheduled" ? " is-wait" : st === "live" ? " is-ok" : ""}`}
-                          >
-                            {st === "live" ? "Live" : st === "ended" ? "Ended" : st === "scheduled" ? "Scheduled" : "Draft"}
-                          </span>
-                        </td>
-                        <td className="admin-row-acts">
-                          <button type="button" className="admin-edit" onClick={() => openEdit(p)}>
-                            Edit
-                          </button>
-                          <button type="button" className="admin-edit" onClick={() => setConfirmDelete(p)}>
-                            Remove
-                          </button>
-                        </td>
+          {view === "board" ? (
+            <>
+              <div className="admin-cats" role="group" aria-label="Status">
+                {(["all", "live", "draft", "ended"] as const).map((s) => (
+                  <button key={s} type="button" className={stateFilter === s ? "is-on" : undefined} onClick={() => setStateFilter(s)}>
+                    {s === "all" ? "All" : s === "live" ? "Live" : s === "draft" ? "Draft" : "Ended"}
+                  </button>
+                ))}
+              </div>
+
+              <div className="admin-tools">
+                <input type="search" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
+                <button type="button" className="admin-book" onClick={openAdd}>
+                  Add promotion
+                </button>
+              </div>
+
+              {visible.length === 0 ? (
+                <p className="admin-empty">No promotions. Add one when a real offer exists.</p>
+              ) : (
+                <div className="admin-data-panel">
+                  <table className="admin-sheet">
+                    <thead>
+                      <tr>
+                        <th>On</th>
+                        <th>Promotion</th>
+                        <th>Purpose</th>
+                        <th>Shows</th>
+                        <th>Who</th>
+                        <th>Status</th>
+                        <th></th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {visible.map((p) => {
+                        const st = statusOf(p);
+                        return (
+                          <tr key={p.id}>
+                            <td>
+                              <button
+                                type="button"
+                                aria-label="On"
+                                className={`admin-toggle${p.is_on ? " is-on" : ""}`}
+                                onClick={() => toggleOn(p)}
+                              />
+                            </td>
+                            <td>
+                              <span className="admin-name">{p.title}</span>
+                              {p.code && <div className="admin-muted">{p.code}</div>}
+                            </td>
+                            <td className="admin-muted">{kindLabel(p.kind)}</td>
+                            <td className="admin-muted">{showsOf(p)}</td>
+                            <td className="admin-muted">{whoOf(p)}</td>
+                            <td>
+                              <span
+                                className={`admin-status${st === "draft" || st === "scheduled" ? " is-wait" : st === "live" ? " is-ok" : ""}`}
+                              >
+                                {st === "live" ? "Live" : st === "ended" ? "Ended" : st === "scheduled" ? "Scheduled" : "Draft"}
+                              </span>
+                            </td>
+                            <td className="admin-row-acts">
+                              <button type="button" className="admin-edit" onClick={() => openEdit(p)}>
+                                Edit
+                              </button>
+                              <button type="button" className="admin-edit" onClick={() => setConfirmDelete(p)}>
+                                Remove
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="admin-dek">Guest view of whatever is live right now on each surface.</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {(
+                  [
+                    ["enter", "After they enter", "Homepage, after Enter Sweet1NE."],
+                    ["ribbon", "Quiet line", "Under the header until they close it."],
+                    ["phone", "Table phone", "After the menu, on the guest's own phone."],
+                    ["mail", "A letter", "Marketing, people who asked."],
+                  ] as [keyof Surfaces, string, string][]
+                ).map(([key, label, cap]) => {
+                  const p = liveOnSurface(key);
+                  return (
+                    <article key={key} className="admin-card">
+                      <h2>
+                        {label} <span className="text-[var(--ivory-dim)]">{p ? "Live" : "Off"}</span>
+                      </h2>
+                      <p className="admin-dek">{cap}</p>
+                      {p ? (
+                        <PromotionPreview data={p} />
+                      ) : (
+                        <p className="admin-empty">Nothing live here.</p>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            </>
           )}
-        </>
-      ) : (
-        <>
-          <p className="admin-dek">Guest view of whatever is live right now on each surface.</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {(
-              [
-                ["enter", "After they enter", "Homepage, after Enter Sweet1NE."],
-                ["ribbon", "Quiet line", "Under the header until they close it."],
-                ["phone", "Table phone", "After the menu, on the guest's own phone."],
-                ["mail", "A letter", "Marketing, people who asked."],
-              ] as [keyof Surfaces, string, string][]
-            ).map(([key, label, cap]) => {
-              const p = liveOnSurface(key);
-              return (
-                <article key={key} className="admin-card">
-                  <h2>
-                    {label} <span className="text-[var(--ivory-dim)]">{p ? "Live" : "Off"}</span>
-                  </h2>
-                  <p className="admin-dek">{cap}</p>
-                  {p ? (
-                    <PromotionPreview data={p} />
-                  ) : (
-                    <p className="admin-empty">Nothing live here.</p>
-                  )}
-                </article>
-              );
-            })}
-          </div>
         </>
       )}
 
@@ -511,11 +521,7 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
         createPortal(
           <aside className="admin-drawer-edit is-builder">
             <h2>{editingId ? "Edit promotion" : "Add promotion"}</h2>
-            <p className="admin-dek">Purpose first. Look updates as you go.</p>
-
-            <div className="mb-3">
-              <PromotionPreview data={draft} />
-            </div>
+            <p className="admin-dek">Purpose first. The preview on the left updates as you go.</p>
 
             <form onSubmit={save} className="admin-form">
               <fieldset disabled={saving} className="contents">
