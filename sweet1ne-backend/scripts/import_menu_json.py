@@ -23,6 +23,7 @@ dev server first — do that before ever pointing it at production.
 import argparse
 import json
 import mimetypes
+import os
 import re
 import sys
 import uuid
@@ -209,15 +210,46 @@ def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, passwor
     print("Re-run any time — existing categories, subcategories and dishes are matched by name and skipped.")
 
 
+def _resolve(cli_value: str | None, env_name: str) -> str | None:
+    return cli_value if cli_value is not None else os.environ.get(env_name)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--menu-json", required=True, type=Path)
     parser.add_argument("--media-dir", required=True, type=Path, help="Folder holding the real .jpg files (homepage-gallery/menu)")
-    parser.add_argument("--api-url", required=True, help="e.g. http://localhost:8000/api/v1 or https://api.fgck-githurai44.com/api/v1")
-    parser.add_argument("--email", required=True, help="A real director/admin staff account")
-    parser.add_argument("--password", required=True)
-    parser.add_argument("--supabase-url", required=True)
-    parser.add_argument("--supabase-key", required=True, help="The anon/public key, same one the frontend uses")
+    # Everything else is optional here and falls back to an env var — a
+    # long JWT-style key inside a multi-line "--flag value \" command is
+    # exactly the kind of thing a terminal line-wrap or a stray newline
+    # from copy-pasting silently corrupts. One `export` per line has
+    # nothing to line-wrap.
+    parser.add_argument("--api-url", help="Or set SWEET1NE_API_URL. Must include /api/v1, e.g. https://api.example.com/api/v1")
+    parser.add_argument("--email", help="Or set SWEET1NE_EMAIL. A real director/admin staff account")
+    parser.add_argument("--password", help="Or set SWEET1NE_PASSWORD")
+    parser.add_argument("--supabase-url", help="Or set SWEET1NE_SUPABASE_URL")
+    parser.add_argument("--supabase-key", help="Or set SWEET1NE_SUPABASE_KEY. The anon/public key, same one the frontend uses")
     args = parser.parse_args()
 
-    run(args.menu_json, args.media_dir, args.api_url, args.email, args.password, args.supabase_url, args.supabase_key)
+    api_url = _resolve(args.api_url, "SWEET1NE_API_URL")
+    email = _resolve(args.email, "SWEET1NE_EMAIL")
+    password = _resolve(args.password, "SWEET1NE_PASSWORD")
+    supabase_url = _resolve(args.supabase_url, "SWEET1NE_SUPABASE_URL")
+    supabase_key = _resolve(args.supabase_key, "SWEET1NE_SUPABASE_KEY")
+
+    missing = [
+        name for name, value in [
+            ("--api-url/SWEET1NE_API_URL", api_url),
+            ("--email/SWEET1NE_EMAIL", email),
+            ("--password/SWEET1NE_PASSWORD", password),
+            ("--supabase-url/SWEET1NE_SUPABASE_URL", supabase_url),
+            ("--supabase-key/SWEET1NE_SUPABASE_KEY", supabase_key),
+        ] if not value
+    ]
+    if missing:
+        parser.error(f"missing: {', '.join(missing)}")
+    if not api_url.rstrip("/").endswith("/api/v1"):
+        parser.error(f"--api-url should end with /api/v1 — got {api_url!r}")
+    if "\n" in supabase_url or "\n" in supabase_key:
+        parser.error("supabase url/key contains a newline — a value got corrupted when it was copied in")
+
+    run(args.menu_json, args.media_dir, api_url, email, password, supabase_url, supabase_key)
