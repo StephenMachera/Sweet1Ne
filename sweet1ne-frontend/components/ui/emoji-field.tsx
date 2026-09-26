@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 export const COMPOSER_EMOJI = [
   "🎉", "🥂", "🍸", "🍷", "🍽️", "🎶", "🎷", "🎸",
@@ -29,6 +29,11 @@ export function EmojiField({
   disabled?: boolean;
 }) {
   const ref = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  // Only shown once the field itself is focused — the bar used to sit under
+  // every field all the time, cluttering the form before anyone had even
+  // clicked in. onMouseDown below keeps focus on the field while tapping an
+  // emoji, so this never disappears mid-click.
+  const [focused, setFocused] = useState(false);
 
   function insertEmoji(emoji: string) {
     const el = ref.current;
@@ -55,6 +60,8 @@ export function EmojiField({
           placeholder={placeholder}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
         />
       ) : (
         <input
@@ -64,9 +71,11 @@ export function EmojiField({
           placeholder={placeholder}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
         />
       )}
-      {!disabled && (
+      {!disabled && focused && (
         <div className="admin-emoji-bar">
           {COMPOSER_EMOJI.map((emoji) => (
             <button key={emoji} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => insertEmoji(emoji)}>

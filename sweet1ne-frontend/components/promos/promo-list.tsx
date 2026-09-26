@@ -120,7 +120,8 @@ export function PromoList({
         <div>
           <h1 className={`text-2xl font-semibold sm:text-3xl ${text}`}>Promotions</h1>
           <p className={`mt-1 text-sm ${muted}`}>
-            {live.length} live of {promos.length}
+            {live.length} live of {promos.length} — a code turns &ldquo;always on&rdquo; into
+            &ldquo;only when a guest types it in&rdquo;
           </p>
         </div>
         <Button
@@ -158,7 +159,7 @@ export function PromoList({
         >
           <Tag size={26} className={`mx-auto ${muted}`} />
           <p className={`mt-3 text-sm ${muted}`}>
-            No promotions yet. Create one to discount an item or a whole category.
+            No promotions yet. Create one to discount an item, a sub-category, or a whole category.
           </p>
         </div>
       ) : (
@@ -198,6 +199,12 @@ export function PromoList({
                     <dt className="shrink-0">When</dt>
                     <dd>{windowLabel(promo)}</dd>
                   </div>
+                  {promo.code && (
+                    <div className="flex gap-2">
+                      <dt className="shrink-0">Code</dt>
+                      <dd className={`font-medium ${text}`}>{promo.code}</dd>
+                    </div>
+                  )}
                   {showBranchPicker && (
                     <div className="flex gap-2">
                       <dt className="shrink-0">Where</dt>
@@ -279,7 +286,8 @@ export function PromoList({
   return (
     <>
       <p className="admin-dek">
-        Discounts on real menu items or a whole category — automatic, shown right on the menu.
+        Discounts on real menu items, sub-categories or a whole category — automatic and shown
+        right on the menu, unless a code is set, which only unlocks it for a guest who types it in.
         {" "}{live.length} live of {promos.length}.
       </p>
 
@@ -301,7 +309,7 @@ export function PromoList({
       {loading ? (
         <AdminLoading />
       ) : promos.length === 0 ? (
-        <p className="admin-empty">No discounts yet. Create one to discount an item or a whole category.</p>
+        <p className="admin-empty">No discounts yet. Create one to discount an item, a sub-category, or a whole category.</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {promos.map((promo) => {
@@ -317,6 +325,7 @@ export function PromoList({
                 {promo.description && <p>{promo.description}</p>}
                 <p className="text-[var(--ivory-dim)]">
                   {promo.target_name ?? "—"} · {windowLabel(promo)}
+                  {promo.code && ` · Code ${promo.code}`}
                   {showBranchPicker &&
                     ` · ${promo.branch_id ? branches.find((b) => b.id === promo.branch_id)?.name ?? "one branch" : "All branches"}`}
                 </p>

@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { useGuestTheme, ThemeToggle } from "@/components/guest/guest-theme";
+import { GuestSignInOverlay } from "@/components/site/guest-signin-overlay";
 import { effectivePrice } from "@/lib/pricing";
 import { getGuestId } from "@/lib/guest-id";
 import { CTA_PRESETS, type PromotionCtaKind } from "@/lib/promotion-blocks";
@@ -140,9 +141,13 @@ export default function GuestOrderPage({
   use(params);
   const searchParams = useSearchParams();
   const qrToken = searchParams.get("table") ?? "";
+  // Staff previewing this from /admin/qr — always shows the sign-in step,
+  // regardless of what this browser has already seen.
+  const forceSignInPreview = searchParams.get("preview") === "signin";
   const { theme, toggle, ready } = useGuestTheme();
 
   const [context, setContext] = useState<TableContext | null>(null);
+  const [showSignIn, setShowSignIn] = useState(false);
   const [mains, setMains] = useState<MainCategory[]>([]);
   const [subs, setSubs] = useState<SubCategory[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -157,6 +162,7 @@ export default function GuestOrderPage({
   const [sheetStep, setSheetStep] = useState<Step | null>(null);
   const [seatNumber, setSeatNumber] = useState("");
   const [specialRequest, setSpecialRequest] = useState("");
+  const [manualCode, setManualCode] = useState("");
 
   const [order, setOrder] = useState<Order | null>(null);
   const [trackOpen, setTrackOpen] = useState(false);
@@ -197,12 +203,17 @@ export default function GuestOrderPage({
         setSubs(s);
         setItems(i);
         if (sorted.length > 0) setActiveMain(sorted[0].id);
+
+        // Asked once per device, ever — not once per table, so the same
+        // guest isn't asked again at a different table another time.
+        const alreadyAsked = window.localStorage.getItem("sweet1ne_signin_seen") === "1";
+        if (forceSignInPreview || !alreadyAsked) setShowSignIn(true);
       })
       .catch(() =>
         setError("We couldn't load this menu. Please scan the code again or ask a member of staff.")
       )
       .finally(() => setLoading(false));
-  }, [qrToken]);
+  }, [qrToken, forceSignInPreview]);
 
   useEffect(() => {
     if (!qrToken) return;
@@ -331,7 +342,7 @@ export default function GuestOrderPage({
                 seat_number: seatNumber ? Number(seatNumber) : null,
                 special_request: specialRequest || null,
                 items: lines,
-                promo_code: codePromo?.code ?? null,
+                promo_code: manualCode.trim() || codePromo?.code || null,
               }),
             });
 
@@ -347,6 +358,11 @@ export default function GuestOrderPage({
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function dismissSignIn() {
+    window.localStorage.setItem("sweet1ne_signin_seen", "1");
+    setShowSignIn(false);
   }
 
   async function cancelOrder() {
@@ -375,13 +391,14 @@ export default function GuestOrderPage({
       data-guest-theme={theme}
       className="min-h-screen bg-guest-bg text-guest-text transition-colors"
     >
+      {showSignIn && <GuestSignInOverlay onDone={dismissSignIn} />}
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-guest-border bg-guest-bg/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-6xl items-center gap-[1.05rem] px-4 py-3 sm:px-6 lg:px-8">
           {context?.logo_url ? (
-            <img src={context.logo_url} alt="" className="h-9 w-9 rounded-full object-cover" />
+            <img src={context.logo_url} alt="" className="h-[2.295rem] w-[2.295rem] rounded-full object-cover" />
           ) : (
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-guest-accent text-sm font-semibold text-white">
+            <span className="flex h-[2.295rem] w-[2.295rem] items-center justify-center rounded-full bg-guest-accent text-sm font-semibold text-white">
               {(context?.tenant_name ?? "S").charAt(0)}
             </span>
           )}
@@ -391,7 +408,7 @@ export default function GuestOrderPage({
               {context?.tenant_name ?? "Menu"}
             </p>
             {context && (
-              <p className="truncate text-xs text-guest-muted">
+              <p className="truncate text-xs font-medium text-[#c9a24a]">
                 Table {context.table_number}
                 {context.region && ` · ${context.region}`} · {context.branch_name}
               </p>
@@ -492,9 +509,10 @@ export default function GuestOrderPage({
               />
             </div>
 
-            {/* Categories */}
+            {/* Categories — sticky just under the header, so switching
+                category never means scrolling back up to find the tabs. */}
             {!query && mains.length > 0 && (
-              <div className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+              <div className="sticky top-[64px] z-10 -mx-4 mb-3 flex gap-2 overflow-x-auto bg-guest-bg px-4 pb-1 pt-2 sm:mx-0 sm:flex-wrap sm:px-0">
                 {mains.map((main) => {
                   const active = main.id === activeMain;
                   return (
@@ -704,6 +722,14 @@ export default function GuestOrderPage({
                 })}
               </ul>
             )}
+
+            {/* Mobile only — the sidebar takes over on large screens.
+                Sits exactly where the cart would otherwise build up. */}
+            {!canOrder && !orderActive && (
+              <div className="mt-6 lg:hidden">
+                <WaiterNotice />
+              </div>
+            )}
           </div>
 
           {/* Sidebar — large screens only */}
@@ -768,13 +794,13 @@ export default function GuestOrderPage({
                   Place order
                 </button>
               </div>
+            ) : !canOrder ? (
+              <WaiterNotice />
             ) : (
               <div className="rounded-2xl border border-dashed border-guest-border p-8 text-center">
                 <ShoppingBag size={24} className="mx-auto text-guest-muted" />
                 <p className="mt-3 text-sm text-guest-muted">
-                  {canOrder
-                    ? "Tap Add on anything you fancy and it'll appear here."
-                    : "Browse the menu, then ask a waiter to order for you."}
+                  Tap Add on anything you fancy and it&apos;ll appear here.
                 </p>
               </div>
             )}
@@ -970,6 +996,26 @@ export default function GuestOrderPage({
                   </div>
                 )}
 
+                <div className="space-y-1.5">
+                  <label htmlFor="promo-code" className="flex items-center gap-2 text-sm">
+                    Got a promo code?
+                    <span className="rounded-full bg-guest-elevated px-2 py-0.5 text-[11px] text-guest-muted">
+                      Optional
+                    </span>
+                  </label>
+                  <input
+                    id="promo-code"
+                    value={manualCode}
+                    onChange={(e) => setManualCode(e.target.value)}
+                    placeholder="Enter code"
+                    autoCapitalize="characters"
+                    className="h-12 w-full rounded-xl border border-guest-border bg-guest-bg px-4 text-base uppercase outline-none placeholder:normal-case placeholder:text-guest-muted focus:border-guest-accent"
+                  />
+                  {manualCode.trim() && manualCode.trim().toUpperCase() !== codePromo?.code && (
+                    <p className="text-xs text-guest-muted">Checked when you send the order.</p>
+                  )}
+                </div>
+
                 <div className="space-y-2 border-t border-guest-border pt-4">
                   {saving > 0 && (
                     <div className="flex items-center justify-between text-sm text-guest-accent">
@@ -1022,6 +1068,20 @@ export default function GuestOrderPage({
   );
 }
 
+/** Replaces the cart entirely in waiter mode — there's nothing to add, so
+   this sits exactly where a cart would otherwise build up, on both the
+   desktop sidebar and the mobile flow. */
+function WaiterNotice() {
+  return (
+    <div className="rounded-2xl border-2 border-[#c9a24a] bg-[#c9a24a]/[0.06] p-6 text-center">
+      <p className="text-sm font-semibold text-[#c9a24a]">Ask a waiter</p>
+      <p className="mt-1 text-sm text-guest-muted">
+        Browse the menu, then ask a member of staff to order for you.
+      </p>
+    </div>
+  );
+}
+
 function DishCarousel({
   item,
   index,
@@ -1035,6 +1095,17 @@ function DishCarousel({
 }) {
   const gallery = item.pictures?.length ? item.pictures : item.picture ? [item.picture] : [];
   const safeIndex = Math.min(index, Math.max(gallery.length - 1, 0));
+
+  // Auto-advances through every picture while open — restarts whenever the
+  // guest changes photo themselves (manually or via this same timer), so
+  // it never fights a swipe with an about-to-fire tick of its own.
+  useEffect(() => {
+    if (gallery.length < 2) return;
+    const timer = setInterval(() => {
+      onIndexChange((safeIndex + 1) % gallery.length);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, [safeIndex, gallery.length, onIndexChange]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">

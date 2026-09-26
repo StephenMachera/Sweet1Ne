@@ -11,13 +11,15 @@ import {
   addBlock,
   defaultPromotionLayout,
   heroImageOf,
+  updateBlock,
+  BANNER_POSITIONS,
   CTA_PRESETS,
   type PromotionBlock,
   type PromotionBlockType,
   type PromotionCtaKind,
 } from "@/lib/promotion-blocks";
 import { PromotionLayoutEditor, QuickGallery } from "./promotion-blocks-editor";
-import { PromotionPreview } from "./promotion-preview";
+import { PromotionLookDesk, type ChannelKey, type SurfaceKey } from "./promotion-look-desk";
 import { AdminLoading } from "@/components/admin/admin-loading";
 
 const DARK_DIALOG =
@@ -32,6 +34,7 @@ type Kind = "notice" | "invite" | "mail" | "code";
 type Offer = "none" | "percent" | "pounds";
 type Who = "all" | "quiet" | "regular";
 type Surfaces = { enter: boolean; ribbon: boolean; phone: boolean; mail: boolean };
+type Channels = { google: boolean; meta: boolean; instagram: boolean };
 type Look = { still: string; tone: string; align: string };
 
 type Promotion = {
@@ -53,6 +56,7 @@ type Promotion = {
   quiet_days: number;
   regular_visits: number;
   surfaces: Surfaces;
+  channels: Channels;
   layout: PromotionBlock[];
   look: Look;
   map_id: string | null;
@@ -112,6 +116,7 @@ function emptyDraft(branchId: string | null): Draft {
     quiet_days: 50,
     regular_visits: 4,
     surfaces: { ...defs },
+    channels: { google: false, meta: false, instagram: false },
     layout: defaultPromotionLayout(),
     look: { still: "left", tone: "glass", align: "left" },
     map_id: null,
@@ -186,6 +191,7 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
   const [placeFilter, setPlaceFilter] = useState("");
   const [stateFilter, setStateFilter] = useState<"all" | "live" | "draft" | "ended">("all");
   const [query, setQuery] = useState("");
+  const [lookId, setLookId] = useState("");
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -224,6 +230,7 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
 
   function openEdit(p: Promotion) {
     setEditingId(p.id);
+    setLookId(p.id);
     setDraft({
       branch_id: p.branch_id,
       kind: p.kind,
@@ -241,6 +248,7 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
       quiet_days: p.quiet_days,
       regular_visits: p.regular_visits,
       surfaces: p.surfaces,
+      channels: p.channels,
       layout: p.layout.length ? p.layout : defaultPromotionLayout(),
       look: p.look,
       map_id: p.map_id,
@@ -264,6 +272,7 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
         ? await apiFetch(`/promotions/${editingId}`, { method: "PATCH", body: JSON.stringify(body) })
         : await apiFetch("/promotions", { method: "POST", body: JSON.stringify(body) });
       setPromotions((prev) => (editingId ? prev.map((p) => (p.id === saved.id ? saved : p)) : [saved, ...prev]));
+      setLookId(saved.id);
       closeForm();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save that.");
@@ -302,6 +311,10 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
 
   async function openInMarketing() {
     try {
+      // Same targeting the promotion itself is already using — a letter
+      // written for "away 50 days" shouldn't land in Marketing as "active"
+      // and quietly go to everyone instead.
+      const audience = draft.who === "quiet" ? "quiet" : draft.who === "regular" ? "regular" : "active";
       const created = await apiFetch("/campaigns", {
         method: "POST",
         body: JSON.stringify({
@@ -309,7 +322,7 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
           subject: draft.title || "Untitled promotion",
           preheader: draft.kicker || null,
           blocks: toCampaignBlocks(draft),
-          audience: "active",
+          audience,
           map_id: draft.map_id || slugify(draft.title) || null,
         }),
       });
@@ -338,7 +351,14 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
   const liveOnSurface = (s: keyof Surfaces) =>
     live.filter((p) => matchesPlace(p) && p.surfaces[s]).sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
 
+  // The "Showing" picker in the Look tab — whichever promotion was picked,
+  // falling back to whatever's live on the homepage-entry surface, then to
+  // the top of the filtered list.
+  const lookRow: Promotion | null =
+    visible.find((p) => String(p.id) === String(lookId)) || liveOnSurface("enter") || visible[0] || null;
+
   const campaignTag = `utm_campaign=${slugify(draft.map_id || draft.title) || "your-id"}`;
+  const hero = heroImageOf(draft.layout);
 
   if (loading) return <AdminLoading />;
 
@@ -393,8 +413,19 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
       {formOpen ? (
         <div className="admin-board-group">
           <h2>{editingId ? "Editing" : "New promotion"}</h2>
-          <p className="admin-dek">Live — updates as you fill in the drawer.</p>
-          <PromotionPreview data={draft} />
+          <p className="admin-dek">Gold means it shows there. Tap a frame to turn it on.</p>
+          <PromotionLookDesk
+            data={draft}
+            surfaces={draft.surfaces}
+            channels={draft.channels}
+            interactive
+            onToggleSurface={(key: SurfaceKey) => patch({ surfaces: { ...draft.surfaces, [key]: !draft.surfaces[key] } })}
+            onToggleChannel={(key: ChannelKey) => patch({ channels: { ...draft.channels, [key]: !draft.channels[key] } })}
+            kind={draft.kind}
+            code={draft.code}
+            offer={draft.offer}
+            off={draft.off}
+          />
         </div>
       ) : (
         <>
@@ -485,32 +516,43 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
             </>
           ) : (
             <>
-              <p className="admin-dek">Guest view of whatever is live right now on each surface.</p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {(
-                  [
-                    ["enter", "After they enter", "Homepage, after Enter Sweet1NE."],
-                    ["ribbon", "Quiet line", "Under the header until they close it."],
-                    ["phone", "Table phone", "After the menu, on the guest's own phone."],
-                    ["mail", "A letter", "Marketing, people who asked."],
-                  ] as [keyof Surfaces, string, string][]
-                ).map(([key, label, cap]) => {
-                  const p = liveOnSurface(key);
-                  return (
-                    <article key={key} className="admin-card">
-                      <h2>
-                        {label} <span className="text-[var(--ivory-dim)]">{p ? "Live" : "Off"}</span>
-                      </h2>
-                      <p className="admin-dek">{cap}</p>
-                      {p ? (
-                        <PromotionPreview data={p} />
-                      ) : (
-                        <p className="admin-empty">Nothing live here.</p>
-                      )}
-                    </article>
-                  );
-                })}
+              <div className="admin-tools">
+                <label className="admin-tools-label">
+                  Showing
+                  <select value={lookRow?.id ?? ""} onChange={(e) => setLookId(e.target.value)}>
+                    {(visible.length ? visible : promotions).length === 0 && <option value="">Nothing to show</option>}
+                    {(visible.length ? visible : promotions).map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.title || "Untitled"}
+                        {statusOf(p) === "live" ? " · Live" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button type="button" className="admin-book" onClick={openAdd}>
+                  Add promotion
+                </button>
               </div>
+
+              {lookRow ? (
+                <>
+                  <p className="admin-dek">
+                    Guest view of {lookRow.title || "this promotion"}. Gold means it is on.
+                  </p>
+                  <PromotionLookDesk
+                    data={lookRow}
+                    surfaces={lookRow.surfaces}
+                    channels={lookRow.channels}
+                    interactive={false}
+                    kind={lookRow.kind}
+                    code={lookRow.code}
+                    offer={lookRow.offer}
+                    off={lookRow.off}
+                  />
+                </>
+              ) : (
+                <p className="admin-empty">Add a promotion to see how it sits on each surface.</p>
+              )}
             </>
           )}
         </>
@@ -616,7 +658,7 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
                 )}
 
                 <p className="admin-kicker">Show on</p>
-                <div className="admin-row" style={{ flexWrap: "wrap" }}>
+                <div className="admin-cats" style={{ flexWrap: "wrap" }} role="group" aria-label="Show on">
                   {(
                     [
                       ["enter", "After they enter"],
@@ -625,16 +667,38 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
                       ["mail", "A letter"],
                     ] as [keyof Surfaces, string][]
                   ).map(([key, label]) => (
-                    <label key={key}>
-                      <input
-                        type="checkbox"
-                        checked={draft.surfaces[key]}
-                        onChange={(e) => patch({ surfaces: { ...draft.surfaces, [key]: e.target.checked } })}
-                      />
+                    <button
+                      key={key}
+                      type="button"
+                      className={draft.surfaces[key] ? "is-on" : undefined}
+                      onClick={() => patch({ surfaces: { ...draft.surfaces, [key]: !draft.surfaces[key] } })}
+                    >
                       {label}
-                    </label>
+                    </button>
                   ))}
                 </div>
+
+                <p className="admin-kicker">Paid tiles</p>
+                <p className="admin-dek">Not live ads — this just previews the same words on each one.</p>
+                <div className="admin-cats" style={{ flexWrap: "wrap" }} role="group" aria-label="Paid tiles">
+                  {(
+                    [
+                      ["google", "Google"],
+                      ["meta", "Meta"],
+                      ["instagram", "Instagram"],
+                    ] as [keyof Channels, string][]
+                  ).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={draft.channels[key] ? "is-on" : undefined}
+                      onClick={() => patch({ channels: { ...draft.channels, [key]: !draft.channels[key] } })}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
                 <label>
                   Who sees this
                   <select value={draft.who} onChange={(e) => patch({ who: e.target.value as Who })}>
@@ -708,10 +772,40 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
                     <option value="none">Words only</option>
                   </select>
                 </label>
+                {hero && (
+                  <>
+                    <p className="admin-kicker">Banner position</p>
+                    <div className="admin-anchor-grid" role="group" aria-label="Banner position">
+                      {BANNER_POSITIONS.map(({ key, label }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          aria-label={label}
+                          className={(hero.position ?? "center") === key ? "is-on" : undefined}
+                          onClick={() => patch({ layout: updateBlock(draft.layout, hero.id, { position: key }) })}
+                        >
+                          <span />
+                        </button>
+                      ))}
+                    </div>
+                    <label>
+                      Fit
+                      <select
+                        value={hero.fit ?? "fill"}
+                        onChange={(e) =>
+                          patch({ layout: updateBlock(draft.layout, hero.id, { fit: e.target.value as "fill" | "fit" }) })
+                        }
+                      >
+                        <option value="fill">Fill the frame</option>
+                        <option value="fit">Show all of it</option>
+                      </select>
+                    </label>
+                  </>
+                )}
 
-                <details className="admin-drawer-fold">
+                <details className="admin-drawer-fold" open>
                   <summary>Pieces</summary>
-                  <p className="admin-dek">Add, move or remove bits. Emoji appear when you type.</p>
+                  <p className="admin-dek">Add, move or remove bits. Click a text field for emoji.</p>
                   <div className="admin-bit-bar" role="group" aria-label="Add a bit">
                     {(["logo", "kicker", "title", "dek", "image", "note", "ctas"] as PromotionBlockType[]).map((t) => (
                       <button
@@ -770,7 +864,7 @@ export function PromotionConsole({ branches, meEmail }: { branches: Branch[]; me
                   </div>
                 </details>
 
-                <p className="admin-row-acts">
+                <p className="admin-row-acts is-sticky">
                   <button type="submit" className="admin-book">
                     {saving ? "Saving…" : "Save"}
                   </button>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import {
   ChevronDown,
   ChevronUp,
@@ -62,7 +61,10 @@ const STATUS_LABELS: Record<string, string> = {
 const AUDIENCE_LABELS: Record<string, string> = {
   active: "Active",
   website: "Website",
+  qr: "Table QR",
   booking: "Bookings",
+  quiet: "Away 50 days",
+  regular: "4+ visits",
 };
 
 type Block = Record<string, any> & { type: string };
@@ -98,12 +100,12 @@ const BLOCK_KINDS: { type: string; label: string; icon: typeof Type; make: () =>
 ];
 
 /**
- * Campaigns tab of the unified /admin/marketing page. Creating or editing a
- * campaign opens the #admin-drawer-slot drawer (same slide-in pattern as
- * tables/staff/roles) and, while editing, the campaigns table in the main
- * column is replaced by a live preview — a real rendered-email iframe from
- * the same /campaigns/preview endpoint the Preview dialog used to use, so
- * it can never drift from what actually gets sent.
+ * Campaigns tab of the unified /admin/marketing page. One table (every
+ * campaign, regardless of status), and — right below it — the campaign
+ * look: a live preview next to the editor, both always on screen together
+ * rather than tucked into a side drawer. The preview is a real rendered-
+ * email iframe from the same /campaigns/preview endpoint the actual send
+ * uses, so it can never drift from what actually gets sent.
  */
 export function CampaignsPane() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -112,8 +114,18 @@ export function CampaignsPane() {
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<Campaign | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  // True once the admin has explicitly closed the desk — suppresses the
+  // "show the first campaign" fallback below until they pick one again, so
+  // Close actually closes instead of silently reopening campaigns[0].
+  const [manuallyClosed, setManuallyClosed] = useState(false);
   const [previewDraft, setPreviewDraft] = useState<PreviewDraft | null>(null);
-  const [drawerSlot, setDrawerSlot] = useState<Element | null>(null);
+  const [audienceCounts, setAudienceCounts] = useState<Record<string, number> | null>(null);
+  // Only true for the campaign just created by "New campaign", and only
+  // until it's explicitly saved or the admin selects something else —
+  // every campaign gets a real id immediately in this app, so id presence
+  // alone can't tell "New" from "Edit" the way the reference build's
+  // in-memory draft could.
+  const [isNewDraft, setIsNewDraft] = useState(false);
 
   const load = useCallback(
     () =>
@@ -124,14 +136,28 @@ export function CampaignsPane() {
     []
   );
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const loadAudienceCounts = useCallback(
+    () => apiFetch("/campaigns/audience-counts").then(setAudienceCounts).catch(() => setAudienceCounts(null)),
+    []
+  );
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reading a real DOM node from a sibling tree, only available after commit
-    setDrawerSlot(document.getElementById("admin-drawer-slot"));
-  }, []);
+    load();
+    loadAudienceCounts();
+  }, [load, loadAudienceCounts]);
+
+  // The first campaign shows by default, same as the reference build — the
+  // look is meant to be visible right away, not only after a click. Derived
+  // at render time rather than synced via an effect, since it's just a
+  // fallback over campaigns that are already in state — unless the admin
+  // just closed it, in which case that fallback is suppressed.
+  const activeId = editingId ?? (manuallyClosed ? null : campaigns[0]?.id ?? null);
+
+  function select(id: string) {
+    setManuallyClosed(false);
+    setIsNewDraft(false);
+    setEditingId(id);
+  }
 
   async function createDraft() {
     setCreating(true);
@@ -142,6 +168,8 @@ export function CampaignsPane() {
         body: JSON.stringify({ name: "Untitled campaign", subject: "", preheader: null, blocks: [] }),
       });
       setCampaigns((prev) => [draft, ...prev]);
+      setManuallyClosed(false);
+      setIsNewDraft(true);
       setEditingId(draft.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't create that.");
@@ -155,7 +183,7 @@ export function CampaignsPane() {
     try {
       const copy = await apiFetch(`/campaigns/${campaign.id}/duplicate`, { method: "POST" });
       setCampaigns((prev) => [copy, ...prev]);
-      setEditingId(copy.id);
+      select(copy.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't duplicate that.");
     }
@@ -166,6 +194,12 @@ export function CampaignsPane() {
     try {
       await apiFetch(`/campaigns/${deleting.id}`, { method: "DELETE" });
       setCampaigns((prev) => prev.filter((c) => c.id !== deleting.id));
+      // Otherwise the desk keeps trying to load a campaign that no longer
+      // exists and shows nothing but an error.
+      if (deleting.id === activeId) {
+        setEditingId(null);
+        setPreviewDraft(null);
+      }
       setDeleting(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't delete that.");
@@ -173,96 +207,48 @@ export function CampaignsPane() {
     }
   }
 
-  const drafts = campaigns.filter((c) => c.status === "draft");
-  const sent = campaigns.filter((c) => c.status !== "draft");
-  const editing = editingId !== null;
-
   return (
     <>
-      <p className="admin-dek">
-        {drafts.length} in progress · {sent.length} sent
-      </p>
-
       {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
 
       <div className="admin-tools">
-        <button type="button" className="admin-book ml-auto" onClick={createDraft} disabled={creating}>
+        <button type="button" className="admin-book" onClick={createDraft} disabled={creating}>
           {creating ? "Creating…" : "New campaign"}
         </button>
       </div>
 
-      {editing ? (
-        <LivePreview draft={previewDraft} />
-      ) : loading ? (
+      {loading ? (
         <AdminLoading />
       ) : campaigns.length === 0 ? (
         <p className="admin-empty">
-          No campaigns yet. Build an email from blocks — a heading, some text, a picture, a
-          button. It&rsquo;ll come out looking like Sweet1NE whatever you write.
+          No campaigns yet. New campaign uses this look — logo first, then the letter.
         </p>
       ) : (
-        <>
-          {drafts.length > 0 && (
-            <div className="mb-6">
-              <p className="mb-2 text-[11px] uppercase tracking-[0.14em] text-[var(--ivory-dim)]">
-                In progress
-              </p>
-              <div className="admin-data-panel">
-                <table className="admin-sheet">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Subject</th>
-                      <th>Status</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {drafts.map((campaign) => (
-                      <CampaignRow
-                        key={campaign.id}
-                        campaign={campaign}
-                        onEdit={() => setEditingId(campaign.id)}
-                        onDuplicate={() => duplicate(campaign)}
-                        onDelete={() => setDeleting(campaign)}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {sent.length > 0 && (
-            <div>
-              <p className="mb-2 text-[11px] uppercase tracking-[0.14em] text-[var(--ivory-dim)]">
-                Sent
-              </p>
-              <div className="admin-data-panel">
-                <table className="admin-sheet">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Subject</th>
-                      <th>Status</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sent.map((campaign) => (
-                      <CampaignRow
-                        key={campaign.id}
-                        campaign={campaign}
-                        onEdit={() => setEditingId(campaign.id)}
-                        onDuplicate={() => duplicate(campaign)}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </>
+        <div className="admin-data-panel">
+          <table className="admin-sheet">
+            <thead>
+              <tr>
+                <th>Subject</th>
+                <th>ID</th>
+                <th>Audience</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {campaigns.map((campaign) => (
+                <CampaignRow
+                  key={campaign.id}
+                  campaign={campaign}
+                  audienceCount={audienceCounts?.[campaign.audience] ?? null}
+                  onEdit={() => select(campaign.id)}
+                  onDuplicate={() => duplicate(campaign)}
+                  onDelete={campaign.status === "draft" ? () => setDeleting(campaign) : undefined}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <Dialog open={deleting !== null} onOpenChange={(open) => !open && setDeleting(null)}>
@@ -275,7 +261,7 @@ export function CampaignsPane() {
 
           <div className="space-y-4">
             <p className="text-sm text-[rgba(229,226,225,0.68)]">
-              &ldquo;{deleting?.name}&rdquo; will be gone for good.
+              &ldquo;{deleting?.subject || "This draft"}&rdquo; will be gone for good.
             </p>
 
             <div className="flex justify-end gap-3">
@@ -290,36 +276,44 @@ export function CampaignsPane() {
         </DialogContent>
       </Dialog>
 
-      {/* Editor — portaled into the third grid column owned by the shared
-          /admin layout, same as menu, events, tables, staff, roles and
-          inbox. See #admin-drawer-slot in admin/layout.tsx. */}
-      {editingId &&
-        drawerSlot &&
-        createPortal(
-          <CampaignEditorDrawer
-            id={editingId}
+      {/* The look — always visible alongside the table, matching the
+          reference build's own two-column camp-desk, rather than tucked
+          away in a side drawer. */}
+      {activeId && (
+        <div className="admin-camp-desk">
+          <LivePreview draft={previewDraft} />
+          <CampaignEditor
+            key={activeId}
+            id={activeId}
+            isNew={isNewDraft}
+            audienceCounts={audienceCounts}
             onClose={() => {
               setEditingId(null);
+              setManuallyClosed(true);
               setPreviewDraft(null);
             }}
             onDraftChange={setPreviewDraft}
-            onSaved={(updated) =>
-              setCampaigns((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))
-            }
-          />,
-          drawerSlot
-        )}
+            onSaved={(updated) => {
+              setCampaigns((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+              setIsNewDraft(false);
+              loadAudienceCounts();
+            }}
+          />
+        </div>
+      )}
     </>
   );
 }
 
 function CampaignRow({
   campaign,
+  audienceCount,
   onEdit,
   onDuplicate,
   onDelete,
 }: {
   campaign: Campaign;
+  audienceCount: number | null;
   onEdit: () => void;
   onDuplicate: () => void;
   /** Only drafts can be deleted — a sent campaign is the record of what
@@ -334,52 +328,31 @@ function CampaignRow({
   };
 
   return (
-    <tr>
+    <tr onClick={onEdit} style={{ cursor: "pointer" }}>
       <td>
-        <span className="admin-name">{campaign.name}</span>
+        <span className="admin-name">{campaign.subject || "No subject yet"}</span>
       </td>
-      <td className="admin-muted">{campaign.subject || "No subject yet"}</td>
+      <td className="admin-muted">{campaign.map_id || ""}</td>
+      <td className="admin-muted">
+        {audienceCount ?? "—"} · {AUDIENCE_LABELS[campaign.audience] ?? campaign.audience}
+      </td>
       <td>
         <span className={statusCls[campaign.status]}>
           {STATUS_LABELS[campaign.status] ?? campaign.status}
         </span>
-        <div className="admin-muted">
-          {campaign.sent_at ? (
-            <>
-              Sent{" "}
-              {new Date(campaign.sent_at).toLocaleDateString("en-GB", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })}{" "}
-              to {campaign.sent_count} {campaign.sent_count === 1 ? "person" : "people"}
-              {campaign.failed_count > 0 && ` · ${campaign.failed_count} failed`}
-            </>
-          ) : (
-            <>
-              Last edited{" "}
-              {new Date(campaign.updated_at).toLocaleDateString("en-GB", {
-                day: "numeric",
-                month: "short",
-              })}
-            </>
-          )}
-        </div>
       </td>
-      <td>
-        <div className="flex gap-3">
-          <button type="button" className="admin-edit" onClick={onDuplicate}>
-            <Copy size={14} />
+      <td className="admin-row-acts">
+        <button type="button" className="admin-edit" onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>
+          <Copy size={14} />
+        </button>
+        {onDelete && (
+          <button type="button" className="admin-edit" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+            <Trash2 size={14} />
           </button>
-          {onDelete && (
-            <button type="button" className="admin-edit" onClick={onDelete}>
-              <Trash2 size={14} />
-            </button>
-          )}
-          <button type="button" className="admin-edit" onClick={onEdit}>
-            {campaign.status === "draft" ? "Edit" : "View"}
-          </button>
-        </div>
+        )}
+        <button type="button" className="admin-edit" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+          {campaign.status === "draft" ? "Edit" : "View"}
+        </button>
       </td>
     </tr>
   );
@@ -422,13 +395,17 @@ function LivePreview({ draft }: { draft: PreviewDraft | null }) {
   );
 }
 
-function CampaignEditorDrawer({
+function CampaignEditor({
   id,
+  isNew,
+  audienceCounts,
   onClose,
   onDraftChange,
   onSaved,
 }: {
   id: string;
+  isNew: boolean;
+  audienceCounts: Record<string, number> | null;
   onClose: () => void;
   onDraftChange: (draft: PreviewDraft) => void;
   onSaved: (campaign: Campaign) => void;
@@ -452,12 +429,6 @@ function CampaignEditorDrawer({
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
 
-  const [subscriberStats, setSubscriberStats] = useState<{
-    subscribed: number;
-    from_website: number;
-    from_reservations: number;
-  } | null>(null);
-
   const readOnly = campaign ? ["sent", "sending"].includes(campaign.status) : false;
 
   useEffect(() => {
@@ -474,10 +445,6 @@ function CampaignEditorDrawer({
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Couldn't load that campaign."))
       .finally(() => setLoading(false));
-
-    apiFetch("/newsletter/stats")
-      .then(setSubscriberStats)
-      .catch(() => setSubscriberStats(null));
   }, [id]);
 
   // Mirrors the live edit buffer up to the parent on every change, so the
@@ -515,7 +482,10 @@ function CampaignEditorDrawer({
       const updated = await apiFetch(`/campaigns/${id}`, {
         method: "PATCH",
         body: JSON.stringify({
-          name,
+          // There's no separate "internal name" field in this UI anymore —
+          // kept in step with the subject rather than left frozen at
+          // whatever it was called on creation.
+          name: subject || name,
           subject,
           preheader: preheader || null,
           blocks,
@@ -563,75 +533,46 @@ function CampaignEditorDrawer({
     }
   }
 
-  const audienceCount = subscriberStats
-    ? audience === "website"
-      ? subscriberStats.from_website
-      : audience === "booking"
-        ? subscriberStats.from_reservations
-        : subscriberStats.subscribed
-    : null;
+  const audienceCount = audienceCounts ? (audienceCounts[audience] ?? 0) : null;
 
   const campaignTag = `utm_campaign=${slugify(mapId || subject || name) || "your-id"}`;
 
   return (
-    <aside className="admin-drawer-edit is-wide">
+    <section className="admin-camp-build">
       {loading || !campaign ? (
         <AdminLoading />
       ) : (
         <>
-          <div className="mb-1 flex items-start justify-between gap-3">
-            <h2 className="min-w-0 truncate">{name || "Untitled campaign"}</h2>
-            <button type="button" className="admin-edit shrink-0" onClick={onClose}>
-              Close
-            </button>
-          </div>
+          <h2 id="camp-title">{isNew ? "New campaign" : "Edit campaign"}</h2>
           <p className="admin-dek">
-            {campaign.status === "sent"
-              ? `Sent to ${campaign.sent_count} ${campaign.sent_count === 1 ? "person" : "people"}${campaign.failed_count > 0 ? ` · ${campaign.failed_count} failed` : ""}`
-              : readOnly
-                ? "Sending…"
-                : "Draft"}
+            Tap a box — gold is the one you are on. Logo is first: size and alignment. Buttons
+            can be reordered.
+            {campaign.status === "sent" &&
+              ` Sent to ${campaign.sent_count} ${campaign.sent_count === 1 ? "person" : "people"}${campaign.failed_count > 0 ? ` · ${campaign.failed_count} failed` : ""}.`}
           </p>
-
-          <div className="mb-4 flex flex-wrap gap-2">
-            {!readOnly && (
-              <>
-                <button type="button" className="admin-book" onClick={() => setTestDialogOpen(true)}>
-                  Send test
-                </button>
-                <button type="button" className="admin-book" onClick={save} disabled={saving}>
-                  {saving ? "Saving…" : "Save"}
-                </button>
-                {campaign.status !== "sent" && (
-                  <button
-                    type="button"
-                    className="admin-book"
-                    onClick={() => setSendDialogOpen(true)}
-                    disabled={blocks.length === 0}
-                  >
-                    Send
-                  </button>
-                )}
-              </>
-            )}
-          </div>
 
           {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
 
-          {/* Campaign details */}
-          <div className="admin-form rounded-[3px] border border-[var(--gold-line)] bg-[var(--panel-2)] p-4">
+          <form
+            className="admin-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              save();
+            }}
+            onKeyDown={(e) => {
+              // Enter used to do nothing here (this wasn't a real <form>
+              // before) — a real one submits on Enter from any single-line
+              // <input> by default, which would save the draft just from
+              // typing a CTA label or the campaign ID and hitting return.
+              // Only <input> is guarded — buttons still activate on Enter.
+              if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") {
+                e.preventDefault();
+              }
+            }}
+          >
             <label>
-              Name
-              <input
-                value={name}
-                disabled={readOnly}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Internal name, not shown to recipients"
-              />
-            </label>
-            <label>
-              Subject line
-              <EmojiField value={subject} onChange={setSubject} placeholder="What shows up in the inbox" />
+              Subject
+              <EmojiField value={subject} onChange={setSubject} placeholder="What shows up in the inbox" required />
             </label>
             <label>
               Preheader
@@ -668,21 +609,26 @@ function CampaignEditorDrawer({
               </button>
             </div>
 
-            <label className="!mb-0">
-              Audience
-              <select value={audience} disabled={readOnly} onChange={(e) => setAudience(e.target.value)}>
-                {Object.entries(AUDIENCE_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <p className="admin-kicker">Audience</p>
+            <div className="admin-cats" role="radiogroup" aria-label="Audience" style={{ flexWrap: "wrap" }}>
+              {Object.entries(AUDIENCE_LABELS).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={audience === value}
+                  disabled={readOnly}
+                  className={audience === value ? "is-on" : undefined}
+                  onClick={() => setAudience(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <p className="!mb-0 !mt-1 text-xs normal-case tracking-normal text-[var(--ivory-dim)]">
               {audienceCount === null ? "—" : `${audienceCount} people will be included.`} Opted
               out stay off.
             </p>
-          </div>
 
           {/* Blocks */}
           <div className="mt-4 space-y-3">
@@ -720,6 +666,33 @@ function CampaignEditorDrawer({
               ))}
             </div>
           )}
+
+          <p className="admin-row-acts is-sticky">
+            {!readOnly && (
+              <>
+                <button type="submit" className="admin-book" disabled={saving}>
+                  {saving ? "Saving…" : "Save draft"}
+                </button>
+                {campaign.status !== "sent" && (
+                  <button
+                    type="button"
+                    className="admin-book"
+                    onClick={() => setSendDialogOpen(true)}
+                    disabled={blocks.length === 0}
+                  >
+                    Mark sent
+                  </button>
+                )}
+                <button type="button" className="admin-book" onClick={() => setTestDialogOpen(true)}>
+                  Send test
+                </button>
+              </>
+            )}
+            <button type="button" className="admin-book" onClick={onClose}>
+              Close
+            </button>
+          </p>
+          </form>
 
           {/* Send test */}
           <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
@@ -784,7 +757,7 @@ function CampaignEditorDrawer({
           </Dialog>
         </>
       )}
-    </aside>
+    </section>
   );
 }
 

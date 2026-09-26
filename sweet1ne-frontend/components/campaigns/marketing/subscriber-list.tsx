@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { Download, Mail, Search, Send, TrendingUp, UserMinus, Users } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
@@ -28,6 +29,22 @@ type Stats = {
   from_reservations: number;
 };
 
+const SOURCE_LABELS: Record<string, string> = {
+  qr: "Table QR",
+  website: "The website",
+  events: "Events",
+  order: "Order",
+  contact: "Contact",
+  campaign: "Campaign",
+  promo: "Promotion",
+  reservation: "A booking",
+  import: "Import",
+};
+
+function sourceLabel(source: string): string {
+  return SOURCE_LABELS[source] ?? "The website";
+}
+
 /**
  * The subscriber list, shared between admin and branch.
  *
@@ -39,20 +56,33 @@ export function SubscriberList({
   tone,
   canSendCampaigns,
   hideHeader = false,
+  onChanged,
 }: {
   tone: "admin" | "branch";
   canSendCampaigns: boolean;
   /** Admin-only — the unified /admin/marketing page renders its own h1/dek
-   *  above a List/Campaigns tab switcher, so this skips the duplicate. */
+   *  and stats above a Campaigns/The list tab switcher, so this skips the
+   *  duplicate of both. */
   hideHeader?: boolean;
+  /** Admin-only — the page's own stats board needs to refresh after a
+   *  toggle or a new add changes the real counts. */
+  onChanged?: () => void;
 }) {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [adminFilter, setAdminFilter] = useState<"active" | "out" | "all">("active");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [drawerSlot, setDrawerSlot] = useState<Element | null>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reading a real DOM node from a sibling tree, only available after commit
+    setDrawerSlot(document.getElementById("admin-drawer-slot"));
+  }, []);
 
   const isBranch = tone === "branch";
 
@@ -71,8 +101,11 @@ export function SubscriberList({
 
   const load = useCallback(() => {
     setLoading(true);
+    // Admin always fetches everyone — its own Active/Opted out/All filter
+    // is applied client-side. Branch keeps its original server-side toggle.
+    const subscribedOnly = isBranch ? !showAll : false;
     Promise.all([
-      apiFetch(`/newsletter/subscribers?subscribed_only=${!showAll}`),
+      apiFetch(`/newsletter/subscribers?subscribed_only=${subscribedOnly}`),
       apiFetch("/newsletter/stats"),
     ])
       .then(([list, s]) => {
@@ -81,11 +114,25 @@ export function SubscriberList({
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [showAll]);
+  }, [showAll, isBranch]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  async function toggleMail(row: Subscriber) {
+    setError(null);
+    try {
+      const updated = await apiFetch(`/newsletter/subscribers/${row.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_subscribed: !row.is_subscribed }),
+      });
+      setSubscribers((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      onChanged?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't update that.");
+    }
+  }
 
   async function exportCsv() {
     setExporting(true);
@@ -116,9 +163,13 @@ export function SubscriberList({
     }
   }
 
-  const visible = subscribers.filter((s) =>
-    s.email.toLowerCase().includes(query.toLowerCase())
-  );
+  const visible = subscribers.filter((s) => {
+    if (!isBranch) {
+      if (adminFilter === "active" && !s.is_subscribed) return false;
+      if (adminFilter === "out" && s.is_subscribed) return false;
+    }
+    return s.email.toLowerCase().includes(query.toLowerCase());
+  });
 
   return (
     <div className="space-y-6">
@@ -219,7 +270,7 @@ export function SubscriberList({
               accent="muted"
             />
           </div>
-        ) : (
+        ) : !hideHeader ? (
           <div className="admin-kpi-strip" aria-label="Summary">
             <div>
               <span className="admin-kpi-n">{stats.subscribed}</span>
@@ -227,18 +278,18 @@ export function SubscriberList({
             </div>
             <div>
               <span className="admin-kpi-n">{stats.from_website}</span>
-              <span className="admin-kpi-l">From the website</span>
+              <span className="admin-kpi-l">Website</span>
             </div>
             <div>
               <span className="admin-kpi-n">{stats.from_reservations}</span>
-              <span className="admin-kpi-l">From bookings</span>
+              <span className="admin-kpi-l">Bookings</span>
             </div>
             <div>
               <span className="admin-kpi-n">{stats.unsubscribed}</span>
               <span className="admin-kpi-l">Opted out</span>
             </div>
           </div>
-        ))}
+        ) : null)}
 
       {isBranch ? (
         <div className="flex flex-wrap items-center gap-3">
@@ -270,17 +321,24 @@ export function SubscriberList({
         <div className="admin-cats" role="group" aria-label="Status">
           <button
             type="button"
-            className={!showAll ? "is-on" : undefined}
-            onClick={() => setShowAll(false)}
+            className={adminFilter === "active" ? "is-on" : undefined}
+            onClick={() => setAdminFilter("active")}
           >
-            Active only
+            Active
           </button>
           <button
             type="button"
-            className={showAll ? "is-on" : undefined}
-            onClick={() => setShowAll(true)}
+            className={adminFilter === "out" ? "is-on" : undefined}
+            onClick={() => setAdminFilter("out")}
           >
-            Showing everyone
+            Opted out
+          </button>
+          <button
+            type="button"
+            className={adminFilter === "all" ? "is-on" : undefined}
+            onClick={() => setAdminFilter("all")}
+          >
+            All
           </button>
         </div>
       )}
@@ -293,6 +351,9 @@ export function SubscriberList({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by email"
           />
+          <button type="button" className="admin-book" onClick={() => setAddOpen(true)}>
+            Add
+          </button>
           <button type="button" className="admin-book" onClick={exportCsv} disabled={exporting || !stats?.subscribed}>
             {exporting ? "Preparing…" : "Export CSV"}
           </button>
@@ -314,9 +375,7 @@ export function SubscriberList({
             </p>
           </div>
         ) : (
-          <p className="admin-empty">
-            {query ? "Nobody matches that search." : "Nobody's subscribed yet."}
-          </p>
+          <p className="admin-empty">No one on this filter.</p>
         )
       ) : isBranch ? (
         <div className={`overflow-x-auto rounded-xl border ${card}`}>
@@ -366,6 +425,7 @@ export function SubscriberList({
           <table className="admin-sheet">
             <thead>
               <tr>
+                <th>On</th>
                 <th>Email</th>
                 <th>Came from</th>
                 <th>Agreed</th>
@@ -376,13 +436,19 @@ export function SubscriberList({
               {visible.map((subscriber) => (
                 <tr key={subscriber.id}>
                   <td>
+                    <button
+                      type="button"
+                      aria-label="On"
+                      className={`admin-toggle${subscriber.is_subscribed ? " is-on" : ""}`}
+                      onClick={() => toggleMail(subscriber)}
+                    />
+                  </td>
+                  <td>
                     <a href={`mailto:${subscriber.email}`} className="admin-name">
                       {subscriber.email}
                     </a>
                   </td>
-                  <td className="admin-muted">
-                    {subscriber.source === "reservation" ? "A booking" : "The website"}
-                  </td>
+                  <td className="admin-muted">{sourceLabel(subscriber.source)}</td>
                   <td className="admin-muted">
                     {new Date(subscriber.consented_at).toLocaleDateString("en-GB", {
                       day: "numeric",
@@ -407,7 +473,113 @@ export function SubscriberList({
         is stored with their address — that record is what proves consent was
         given if anyone ever asks. Exporting includes it.
       </p>
+
+      {/* Admin-only — portaled into the third grid column owned by the
+          shared /admin layout, same pattern as menu, events, tables and
+          leads. See #admin-drawer-slot in admin/layout.tsx. */}
+      {!isBranch &&
+        addOpen &&
+        drawerSlot &&
+        createPortal(
+          <AddSubscriberDrawer
+            onClose={() => setAddOpen(false)}
+            onAdded={(row) => {
+              setSubscribers((prev) => {
+                const existing = prev.findIndex((r) => r.id === row.id);
+                if (existing === -1) return [row, ...prev];
+                return prev.map((r) => (r.id === row.id ? row : r));
+              });
+              setAddOpen(false);
+              onChanged?.();
+            }}
+          />,
+          drawerSlot
+        )}
     </div>
+  );
+}
+
+function AddSubscriberDrawer({
+  onClose,
+  onAdded,
+}: {
+  onClose: () => void;
+  onAdded: (row: Subscriber) => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [source, setSource] = useState("website");
+  const [consent, setConsent] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!consent) {
+      setError("Only add someone who ticked a box asking to be emailed.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const result = await apiFetch("/newsletter/subscribers", {
+        method: "POST",
+        body: JSON.stringify({ email, source, consented: true }),
+      });
+      onAdded(result.subscriber);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't add that.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <aside className="admin-drawer-edit">
+      <h2>Add to the list</h2>
+      <form onSubmit={handleSubmit} className="admin-form">
+        <fieldset disabled={saving} className="contents">
+          {error && (
+            <p role="alert" className="admin-hold mb-3 text-sm">
+              {error}
+            </p>
+          )}
+
+          <label>
+            Email
+            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          </label>
+
+          <label>
+            Came from
+            <select value={source} onChange={(e) => setSource(e.target.value)}>
+              <option value="website">The website</option>
+              <option value="events">Events</option>
+              <option value="order">Order</option>
+              <option value="qr">Table QR</option>
+              <option value="reservation">A booking</option>
+              <option value="import">Import</option>
+            </select>
+          </label>
+
+          <label className="!mb-1 flex items-center gap-2 !normal-case !tracking-normal text-sm text-[var(--ivory)]">
+            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+            Consent
+          </label>
+          <p className="!mb-3 !mt-[-0.4rem] text-xs normal-case tracking-normal text-[var(--ivory-dim)]">
+            Only if they ticked a box asking to be emailed.
+          </p>
+
+          <div className="flex gap-3 pt-1">
+            <button type="submit" className="admin-book" disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button type="button" className="admin-book" onClick={onClose}>
+              Close
+            </button>
+          </div>
+        </fieldset>
+      </form>
+    </aside>
   );
 }
 

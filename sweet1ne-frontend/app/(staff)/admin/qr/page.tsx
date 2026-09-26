@@ -7,48 +7,46 @@ import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { AdminLoading } from "@/components/admin/admin-loading";
 
-type Branch = { id: string; name: string; settings?: { order_mode?: string } };
-type Table = { id: string; branch_id: string; qr_code_url: string | null };
+const LOGO_SRC = "/images/brand/logo.png";
+
+type Branch = { id: string; name: string; slug: string; settings?: { order_mode?: string; phone_menu_url?: string } };
+type Table = {
+  id: string;
+  branch_id: string;
+  number: number;
+  qr_token: string;
+  qr_code_url: string | null;
+  is_active: boolean;
+  order_mode: string | null;
+};
 type MainCategory = { id: string };
 type SubCategory = { id: string; main_category_id: string };
 type MenuItem = { id: string; title: string; price: number; picture: string | null; is_available: boolean; sub_category_id: string };
-type DishInsight = { menu_item_id: string; title: string; count: number };
+type DishInsight = { menu_item_id: string; title: string; count: number; views: number; adds: number };
 type DishInsights = { looked_at_most: DishInsight[]; quiet: DishInsight[]; has_data: boolean };
 
-const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
+/** The real guest ordering page, live, in an actual phone-shaped frame —
+   not a hand-built replica, so it can never drift from what a guest
+   actually sees. Needs one real active table to point at; a branch with
+   none yet gets an honest "add a table first" message instead of a fake
+   preview. reloadToken forces a fresh load (a new qr_token-scoped session,
+   re-reading order_mode from the server) whenever staff flips waiter/phone
+   for this branch — otherwise the iframe would keep showing whatever mode
+   was live when it first loaded. */
+function LivePhonePreview({ branch, table, reloadToken }: { branch: Branch; table: Table | null; reloadToken: number }) {
+  if (!table) {
+    return (
+      <div className="admin-handset-empty">
+        Add an active table on Tables to preview the phone for {branch.name}.
+      </div>
+    );
+  }
 
-/** The same real dish, shown either as "ask a waiter" (no order button) or
-   with an Add stepper — exactly the logic on the real table phone
-   ([branchSlug]/order/page.tsx). Flips the instant staff toggles the
-   setting, using a real dish already on the menu, never invented copy. */
-function PhonePreview({ mode, sample }: { mode: "waiter" | "app"; sample: MenuItem | null }) {
+  const src = `/${branch.slug}/order?table=${table.qr_token}&_r=${reloadToken}`;
+
   return (
-    <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--gold-line)] bg-[#0a0a0a]">
-      <div className="border-b border-[var(--gold-line)] px-3 py-1.5 text-center text-[10px] uppercase tracking-[0.14em] text-[var(--ivory-dim)]">
-        Table phone preview
-      </div>
-      <div className="p-3">
-        {sample ? (
-          <div className="flex items-center gap-3 rounded-xl border border-[var(--gold-line)] bg-[#111] p-2.5">
-            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-[#1a1a1a]">
-              {sample.picture && <img src={sample.picture} alt="" className="h-full w-full object-cover" />}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm text-[var(--ivory)]">{sample.title}</p>
-              <p className="text-xs text-[var(--gold)]">{gbp.format(sample.price)}</p>
-            </div>
-            {mode === "waiter" ? (
-              <span className="shrink-0 text-xs text-[var(--ivory-dim)]">Ask a waiter</span>
-            ) : (
-              <button type="button" disabled className="shrink-0 rounded-full bg-[var(--gold)] px-3 py-1.5 text-xs font-medium text-[#0e0e0e]">
-                Add
-              </button>
-            )}
-          </div>
-        ) : (
-          <p className="text-center text-xs text-[var(--ivory-dim)]">No dish on yet to preview.</p>
-        )}
-      </div>
+    <div className="admin-handset-viewport">
+      <iframe key={src} src={src} title={`Live table phone — ${branch.name}`} className="admin-handset-frame" />
     </div>
   );
 }
@@ -65,13 +63,21 @@ export default function AdminQrPage() {
   const [subs, setSubs] = useState<SubCategory[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [savingBranchId, setSavingBranchId] = useState<string | null>(null);
+  const [busyTableId, setBusyTableId] = useState<string | null>(null);
   const [insights, setInsights] = useState<DishInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const [phoneUrlDraft, setPhoneUrlDraft] = useState("");
+  const [savingPhoneUrl, setSavingPhoneUrl] = useState(false);
 
-  useEffect(() => {
+  const load = () => {
     apiFetch("/branches").then(setBranches).catch(() => setBranches([]));
     apiFetch("/tables").then(setTables).catch(() => setTables([]));
+  };
+
+  useEffect(() => {
+    load();
     Promise.all([
       apiFetch("/staff/menu/main-categories?include_inactive=true"),
       apiFetch("/staff/menu/sub-categories?include_inactive=true"),
@@ -97,6 +103,27 @@ export default function AdminQrPage() {
       .catch(() => setInsights(null));
   }, [branchFilter]);
 
+  useEffect(() => {
+    const branch = branches.find((b) => b.id === branchFilter) ?? branches[0] ?? null;
+    setPhoneUrlDraft(branch?.settings?.phone_menu_url ?? "");
+  }, [branches, branchFilter]);
+
+  async function saveBranchPhoneUrl(branch: Branch) {
+    setSavingPhoneUrl(true);
+    setError(null);
+    try {
+      const updated = await apiFetch(`/branches/${branch.id}/phone-menu-url`, {
+        method: "PATCH",
+        body: JSON.stringify({ phone_menu_url: phoneUrlDraft.trim() }),
+      });
+      setBranches((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't save that.");
+    } finally {
+      setSavingPhoneUrl(false);
+    }
+  }
+
   async function setOrderMode(branch: Branch, mode: "waiter" | "app") {
     setSavingBranchId(branch.id);
     setError(null);
@@ -106,10 +133,37 @@ export default function AdminQrPage() {
         body: JSON.stringify({ order_mode: mode }),
       });
       setBranches((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+      setReloadToken((t) => t + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't change that.");
     } finally {
       setSavingBranchId(null);
+    }
+  }
+
+  async function toggleTableActive(table: Table) {
+    setError(null);
+    try {
+      const updated = await apiFetch(`/tables/${table.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_active: !table.is_active }),
+      });
+      setTables((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't change that.");
+    }
+  }
+
+  async function attachCode(table: Table) {
+    setBusyTableId(table.id);
+    setError(null);
+    try {
+      const updated = await apiFetch(`/tables/${table.id}/qr`, { method: "POST" });
+      setTables((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't generate a code right now.");
+    } finally {
+      setBusyTableId(null);
     }
   }
 
@@ -124,9 +178,42 @@ export default function AdminQrPage() {
     const sub = subById.get(i.sub_category_id);
     return !i.picture && sub && mainIdSet.has(sub.main_category_id);
   });
+  const withPicture = onItems.filter((i) => i.picture).length;
 
   const attached = tables.filter((t) => t.qr_code_url).length;
+  const branchById = new Map(branches.map((b) => [b.id, b]));
   const visibleBranches = branches.filter((b) => !branchFilter || b.id === branchFilter);
+
+  // The one handset shown at a time — whichever branch is filtered, else
+  // the first branch, same "default to the first real one" idea as the
+  // reference build defaulting to Lewisham.
+  const previewBranch = branches.find((b) => b.id === branchFilter) ?? branches[0] ?? null;
+  const previewTable = previewBranch
+    ? tables.find((t) => t.branch_id === previewBranch.id && t.is_active) ?? null
+    : null;
+  const guestUrl = previewBranch && previewTable ? `/${previewBranch.slug}/order?table=${previewTable.qr_token}` : null;
+
+  const visibleTables = tables
+    .filter((t) => !branchFilter || t.branch_id === branchFilter)
+    .sort((a, b) => {
+      const an = branchById.get(a.branch_id)?.name ?? "";
+      const bn = branchById.get(b.branch_id)?.name ?? "";
+      if (an !== bn) return an.localeCompare(bn);
+      return a.number - b.number;
+    });
+
+  function tableOrderLabel(table: Table): { text: string; own: boolean } {
+    const own = table.order_mode === "app" || table.order_mode === "waiter";
+    const branch = branchById.get(table.branch_id);
+    const mode = own ? table.order_mode : branch?.settings?.order_mode === "app" ? "app" : "waiter";
+    return { text: mode === "app" ? "Phone" : "Waiter", own };
+  }
+
+  function codeStatus(table: Table): { text: string; cls: string } {
+    if (!table.is_active) return { text: "Off", cls: "admin-status" };
+    if (table.qr_code_url) return { text: "Attached", cls: "admin-status is-ok" };
+    return { text: "No code", cls: "admin-status is-wait" };
+  }
 
   return (
     <>
@@ -155,7 +242,8 @@ export default function AdminQrPage() {
 
       <h1>QR Codes</h1>
       <p className="admin-dek">
-        The phone always shows the menu. Choose who takes the order — a waiter, or the phone.
+        One mini phone. Choose who takes the order — a waiter, or the phone. Looked at most fills
+        in after guests use it.
       </p>
 
       {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
@@ -174,180 +262,285 @@ export default function AdminQrPage() {
           <span className="admin-kpi-l">Dishes on</span>
         </div>
         <div>
-          <span className="admin-kpi-n">{needPicture.length}</span>
-          <span className="admin-kpi-l">Need a picture</span>
+          <span className="admin-kpi-n">{withPicture}</span>
+          <span className="admin-kpi-l">With pictures</span>
         </div>
       </div>
 
-      <div className="admin-board-group">
-        <h2>How they order</h2>
-        <p className="admin-dek">
-          Ask a waiter keeps people with the floor. Order on the phone lets guests order straight
-          from the table.
-        </p>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {visibleBranches.map((branch) => {
-            const mode = branch.settings?.order_mode === "app" ? "app" : "waiter";
-            const saving = savingBranchId === branch.id;
-            return (
-              <article key={branch.id} className="admin-card">
-                <h2>{branch.name}</h2>
-                <p className="admin-stat">{mode === "app" ? "On the phone" : "Ask a waiter"}</p>
-                <p>
-                  {mode === "app"
-                    ? "Guests order on the phone at the table."
-                    : "Guests see the menu, then a waiter takes the order."}
-                </p>
-                <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    disabled={saving}
-                    onClick={() => setOrderMode(branch, "waiter")}
-                    className={`rounded-[3px] border p-3 text-left text-sm transition-colors ${
-                      mode === "waiter"
-                        ? "border-[var(--gold)] bg-[rgba(201,162,74,0.1)] text-[var(--ivory)]"
-                        : "border-[var(--gold-line)] text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
-                    }`}
-                  >
-                    <strong className="block">Ask a waiter</strong>
-                    <span className="text-xs">Floor takes the order</span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={saving}
-                    onClick={() => setOrderMode(branch, "app")}
-                    className={`rounded-[3px] border p-3 text-left text-sm transition-colors ${
-                      mode === "app"
-                        ? "border-[var(--gold)] bg-[rgba(201,162,74,0.1)] text-[var(--ivory)]"
-                        : "border-[var(--gold-line)] text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
-                    }`}
-                  >
-                    <strong className="block">Order on the phone</strong>
-                    <span className="text-xs">Guests order themselves</span>
-                  </button>
-                </div>
-                <PhonePreview mode={mode} sample={onItems[0] ?? null} />
-              </article>
-            );
-          })}
-        </div>
-      </div>
-
-      <section className="admin-board tight" aria-label="What guests scan">
-        <article className="admin-card">
-          <h2>Phone menu</h2>
-          <p className="admin-stat">Live</p>
-          <p>Every table&rsquo;s code opens the real menu — no separate link to attach.</p>
-          <div className="admin-acts">
-            <Link className="admin-act" href="/admin/menu/manage">
-              Menu
-            </Link>
-            <Link className="admin-act" href="/admin/media">
-              Media
-            </Link>
-          </div>
-        </article>
-        <article className={needPicture.length > 0 ? "admin-card is-wait" : "admin-card"}>
-          <h2>Pictures for the phone</h2>
-          <p className={needPicture.length > 0 ? "admin-stat admin-hold" : "admin-stat"}>
-            {needPicture.length}
-          </p>
-          <p>A dish without a picture still lists. Guests see it better with one.</p>
-          <div className="admin-acts">
-            <Link className="admin-act" href="/admin/menu/manage">
-              Open menu
-            </Link>
-          </div>
-        </article>
-      </section>
-
-      {needPicture.length > 0 && (
-        <div className="admin-board-group">
-          <h2>Need a picture</h2>
-          <div className="admin-data-panel">
-            <table className="admin-sheet">
-              <thead>
-                <tr>
-                  <th>Dish</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {needPicture.slice(0, 8).map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <span className="admin-name">{item.title}</span>
-                    </td>
-                    <td>
-                      <Link className="admin-edit" href="/admin/menu/manage">
-                        Add picture
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {needPicture.length > 8 && (
-            <p className="mt-2 text-xs text-[var(--ivory-dim)]">
-              {needPicture.length - 8} more —{" "}
-              <Link className="admin-edit" href="/admin/menu/manage">
-                see all
-              </Link>
+      <div className="admin-qr-desk">
+        <section className="admin-handset" aria-label="Table phone">
+          <div className="admin-handset-bar">
+            <img src={LOGO_SRC} alt="Sweet1NE" />
+            <p>
+              {previewBranch ? `${previewBranch.name} · Table ${previewTable ? previewTable.number : "—"}` : "No branch yet"}
             </p>
+          </div>
+          {previewBranch ? (
+            <LivePhonePreview branch={previewBranch} table={previewTable} reloadToken={reloadToken} />
+          ) : (
+            <div className="admin-handset-empty">Add a restaurant to preview the phone.</div>
           )}
-        </div>
-      )}
+        </section>
 
-      <div className="admin-board-group">
-        <h2>What guests notice</h2>
-        <p className="admin-dek">
-          {insights?.has_data
-            ? "From real taps on the table phone — the staff preview never counts."
-            : "Empty until a real guest opens or adds a dish on the table phone — the staff preview never counts."}
-        </p>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <article className="admin-card">
-            <h2>Looked at most</h2>
-            {insights && insights.looked_at_most.length > 0 ? (
-              <ol className="mt-1 space-y-1 text-sm text-[var(--ivory)]">
-                {insights.looked_at_most.map((d) => (
-                  <li key={d.menu_item_id} className="flex items-center justify-between">
+        <div>
+          <h2 className="admin-board-h">How they order</h2>
+          <p className="admin-dek">Gold is the live mode. The basket at the bottom of the phone changes with it.</p>
+          <div>
+            {visibleBranches.map((branch) => {
+              const mode = branch.settings?.order_mode === "app" ? "app" : "waiter";
+              const saving = savingBranchId === branch.id;
+              return (
+                <div key={branch.id} className="admin-order-row">
+                  <h2>{branch.name}</h2>
+                  <div className="admin-choice" role="group" aria-label={branch.name}>
+                    <button
+                      type="button"
+                      disabled={saving}
+                      className={mode === "waiter" ? "is-on" : undefined}
+                      onClick={() => setOrderMode(branch, "waiter")}
+                    >
+                      <strong>Ask a waiter</strong>
+                      <span>Floor takes the order</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={saving}
+                      className={mode === "app" ? "is-on" : undefined}
+                      onClick={() => setOrderMode(branch, "app")}
+                    >
+                      <strong>Order on the phone</strong>
+                      <span>Hold before Toast</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <nav className="admin-tile-row" aria-label="Open">
+            <Link
+              className="admin-tile"
+              href={guestUrl ? `${guestUrl}&preview=signin` : "#"}
+              target={guestUrl ? "_blank" : undefined}
+              aria-disabled={!guestUrl}
+              onClick={(e) => !guestUrl && e.preventDefault()}
+              style={!guestUrl ? { opacity: 0.5, pointerEvents: "none" } : undefined}
+            >
+              <strong>Guest sign-in</strong>
+              <span>Email at the table</span>
+            </Link>
+            <Link
+              className="admin-tile"
+              href={guestUrl ?? "#"}
+              target={guestUrl ? "_blank" : undefined}
+              aria-disabled={!guestUrl}
+              onClick={(e) => !guestUrl && e.preventDefault()}
+              style={!guestUrl ? { opacity: 0.5, pointerEvents: "none" } : undefined}
+            >
+              <strong>Guest phone</strong>
+              <span>The live table app</span>
+            </Link>
+            <Link className="admin-tile" href="/admin/menu/manage">
+              <strong>Menu</strong>
+              <span>Dishes and photos</span>
+            </Link>
+            <Link className="admin-tile" href="/admin/promotions">
+              <strong>Promotions</strong>
+              <span>Codes on the basket</span>
+            </Link>
+            <Link className="admin-tile" href="/admin/leads">
+              <strong>Leads</strong>
+              <span>Who signed in</span>
+            </Link>
+          </nav>
+
+          <div className="admin-qr-quiet">
+            <p className="admin-kicker">Need a picture</p>
+            <p className="admin-dek">
+              {needPicture.length === 0 ? "Every dish on the menu has a picture." : ""}
+            </p>
+            <ul className="admin-need-list">
+              {needPicture.slice(0, 6).map((item) => (
+                <li key={item.id}>
+                  <span>{item.title}</span>
+                  <Link className="admin-edit" href="/admin/menu/manage">
+                    Add
+                  </Link>
+                </li>
+              ))}
+              {needPicture.length > 6 && (
+                <li>
+                  <span />
+                  <Link className="admin-edit" href="/admin/menu/manage">
+                    {needPicture.length - 6} more on Menu
+                  </Link>
+                </li>
+              )}
+            </ul>
+          </div>
+
+          <div className="admin-taste-desk">
+            <div>
+              <p className="admin-kicker">Looked at most</p>
+              <p className="admin-dek">
+                {!insights || insights.looked_at_most.length === 0 ? "Empty until someone uses the table phone." : ""}
+              </p>
+              <ul className="admin-need-list">
+                {(insights?.looked_at_most ?? []).slice(0, 6).map((d) => (
+                  <li key={d.menu_item_id}>
                     <span>{d.title}</span>
-                    <span className="text-[var(--ivory-dim)]">{d.count}</span>
+                    <span className="admin-muted">
+                      {d.adds ? `${d.adds} added` : ""}
+                      {d.adds && d.views ? " · " : ""}
+                      {d.views ? `${d.views} seen` : ""}
+                    </span>
                   </li>
                 ))}
-              </ol>
-            ) : (
-              <p>Nothing yet.</p>
-            )}
-          </article>
-          <article className="admin-card">
-            <h2>Quiet on the phone</h2>
-            {insights && insights.quiet.length > 0 ? (
-              <ol className="mt-1 space-y-1 text-sm text-[var(--ivory-dim)]">
-                {insights.quiet.map((d) => (
-                  <li key={d.menu_item_id}>{d.title}</li>
+              </ul>
+            </div>
+            <div>
+              <p className="admin-kicker">Quiet on the phone</p>
+              <p className="admin-dek">
+                {!insights || insights.quiet.length === 0 ? "On the menu, not added from the phone." : ""}
+              </p>
+              <ul className="admin-need-list">
+                {(insights?.quiet ?? []).slice(0, 6).map((d) => (
+                  <li key={d.menu_item_id}>
+                    <span>{d.title}</span>
+                    <Link className="admin-edit" href="/admin/promotions">
+                      Lift
+                    </Link>
+                  </li>
                 ))}
-              </ol>
-            ) : (
-              <p>Nothing yet.</p>
-            )}
-          </article>
+              </ul>
+            </div>
+          </div>
+
+          {previewBranch && (
+            <details className="admin-drawer-fold">
+              <summary>Phone link</summary>
+              <p className="admin-dek">
+                {phoneUrlDraft.trim()
+                  ? "Guests can use this link to order without scanning a table."
+                  : "Paste when the live URL exists. Do not invent one."}
+              </p>
+              <form
+                className="admin-tools"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  saveBranchPhoneUrl(previewBranch);
+                }}
+              >
+                <input
+                  type="url"
+                  placeholder="Phone menu URL"
+                  value={phoneUrlDraft}
+                  onChange={(e) => setPhoneUrlDraft(e.target.value)}
+                />
+                <button type="submit" className="admin-book" disabled={savingPhoneUrl}>
+                  {savingPhoneUrl ? "Saving…" : "Save"}
+                </button>
+                <button
+                  type="button"
+                  className="admin-edit"
+                  disabled={!phoneUrlDraft.trim()}
+                  onClick={() => navigator.clipboard?.writeText(phoneUrlDraft.trim())}
+                >
+                  Copy
+                </button>
+                <button
+                  type="button"
+                  className="admin-edit"
+                  disabled={!phoneUrlDraft.trim()}
+                  onClick={() => window.open(phoneUrlDraft.trim(), "_blank")}
+                >
+                  Print
+                </button>
+              </form>
+            </details>
+          )}
         </div>
       </div>
 
-      <div className="admin-board-group">
-        <h2>Table codes</h2>
-        <p className="admin-dek">
-          {loading
-            ? "Loading…"
-            : `${tables.length} table${tables.length === 1 ? "" : "s"} · ${attached} with a code. Attach a code, print it, or override how one table orders on Tables.`}
-        </p>
-        <Link className="admin-edit" href="/admin/tables">
-          Tables
+      <h2 className="admin-board-h">Table codes</h2>
+      <p className="admin-dek">
+        {loading
+          ? "Loading…"
+          : tables.length
+            ? `${tables.length} table${tables.length === 1 ? "" : "s"} · ${attached} with a code.`
+            : "Add table numbers on Tables. Attach the code here when it exists."}
+      </p>
+      <nav className="admin-tile-row" aria-label="Tables">
+        <Link className="admin-tile" href="/admin/tables">
+          <strong>Tables</strong>
+          <span>Add a number first</span>
         </Link>
-      </div>
+      </nav>
+
+      {visibleTables.length === 0 ? (
+        <p className="admin-empty">No tables yet. Add a number on Tables, then come back to attach the code.</p>
+      ) : (
+        <div className="admin-data-panel">
+          <table className="admin-sheet">
+            <thead>
+              <tr>
+                <th>On</th>
+                <th>Restaurant</th>
+                <th>Table</th>
+                <th>Code</th>
+                <th>Order</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleTables.map((table) => {
+                const st = codeStatus(table);
+                const ord = tableOrderLabel(table);
+                const busy = busyTableId === table.id;
+                return (
+                  <tr key={table.id}>
+                    <td>
+                      <button
+                        type="button"
+                        aria-label="On"
+                        className={`admin-toggle${table.is_active ? " is-on" : ""}`}
+                        onClick={() => toggleTableActive(table)}
+                      />
+                    </td>
+                    <td className="admin-muted">{branchById.get(table.branch_id)?.name ?? "—"}</td>
+                    <td className="admin-name">{table.number}</td>
+                    <td>
+                      <span className={st.cls}>{st.text}</span>
+                    </td>
+                    <td className="admin-muted">{ord.own ? `${ord.text} · this table` : ord.text}</td>
+                    <td className="admin-row-acts">
+                      <button type="button" className="admin-edit" disabled={busy} onClick={() => attachCode(table)}>
+                        {busy ? "Working…" : table.qr_code_url ? "Regenerate" : "Attach"}
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-edit"
+                        disabled={!table.qr_code_url}
+                        onClick={() => table.qr_code_url && navigator.clipboard?.writeText(table.qr_code_url)}
+                      >
+                        Copy link
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-edit"
+                        disabled={!table.qr_code_url}
+                        onClick={() => table.qr_code_url && window.open(table.qr_code_url, "_blank")}
+                      >
+                        Print
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </>
   );
 }

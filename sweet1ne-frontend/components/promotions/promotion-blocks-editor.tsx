@@ -25,7 +25,7 @@ export function QuickGallery({
   layout: PromotionBlock[];
   onChange: (next: PromotionBlock[]) => void;
 }) {
-  const slots = Math.max(9, media.length);
+  const slots = Math.max(25, media.length);
 
   return (
     <div className="admin-media-grid is-quick">
@@ -116,7 +116,7 @@ export function PromotionLayoutEditor({
             </div>
             <div className="admin-row-acts">
               <button type="button" className="admin-edit" onClick={() => onChange(moveBlock(layout, i, -1))} disabled={i === 0}>
-                ↑
+                Move up
               </button>
               <button
                 type="button"
@@ -124,7 +124,7 @@ export function PromotionLayoutEditor({
                 onClick={() => onChange(moveBlock(layout, i, 1))}
                 disabled={i === layout.length - 1}
               >
-                ↓
+                Move down
               </button>
               <button type="button" className="admin-edit" onClick={() => onChange(removeBlock(layout, block.id))}>
                 Remove

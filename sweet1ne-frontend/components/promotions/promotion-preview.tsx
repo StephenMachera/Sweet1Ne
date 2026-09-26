@@ -4,6 +4,7 @@ import {
   heroImageOf,
   imagesOf,
   CTA_PRESETS,
+  type BannerPosition,
   type PromotionBlock,
   type PromotionBlockType,
   type PromotionCtaKind,
@@ -12,6 +13,18 @@ import {
 } from "@/lib/promotion-blocks";
 
 const LOGO_SRC = "/images/brand/logo.png";
+
+const BANNER_POSITION_COORDS: Record<BannerPosition, string> = {
+  "top-left": "0% 0%",
+  top: "50% 0%",
+  "top-right": "100% 0%",
+  left: "0% 50%",
+  center: "50% 50%",
+  right: "100% 50%",
+  "bottom-left": "0% 100%",
+  bottom: "50% 100%",
+  "bottom-right": "100% 100%",
+};
 const LOGO_WIDTH: Record<LogoBlock["size"], string> = { s: "4.6rem", m: "7.2rem", l: "10.5rem" };
 
 export type PromotionPreviewData = {
@@ -83,10 +96,13 @@ export function PromotionPreview({ data }: { data: PromotionPreviewData }) {
     );
   }
 
+  const objectPosition = BANNER_POSITION_COORDS[hero!.position ?? "center"];
+  const objectFit = hero!.fit === "fit" ? "contain" : "cover";
+
   return (
     <div className="admin-preview-next">
       <div className="admin-preview-hero">
-        <img src={hero!.image_url} alt="" />
+        <img src={hero!.image_url} alt="" style={{ objectFit, objectPosition }} />
       </div>
       <div className="admin-preview-copy" style={{ textAlign: align }}>
         <PreviewBody data={data} />

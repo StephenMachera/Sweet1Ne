@@ -11,8 +11,10 @@ export type Promo = {
   branch_id: string | null;
   title: string;
   description: string | null;
+  code: string | null;
   target_type: string;
   target_menu_item_id: string | null;
+  target_sub_category_id: string | null;
   target_main_category_id: string | null;
   target_name: string | null;
   discount_type: string;
@@ -49,9 +51,11 @@ export function PromoForm({
 }) {
   const [title, setTitle] = useState(promo?.title ?? "");
   const [description, setDescription] = useState(promo?.description ?? "");
+  const [code, setCode] = useState(promo?.code ?? "");
   const [branchId, setBranchId] = useState(promo?.branch_id ?? "");
   const [targetType, setTargetType] = useState(promo?.target_type ?? "item");
   const [itemId, setItemId] = useState(promo?.target_menu_item_id ?? "");
+  const [subCategoryId, setSubCategoryId] = useState(promo?.target_sub_category_id ?? "");
   const [categoryId, setCategoryId] = useState(promo?.target_main_category_id ?? "");
   const [discountType, setDiscountType] = useState(promo?.discount_type ?? "percentage");
   const [percent, setPercent] = useState(promo?.discount_percent?.toString() ?? "");
@@ -60,6 +64,7 @@ export function PromoForm({
   const [endsAt, setEndsAt] = useState(toLocalInput(promo?.ends_at ?? null));
 
   const [items, setItems] = useState<{ id: string; title: string }[]>([]);
+  const [subCategories, setSubCategories] = useState<Option[]>([]);
   const [categories, setCategories] = useState<Option[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,11 +82,13 @@ export function PromoForm({
   useEffect(() => {
     Promise.all([
       apiFetch("/staff/menu/menu-items?include_inactive=true"),
+      apiFetch("/staff/menu/sub-categories?include_inactive=true"),
       apiFetch("/staff/menu/main-categories?include_inactive=true"),
     ])
-      .then(([itemList, categoryList]) => {
-        setItems(itemList.map((i: any) => ({ id: i.id, title: i.title })));
-        setCategories(categoryList.map((c: any) => ({ id: c.id, name: c.name })));
+      .then(([itemList, subList, categoryList]) => {
+        setItems(itemList.map((i: { id: string; title: string }) => ({ id: i.id, title: i.title })));
+        setSubCategories(subList.map((s: { id: string; name: string }) => ({ id: s.id, name: s.name })));
+        setCategories(categoryList.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })));
       })
       .catch(() => {});
   }, []);
@@ -95,8 +102,10 @@ export function PromoForm({
       const body = {
         title,
         description: description || null,
+        code: code.trim() || null,
         target_type: targetType,
         target_menu_item_id: targetType === "item" ? itemId || null : null,
+        target_sub_category_id: targetType === "sub_category" ? subCategoryId || null : null,
         target_main_category_id: targetType === "category" ? categoryId || null : null,
         discount_type: discountType,
         discount_percent: discountType === "percentage" ? Number(percent) : null,
@@ -143,6 +152,19 @@ export function PromoForm({
             <input value={description} onChange={(e) => setDescription(e.target.value)} />
           </label>
 
+          <label>
+            Code
+            <input
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="Leave blank to always apply"
+              autoComplete="off"
+            />
+            <span className="text-xs text-[var(--ivory-dim)]">
+              Set one and this only applies when a guest types it in.
+            </span>
+          </label>
+
           {branches && !promo && (
             <label>
               Branch
@@ -164,6 +186,13 @@ export function PromoForm({
             </button>
             <button
               type="button"
+              className={targetType === "sub_category" ? "is-on" : undefined}
+              onClick={() => setTargetType("sub_category")}
+            >
+              A sub-category
+            </button>
+            <button
+              type="button"
               className={targetType === "category" ? "is-on" : undefined}
               onClick={() => setTargetType("category")}
             >
@@ -177,6 +206,15 @@ export function PromoForm({
               {items.map((i) => (
                 <option key={i.id} value={i.id}>
                   {i.title}
+                </option>
+              ))}
+            </select>
+          ) : targetType === "sub_category" ? (
+            <select value={subCategoryId} onChange={(e) => setSubCategoryId(e.target.value)}>
+              <option value="">Choose a sub-category…</option>
+              {subCategories.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
                 </option>
               ))}
             </select>
@@ -301,6 +339,19 @@ export function PromoForm({
           />
         </div>
 
+        <div className="space-y-1">
+          <Label htmlFor="p-code">Code</Label>
+          <Input
+            id="p-code"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            placeholder="Leave blank to always apply"
+            autoComplete="off"
+            className={border}
+          />
+          <p className={`text-xs ${muted}`}>Set one and this only applies when a guest types it in.</p>
+        </div>
+
         {branches && !promo && (
           <div className="space-y-1">
             <Label htmlFor="p-branch">Branch</Label>
@@ -340,6 +391,19 @@ export function PromoForm({
             </button>
             <button
               type="button"
+              onClick={() => setTargetType("sub_category")}
+              className={`flex-1 rounded-lg px-3 py-2 text-sm ${
+                targetType === "sub_category"
+                  ? isBranch
+                    ? "bg-emerald/15 text-emerald-dark"
+                    : "bg-gold-soft text-[#8a6a28]"
+                  : `border ${border} ${muted}`
+              }`}
+            >
+              A sub-category
+            </button>
+            <button
+              type="button"
               onClick={() => setTargetType("category")}
               className={`flex-1 rounded-lg px-3 py-2 text-sm ${
                 targetType === "category"
@@ -363,6 +427,19 @@ export function PromoForm({
               {items.map((i) => (
                 <option key={i.id} value={i.id}>
                   {i.title}
+                </option>
+              ))}
+            </select>
+          ) : targetType === "sub_category" ? (
+            <select
+              value={subCategoryId}
+              onChange={(e) => setSubCategoryId(e.target.value)}
+              className={`h-10 w-full rounded-lg border bg-white px-3 text-sm ${border}`}
+            >
+              <option value="">Choose a sub-category…</option>
+              {subCategories.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
                 </option>
               ))}
             </select>

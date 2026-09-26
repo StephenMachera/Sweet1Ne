@@ -467,6 +467,18 @@ body {
 .admin-board.tight { margin: 0 0 1.2rem; }
 .admin-board.tight .admin-card { min-height: 0; }
 
+/* Marketing's stats board — 4 cards, matching the reference build's own
+   distinct .board.stats treatment rather than the compact .admin-kpi-strip
+   used on other pages. */
+.admin-board-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0 0 1.2rem;
+}
+.admin-board-stats .admin-card { min-height: 0; gap: 0.3rem; }
+@container admin-stage (max-width: 900px) {
+  .admin-board-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 /* Tables' own card grid — same container-query idea as .admin-board above
    (reacts to the real rendered width of .admin-stage, not the viewport, so
    it doesn't stay stuck at 4 columns once the edit drawer narrows the
@@ -560,6 +572,15 @@ body {
 .admin-tools select:focus { outline: none; border-color: var(--gold); }
 .admin-tools .short { min-width: 7rem; width: 7rem; }
 .admin-tools select.short { min-width: 9.5rem; }
+.admin-tools-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+}
 
 .admin-cats {
   display: flex;
@@ -780,10 +801,9 @@ body {
 }
 .admin-media-grid button.is-none span { position: static; padding: 0; background: none; }
 
-/* The quick-add gallery under the add-blocks bar — always 3 columns, at
-   least 3 rows, padded with empty tiles until a real media library
-   exists to fill it. */
-.admin-media-grid.is-quick { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* The quick-add gallery under "Picture" — a 5x5 grid, padded with empty
+   tiles until a real media library exists to fill it. */
+.admin-media-grid.is-quick { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 
 @media (max-width: 720px) {
   .admin-media-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -908,6 +928,99 @@ body {
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.6rem;
+}
+
+/* ── Promotions — Look desk. One frame per real surface, each with just
+   enough chrome (the phone's own bar, a fake site header) that staff can
+   tell where a promotion actually sits. Gold border = on; frames are
+   clickable only while live-editing a draft. ─────────────────────────── */
+
+.admin-look-desk,
+.admin-paid-desk {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0 0 1.5rem;
+}
+@container admin-stage (max-width: 900px) {
+  .admin-look-desk,
+  .admin-paid-desk { grid-template-columns: 1fr; }
+}
+
+.admin-look-frame {
+  border: 1px solid var(--gold-line);
+  background: var(--panel);
+  padding: 0.9rem 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: border-color 0.15s ease;
+}
+.admin-look-frame.is-interactive { cursor: pointer; }
+.admin-look-frame.is-interactive:hover { border-color: rgba(201, 162, 74, 0.55); }
+.admin-look-frame.is-on { border-color: var(--gold); box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.25); }
+
+.admin-look-kicker {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+}
+.admin-look-state { color: var(--ivory-dim); }
+.admin-look-frame.is-on .admin-look-state { color: var(--gold); }
+.admin-look-cap { margin: 0; font-size: 0.8rem; color: var(--ivory-dim); }
+
+/* "After they enter" — a dark film behind the popup, echoing the moment
+   right after Enter Sweet1NE on the real homepage. */
+.admin-promo-film {
+  background: radial-gradient(circle at 50% 15%, #1a1a1a 0%, #050505 75%);
+  padding: 1.2rem 0.7rem;
+}
+.admin-promo-film .admin-preview-copy { padding: 0; max-width: none; }
+.admin-promo-film .admin-preview-next { margin: 0; }
+
+/* "Quiet line" — a mock site header so the ribbon reads as sitting under
+   real navigation, not floating on its own. */
+.admin-look-header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgba(229, 226, 225, 0.14);
+  background: #0a0a0a;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--ivory-dim);
+}
+.admin-look-header img { height: 1.6rem; width: auto; }
+
+/* "Table phone" — a small handset mockup: a bar naming the table, the
+   promo itself, and a dock standing in for the guest's basket total. */
+.admin-look-handset {
+  border: 1px solid rgba(229, 226, 225, 0.16);
+  background: #050505;
+  overflow: hidden;
+}
+.admin-look-handset-bar {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+  border-bottom: 1px solid rgba(229, 226, 225, 0.12);
+}
+.admin-look-handset .admin-preview-copy { padding: 0.9rem 0.7rem; max-width: none; }
+.admin-look-handset-dock {
+  padding: 0.55rem 0.7rem;
+  font-size: 0.78rem;
+  color: var(--gold);
+  border-top: 1px solid rgba(229, 226, 225, 0.12);
+  background: #0a0a0a;
 }
 
 /* ── Event composer — the block stack, its per-block rows, and the CTA
@@ -1069,6 +1182,48 @@ body {
 }
 .admin-drawer-fold[open] summary { margin-bottom: 0.8rem; }
 
+/* Banner position — a 3x3 anchor grid, like a photo editor's crop-focus
+   picker. One cell is ever "on" at a time (it's a focal point, not a set
+   of independent options), styled as a small dot that turns gold. */
+.admin-anchor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 2.4rem);
+  gap: 0.35rem;
+  margin: 0 0 0.9rem;
+}
+.admin-anchor-grid button {
+  appearance: none;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid rgba(201, 162, 74, 0.28);
+  background: #050505;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.admin-anchor-grid button span {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--ivory-dim);
+}
+.admin-anchor-grid button:hover { border-color: rgba(201, 162, 74, 0.55); }
+.admin-anchor-grid button.is-on { border-color: var(--gold); box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.35); }
+.admin-anchor-grid button.is-on span { background: var(--gold); width: 0.55rem; height: 0.55rem; }
+
+/* Keeps Save/Close/Open-in-Marketing visible while the rest of a long
+   drawer form scrolls underneath — .admin-drawer-edit is the scrolling
+   ancestor these stick against (overflow: auto above). */
+.admin-form .admin-row-acts.is-sticky {
+  position: sticky;
+  bottom: 0;
+  margin-top: 1.2rem;
+  padding: 0.85rem 0;
+  background: #080808;
+  border-top: 1px solid rgba(201, 162, 74, 0.22);
+  z-index: 2;
+}
+
 /* ── Admin loading state — logo breathing, a gold rule filling itself
    underneath. Replaces plain "Loading…" text everywhere in the admin
    console. ──────────────────────────────────────────────────────────── */
@@ -1187,6 +1342,30 @@ body {
   height: 70vh;
   border: 0;
   background: #050505;
+}
+
+/* Campaigns — the preview and the editor sit side by side in the main
+   content area, always together, rather than the editor living in a
+   separate side drawer. */
+.admin-camp-desk {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 1.5rem;
+  align-items: start;
+  margin: 1.5rem 0 0;
+}
+@container admin-stage (max-width: 960px) {
+  .admin-camp-desk { grid-template-columns: 1fr; }
+}
+.admin-camp-desk .admin-mail-preview { position: sticky; top: 0.55rem; }
+@container admin-stage (max-width: 960px) {
+  .admin-camp-desk .admin-mail-preview { position: relative; top: 0; }
+}
+.admin-camp-build h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.5rem;
+  margin: 0 0 0.4rem;
 }
 .admin-dish-preview .admin-kicker { margin: 0 0 0.65rem; }
 .admin-dish-preview h2 {
@@ -1388,3 +1567,160 @@ body {
   color: var(--gate-gold);
   text-align: center;
 }
+
+/* ── QR Codes page — the two-column desk (a live phone on the left, order
+   settings/tiles/lists on the right), plus the tile nav and compact lists
+   reused for "Need a picture" and "What guests notice". ─────────────────── */
+
+.admin-board-h {
+  margin: 0 0 0.65rem;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+  color: var(--ivory);
+}
+
+.admin-qr-desk {
+  display: grid;
+  grid-template-columns: minmax(0, 19rem) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+  margin: 0 0 1.75rem;
+}
+@container admin-stage (max-width: 900px) {
+  .admin-qr-desk { grid-template-columns: 1fr; }
+}
+
+.admin-handset {
+  position: sticky;
+  top: 0.55rem;
+  overflow: hidden;
+  border: 4px solid #1a1a1a;
+  border-radius: 2rem;
+  background: #0a0a0a;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+@container admin-stage (max-width: 900px) {
+  .admin-handset { position: relative; top: 0; max-width: 20rem; margin: 0 auto 1rem; }
+}
+.admin-handset-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.95rem;
+  border-bottom: 1px solid var(--gold-line);
+  background: #0a0a0a;
+  padding: 0.6rem 0.75rem;
+}
+.admin-handset-bar img { height: 1.428rem; width: auto; }
+.admin-handset-bar p {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+/* The iframe's own scrollbar is pushed outside the visible viewport and
+   clipped — the guest page itself still scrolls normally, this only hides
+   the browser chrome for it, which reads as a stray line down a "phone". */
+.admin-handset-viewport {
+  overflow: hidden;
+  height: 560px;
+}
+.admin-handset-frame {
+  display: block;
+  width: calc(100% + 20px);
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+.admin-handset-empty {
+  padding: 2rem 1.2rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--ivory-dim);
+}
+
+.admin-order-row {
+  margin: 0 0 1rem;
+  padding: 0 0 1rem;
+  border-bottom: 1px solid var(--gold-line);
+}
+.admin-order-row:last-child { border-bottom: 0; }
+.admin-order-row h2 {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ivory);
+}
+.admin-choice {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+.admin-choice button {
+  appearance: none;
+  border: 1px solid var(--gold-line);
+  background: transparent;
+  border-radius: 3px;
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  color: var(--ivory-dim);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.admin-choice button strong { display: block; font-size: 0.85rem; color: inherit; }
+.admin-choice button span { font-size: 0.72rem; }
+.admin-choice button.is-on {
+  border-color: var(--gold);
+  background: rgba(201, 162, 74, 0.1);
+  color: var(--ivory);
+}
+.admin-choice button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.admin-tile-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.65rem;
+  margin: 1.1rem 0;
+}
+.admin-tile {
+  display: block;
+  border: 1px solid var(--gold-line);
+  background: var(--panel);
+  border-radius: 3px;
+  padding: 0.75rem 0.85rem;
+  color: var(--ivory);
+  transition: border-color 0.15s ease;
+}
+.admin-tile:hover { border-color: var(--gold); }
+.admin-tile strong { display: block; font-size: 0.82rem; }
+.admin-tile span { font-size: 0.7rem; color: var(--ivory-dim); }
+
+.admin-qr-quiet { margin: 0 0 1.1rem; }
+
+.admin-taste-desk {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+@container admin-stage (max-width: 700px) {
+  .admin-taste-desk { grid-template-columns: 1fr; }
+}
+
+.admin-need-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.admin-need-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(201, 162, 74, 0.14);
+  font-size: 0.85rem;
+  color: var(--ivory);
+}
+.admin-need-list li:last-child { border-bottom: 0; }

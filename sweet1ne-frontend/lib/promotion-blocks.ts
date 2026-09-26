@@ -13,7 +13,36 @@ export type LogoBlock = { id: string; type: "logo"; size: "s" | "m" | "l" };
 export type KickerBlock = { id: string; type: "kicker" };
 export type TitleBlock = { id: string; type: "title" };
 export type DekBlock = { id: string; type: "dek" };
-export type ImageBlock = { id: string; type: "image"; image_url: string; hero: boolean };
+// A 9-point anchor grid (like a photo editor's crop-focus picker) — covers
+// both axes, not just vertical.
+export type BannerPosition =
+  | "top-left" | "top" | "top-right"
+  | "left" | "center" | "right"
+  | "bottom-left" | "bottom" | "bottom-right";
+
+export const BANNER_POSITIONS: { key: BannerPosition; label: string }[] = [
+  { key: "top-left", label: "Top left" },
+  { key: "top", label: "Top" },
+  { key: "top-right", label: "Top right" },
+  { key: "left", label: "Left" },
+  { key: "center", label: "Centre" },
+  { key: "right", label: "Right" },
+  { key: "bottom-left", label: "Bottom left" },
+  { key: "bottom", label: "Bottom" },
+  { key: "bottom-right", label: "Bottom right" },
+];
+
+export type ImageBlock = {
+  id: string;
+  type: "image";
+  image_url: string;
+  hero: boolean;
+  // Where the banner's focal point sits when it's cropped to fit the frame.
+  position: BannerPosition;
+  // "fill" crops the frame edge-to-edge (may crop the image); "fit" shows
+  // the whole image, letterboxed if its shape doesn't match the frame.
+  fit: "fill" | "fit";
+};
 export type NoteBlock = { id: string; type: "note"; text: string };
 export type CtasBlock = { id: string; type: "ctas" };
 
@@ -77,7 +106,10 @@ export function addBlock(layout: PromotionBlock[], type: PromotionBlockType, ima
   const id = newBlockId();
   if (type === "logo") return [...layout, { id, type: "logo", size: "m" }];
   if (type === "image") {
-    return [...layout, { id, type: "image", image_url: imageUrl ?? "", hero: !hasBlock(layout, "image") }];
+    return [
+      ...layout,
+      { id, type: "image", image_url: imageUrl ?? "", hero: !hasBlock(layout, "image"), position: "center", fit: "fill" },
+    ];
   }
   if (type === "note") return [...layout, { id, type: "note", text: "" }];
   return [...layout, { id, type } as PromotionBlock];
