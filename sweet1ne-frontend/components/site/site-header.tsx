@@ -146,7 +146,7 @@ export function SiteHeader() {
               className="rounded-[4px] border border-[rgba(201,162,74,.9)] px-5 py-3 text-[13px] font-semibold text-[var(--gold)] transition-colors hover:bg-[var(--gold)] hover:text-[#0e0e0e] sm:px-6 sm:text-sm"
               style={{ textShadow: "none" }}
             >
-              Reservations
+              Book a Table
             </Link>
 
             <button
