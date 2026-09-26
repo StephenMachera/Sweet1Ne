@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.security import CurrentStaff, require_permission
@@ -11,6 +12,7 @@ from app.models.branch import Branch
 from app.models.main_menu_category import MainCategory
 from app.models.menu_item import MenuItem
 from app.models.promo import Promo
+from app.models.sub_menu_category import SubCategory
 from app.schemas.promo import PromoIn, PromoOut, PromoUpdate
 
 router = APIRouter()
@@ -20,6 +22,9 @@ def _target_name(db: Session, promo: Promo) -> str | None:
     if promo.target_type == "item" and promo.target_menu_item_id:
         item = db.get(MenuItem, promo.target_menu_item_id)
         return item.title if item else None
+    if promo.target_type == "sub_category" and promo.target_sub_category_id:
+        sub = db.get(SubCategory, promo.target_sub_category_id)
+        return sub.name if sub else None
     if promo.target_type == "category" and promo.target_main_category_id:
         category = db.get(MainCategory, promo.target_main_category_id)
         return category.name if category else None
@@ -35,6 +40,8 @@ def _to_out(db: Session, promo: Promo) -> PromoOut:
 def _validate(payload: PromoIn | PromoUpdate) -> None:
     if payload.target_type == "item" and payload.target_menu_item_id is None:
         raise HTTPException(status_code=400, detail="Choose which item this applies to.")
+    if payload.target_type == "sub_category" and payload.target_sub_category_id is None:
+        raise HTTPException(status_code=400, detail="Choose which sub-category this applies to.")
     if payload.target_type == "category" and payload.target_main_category_id is None:
         raise HTTPException(status_code=400, detail="Choose which category this applies to.")
 
@@ -86,9 +93,14 @@ def create_promo(
                 raise HTTPException(status_code=404, detail="Branch not found")
 
     data = payload.model_dump(exclude={"branch_id"})
+    data["code"] = data["code"].strip().upper() or None if data["code"] else None
     promo = Promo(**data, tenant_id=staff.tenant_id, branch_id=branch_id)
     db.add(promo)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="That code is already used by another promotion.")
     db.refresh(promo)
     return _to_out(db, promo)
 
@@ -107,13 +119,19 @@ def update_promo(
         raise HTTPException(status_code=403, detail="Not allowed to edit this promotion")
 
     updates = payload.model_dump(exclude_unset=True)
+    if "code" in updates:
+        updates["code"] = updates["code"].strip().upper() or None if updates["code"] else None
     for field, value in updates.items():
         setattr(promo, field, value)
 
     # Re-validate against the merged result, not just what was sent.
     _validate(PromoUpdate.model_validate(promo, from_attributes=True))
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="That code is already used by another promotion.")
     db.refresh(promo)
     return _to_out(db, promo)
 

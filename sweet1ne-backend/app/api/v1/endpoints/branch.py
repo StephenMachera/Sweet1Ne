@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.security import CurrentStaff, get_current_staff, require_permission
 from app.db.session import get_db
 from app.models.branch import Branch
-from app.schemas.branch import BranchIn, BranchOrderModeIn, BranchOut, BranchUpdate
+from app.schemas.branch import BranchIn, BranchOrderModeIn, BranchOut, BranchPhoneUrlIn, BranchUpdate
 
 router = APIRouter()
 
@@ -84,6 +84,23 @@ def update_branch_order_mode(
         raise HTTPException(status_code=400, detail="Order mode must be 'waiter' or 'app'.")
 
     branch.settings = {**branch.settings, "order_mode": payload.order_mode}
+    db.commit()
+    db.refresh(branch)
+    return branch
+
+
+@router.patch("/{branch_id}/phone-menu-url", response_model=BranchOut)
+def update_branch_phone_menu_url(
+    branch_id: uuid.UUID,
+    payload: BranchPhoneUrlIn,
+    staff: CurrentStaff = Depends(require_permission("manage_tables")),
+    db: Session = Depends(get_db),
+):
+    branch = db.get(Branch, branch_id)
+    if branch is None or str(branch.tenant_id) != staff.tenant_id:
+        raise HTTPException(status_code=404, detail="Branch not found")
+
+    branch.settings = {**branch.settings, "phone_menu_url": payload.phone_menu_url.strip()}
     db.commit()
     db.refresh(branch)
     return branch

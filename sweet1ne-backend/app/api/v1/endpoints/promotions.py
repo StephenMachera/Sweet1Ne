@@ -61,6 +61,7 @@ def create_promotion(
 
     data = payload.model_dump(exclude={"branch_id"})
     data["surfaces"] = payload.surfaces.model_dump()
+    data["channels"] = payload.channels.model_dump()
     data["look"] = payload.look.model_dump()
 
     promotion = Promotion(
@@ -88,6 +89,8 @@ def update_promotion(
     updates = payload.model_dump(exclude_unset=True)
     if "surfaces" in updates and updates["surfaces"] is not None:
         updates["surfaces"] = payload.surfaces.model_dump()
+    if "channels" in updates and updates["channels"] is not None:
+        updates["channels"] = payload.channels.model_dump()
     if "look" in updates and updates["look"] is not None:
         updates["look"] = payload.look.model_dump()
 
@@ -148,11 +151,20 @@ def dish_insights(
         )
     ).scalars().all()
 
-    counts: Counter[str] = Counter()
+    # Kept apart rather than one merged number — "looked at" and "added"
+    # are genuinely different signals, and the events already distinguish
+    # them, so there's no need to guess at a split.
+    view_counts: Counter[str] = Counter()
+    add_counts: Counter[str] = Counter()
     for event in events:
         item_id = (event.event_data or {}).get("menu_item_id")
-        if item_id:
-            counts[item_id] += 1
+        if not item_id:
+            continue
+        if event.event_type == "dish_add":
+            add_counts[item_id] += 1
+        else:
+            view_counts[item_id] += 1
+    counts = view_counts + add_counts
 
     statement = (
         select(MenuItem)
@@ -165,10 +177,20 @@ def dish_insights(
     item_by_id = {str(i.id): i for i in items}
 
     top = sorted(counts.items(), key=lambda kv: kv[1], reverse=True)[:8]
-    top_out = [{"menu_item_id": mid, "title": item_by_id[mid].title, "count": n} for mid, n in top if mid in item_by_id]
+    top_out = [
+        {
+            "menu_item_id": mid,
+            "title": item_by_id[mid].title,
+            "count": n,
+            "views": view_counts.get(mid, 0),
+            "adds": add_counts.get(mid, 0),
+        }
+        for mid, n in top
+        if mid in item_by_id
+    ]
 
     quiet_out = [
-        {"menu_item_id": str(i.id), "title": i.title, "count": 0}
+        {"menu_item_id": str(i.id), "title": i.title, "count": 0, "views": 0, "adds": 0}
         for i in item_by_id.values()
         if str(i.id) not in counts
     ][:8]

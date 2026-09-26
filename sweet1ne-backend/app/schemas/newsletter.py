@@ -4,6 +4,10 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 class SubscribeIn(BaseModel):
     email: EmailStr
     consented: bool
+    # Which real form this came from — the contact/site footer form is the
+    # default; the table QR sign-in step passes its own so the two can be
+    # told apart in the stats.
+    source: str = "website"
 
 
 class SubscriberOut(BaseModel):
@@ -23,6 +27,7 @@ class SubscriberStats(BaseModel):
     unsubscribed: int
     from_website: int
     from_reservations: int
+    from_table: int
 
 
 class SubscriberCreateIn(BaseModel):

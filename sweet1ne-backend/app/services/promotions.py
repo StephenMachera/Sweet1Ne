@@ -137,3 +137,19 @@ def basket_discount(promotion: Promotion, subtotal: Decimal) -> Decimal:
     else:
         return Decimal("0")
     return min(off, subtotal).quantize(Decimal("0.01"))
+
+
+def apply_code_discount(
+    db: Session, tenant_id: uuid.UUID, branch_id: uuid.UUID, promo_code: str | None, subtotal: Decimal
+) -> Decimal:
+    """The total after an order's own stored code is reapplied to a fresh
+    subtotal — re-checked every time (adding items, editing an order), the
+    same way an item-level Promo discount already is. A code that's since
+    been turned off or expired just stops taking anything off, rather than
+    erroring on an order that's already in progress."""
+    if not promo_code:
+        return subtotal
+    code_promo = code_promotion(db, tenant_id, branch_id, promo_code)
+    if code_promo is None:
+        return subtotal
+    return subtotal - basket_discount(code_promo, subtotal)

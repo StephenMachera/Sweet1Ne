@@ -36,7 +36,7 @@ def create_order(
     db.add(order)
     db.flush()
 
-    promos = active_promos(db, branch.tenant_id, table.branch_id)
+    promos = active_promos(db, branch.tenant_id, table.branch_id, code=payload.promo_code)
     categories = category_map(db, [i.menu_item_id for i in payload.items])
 
     total = Decimal("0")
@@ -46,7 +46,8 @@ def create_order(
             raise HTTPException(status_code=404, detail="Menu item not found or unavailable")
 
         # What the customer is actually charged — the same figure the menu
-        # advertised, since both go through price_for.
+        # advertised, since both go through price_for. A code that unlocks
+        # an item/category Promo is already reflected here.
         unit_price, _titles = price_for(menu_item, promos, categories)
         line_total = unit_price * item_in.quantity
         total += line_total
@@ -61,12 +62,22 @@ def create_order(
 
         db.add(order_item)
 
-    if payload.promo_code:
-        code_promo = promotions_service.code_promotion(db, branch.tenant_id, branch.id, payload.promo_code)
-        if code_promo is not None:
-            total -= promotions_service.basket_discount(code_promo, total)
-
-    order.total_amount = total
+    code_promo = (
+        promotions_service.code_promotion(db, branch.tenant_id, branch.id, payload.promo_code)
+        if payload.promo_code
+        else None
+    )
+    # A code counts as "used" if it unlocked either a basket-wide discount
+    # or an item/category one — either way it's remembered so later edits
+    # (adding items, changing the order) keep re-checking and applying it.
+    # A typo that unlocked nothing isn't kept around to keep re-trying.
+    unlocked_item_promo = any(p.code for p in promos)
+    order.promo_code = (
+        code_promo.code if code_promo
+        else payload.promo_code.strip().upper() if payload.promo_code and unlocked_item_promo
+        else None
+    )
+    order.total_amount = promotions_service.apply_code_discount(db, branch.tenant_id, branch.id, order.promo_code, total)
     db.commit()
     db.refresh(order)
     return order
@@ -94,10 +105,9 @@ def add_items_to_my_order(
         raise HTTPException(status_code=400, detail="No items to add.")
 
     branch = db.get(Branch, table.branch_id)
-    promos = active_promos(db, branch.tenant_id, table.branch_id)
+    promos = active_promos(db, branch.tenant_id, table.branch_id, code=order.promo_code)
     categories = category_map(db, [i.menu_item_id for i in payload.items])
 
-    added = Decimal("0")
     for item_in in payload.items:
         menu_item = db.get(MenuItem, item_in.menu_item_id)
         if menu_item is None or not menu_item.is_available:
@@ -105,7 +115,6 @@ def add_items_to_my_order(
 
         unit_price, _titles = price_for(menu_item, promos, categories)
         line_total = unit_price * item_in.quantity
-        added += line_total
 
         db.add(
             OrderItem(
@@ -117,7 +126,15 @@ def add_items_to_my_order(
             )
         )
 
-    order.total_amount = Decimal(order.total_amount) + added
+    # The whole basket's re-summed rather than just adding the new lines on
+    # top of the old total — a percent-off code needs to apply across
+    # everything in the basket, not just what was there before this add.
+    db.flush()
+    db.refresh(order)
+    raw_subtotal = sum((Decimal(str(oi.total_price)) for oi in order.order_items), Decimal("0"))
+    order.total_amount = promotions_service.apply_code_discount(
+        db, branch.tenant_id, branch.id, order.promo_code, raw_subtotal
+    )
     db.commit()
     db.refresh(order)
     return order
@@ -162,7 +179,7 @@ def update_my_order(
             )
 
         branch = db.get(Branch, table.branch_id)
-        promos = active_promos(db, branch.tenant_id, table.branch_id)
+        promos = active_promos(db, branch.tenant_id, table.branch_id, code=order.promo_code)
         categories = category_map(db, [i.menu_item_id for i in payload.items])
 
         # The lines are replaced wholesale rather than diffed — simpler, and
@@ -193,7 +210,9 @@ def update_my_order(
                 )
             )
 
-        order.total_amount = total
+        order.total_amount = promotions_service.apply_code_discount(
+            db, branch.tenant_id, branch.id, order.promo_code, total
+        )
 
     db.commit()
     db.refresh(order)

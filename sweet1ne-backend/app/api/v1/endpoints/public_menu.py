@@ -33,7 +33,7 @@ def public_list_main_categories(
     table: Table = Depends(resolve_branch_from_qr),
     db: Session = Depends(get_db),
 ):
-    statement = select(MainCategory)
+    statement = select(MainCategory).order_by(MainCategory.sort_order)
     statement = scope_to_branch(statement, table.branch.tenant_id, table.branch_id)
     categories = db.execute(statement).scalars().all()
     return categories

@@ -1,13 +1,22 @@
 """
-One-off import of a menu.json export (the table-phone/promotions pack's
-static content) into the real menu — MainCategory / SubCategory / MenuItem
-— via the same staff API endpoints the admin console uses. Never touches
-the database directly, so it works identically against dev or production
-and gets the same validation a human editing the Menu page would.
+Sync a menu.json export (the table-phone/promotions pack's static content)
+into the real menu — MainCategory / SubCategory / MenuItem — via the same
+staff API endpoints the admin console uses. Never touches the database
+directly, so it works identically against dev or production and gets the
+same validation a human editing the Menu page would.
 
-Idempotent: safe to re-run. Categories/subcategories are matched by name
-first; items are matched by (sub_category, title) — an existing row is
-left alone, not duplicated or overwritten.
+Safe to re-run, and now a real sync rather than an add-only import:
+  - Categories/subcategories are matched by name; missing ones are created.
+  - Items are matched by (sub_category, title). An existing match has its
+    price/description/pictures/availability UPDATED from the JSON (via
+    PATCH) rather than left alone. A title with no match is created.
+  - An item that exists in the DB (under a category this run touches) but
+    has no match in the JSON is DEACTIVATED (is_available=False) — never
+    hard-deleted, since ordered items can't be removed without breaking
+    order history. Rerun with the old JSON to bring it back.
+
+Use --dry-run first: prints every planned create/update/deactivate without
+calling any mutating endpoint.
 
 Usage:
     python scripts/import_menu_json.py \
@@ -15,7 +24,8 @@ Usage:
         --media-dir /path/to/homepage-gallery/menu \
         --api-url https://api.fgck-githurai44.com/api/v1 \
         --email you@sweet1ne.com --password '...' \
-        --supabase-url https://xxxx.supabase.co --supabase-key '...'
+        --supabase-url https://xxxx.supabase.co --supabase-key '...' \
+        --dry-run
 
 Point --api-url at http://localhost:8000/api/v1 to try it against a local
 dev server first — do that before ever pointing it at production.
@@ -35,7 +45,15 @@ from supabase import create_client
 
 # Real course order from the pack's courses[] — used for sort_order so the
 # category rail on /menu comes out in the same sequence as the template.
-COURSE_ORDER = ["Starters", "Mains", "Pasta", "Seafood", "Sides", "Kids", "Desserts", "Bar"]
+COURSE_ORDER = [
+    "Starters", "Mains", "Pasta", "Seafood", "Nigerian", "Sides", "Salads",
+    "Kids", "Desserts", "Bar",
+]
+
+# courses[].label is nav-rail copy ("Sides & sauces", "Nigerian specialties")
+# and isn't the category name — except Bar, which really was renamed to
+# Drinks in the live menu, matching courses[].label for that one course.
+DISPLAY_NAME = {"Bar": "Drinks"}
 
 
 def slugify(text: str) -> str:
@@ -64,8 +82,9 @@ def _multipart_body(file_field: str, file_path: Path) -> tuple[bytes, str]:
 
 
 class Importer:
-    def __init__(self, api_url: str, email: str, password: str, supabase_url: str, supabase_key: str):
+    def __init__(self, api_url: str, email: str, password: str, supabase_url: str, supabase_key: str, dry_run: bool):
         self.api = api_url.rstrip("/")
+        self.dry_run = dry_run
         sb = create_client(supabase_url, supabase_key)
         res = sb.auth.sign_in_with_password({"email": email, "password": password})
         self.token = res.session.access_token
@@ -87,9 +106,18 @@ class Importer:
         return self._request("GET", path)
 
     def post_json(self, path, payload):
+        if self.dry_run:
+            return {**payload, "id": f"dry-run-{uuid.uuid4().hex[:8]}"}
         return self._request("POST", path, json.dumps(payload).encode(), "application/json")
 
+    def patch_json(self, path, payload):
+        if self.dry_run:
+            return payload
+        return self._request("PATCH", path, json.dumps(payload).encode(), "application/json")
+
     def upload_and_register_media(self, file_path: Path, label: str) -> str:
+        if self.dry_run:
+            return f"dry-run://{label}"
         body, boundary = _multipart_body("file", file_path)
         uploaded = self._request(
             "POST", "/uploads/images?folder=menu-items", body, f"multipart/form-data; boundary={boundary}"
@@ -98,16 +126,23 @@ class Importer:
         self.post_json("/media", {"label": label, "kind": "still", "src": url})
         return url
 
-    def find_or_create_main_category(self, name: str, prep_station: str, existing: list) -> dict:
+    def find_or_create_main_category(self, name: str, prep_station: str, sort_order: int, existing: list) -> dict:
         for c in existing:
             if c["name"].strip().lower() == name.strip().lower() and c["branch_id"] is None:
+                if c["sort_order"] != sort_order:
+                    print(f"  ~ main category: {name} sort_order {c['sort_order']} -> {sort_order}")
+                    c["sort_order"] = sort_order
+                    self.patch_json(f"/staff/menu/main-categories/{c['id']}", {"sort_order": sort_order})
                 return c
         created = self.post_json(
             "/staff/menu/main-categories",
             {"name": name, "slug": slugify(name), "branch_id": None, "prep_station": prep_station},
         )
+        created["sort_order"] = sort_order
+        if not self.dry_run:
+            self.patch_json(f"/staff/menu/main-categories/{created['id']}", {"sort_order": sort_order})
         existing.append(created)
-        print(f"  + main category: {name} ({prep_station})")
+        print(f"  + main category: {name} ({prep_station}, sort_order={sort_order})")
         return created
 
     def find_or_create_sub_category(self, main_id: str, name: str, existing: list) -> dict:
@@ -128,14 +163,18 @@ class Importer:
                 return i
         return None
 
+    def deactivate_item(self, item: dict) -> None:
+        self.patch_json(f"/staff/menu/menu-items/{item['id']}", {"is_available": False})
+        item["is_available"] = False
 
-def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, password: str, supabase_url: str, supabase_key: str):
+
+def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, password: str, supabase_url: str, supabase_key: str, dry_run: bool):
     data = json.loads(menu_json_path.read_text())
     items = data["items"]
 
-    imp = Importer(api_url, email, password, supabase_url, supabase_key)
+    imp = Importer(api_url, email, password, supabase_url, supabase_key, dry_run)
 
-    print(f"Loaded {len(items)} items from {menu_json_path.name}")
+    print(f"Loaded {len(items)} items from {menu_json_path.name}" + (" [DRY RUN]" if dry_run else ""))
 
     existing_mains = imp.get("/staff/menu/main-categories?include_inactive=true")
     existing_subs = imp.get("/staff/menu/sub-categories?include_inactive=true")
@@ -163,18 +202,23 @@ def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, passwor
         media_urls[rel_path] = imp.upload_and_register_media(local_file, label)
         print(f"  + {local_file.name} -> {media_urls[rel_path]}")
 
-    created_categories, created_subs, created_items, skipped_items = 0, 0, 0, 0
+    created_categories, created_subs, created_items = 0, 0, 0
+    updated_items, unchanged_items = 0, 0
+    touched_item_ids: set[str] = set()
+    touched_main_ids: set[str] = set()
 
-    for cat_name in COURSE_ORDER:
+    for index, cat_name in enumerate(COURSE_ORDER):
         cat_items = [i for i in items if i["cat"] == cat_name]
         if not cat_items:
             continue
 
+        display_name = DISPLAY_NAME.get(cat_name, cat_name)
         prep_station = "bar" if cat_name == "Bar" else "kitchen"
         before = len(existing_mains)
-        main = imp.find_or_create_main_category(cat_name, prep_station, existing_mains)
+        main = imp.find_or_create_main_category(display_name, prep_station, index, existing_mains)
         if len(existing_mains) > before:
             created_categories += 1
+        touched_main_ids.add(main["id"])
 
         for item in cat_items:
             sub_name = item.get("sub") or "General"
@@ -183,31 +227,71 @@ def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, passwor
             if len(existing_subs) > before_sub:
                 created_subs += 1
 
+            pictures = [media_urls[f] for f in item.get("files", []) if f in media_urls]
+            desc = item.get("desc") or None
+            price = parse_price(item["price"])
+            is_available = bool(item.get("on", True))
+
             existing_item = imp.find_existing_item(sub["id"], item["name"], existing_items)
             if existing_item:
-                skipped_items += 1
+                touched_item_ids.add(existing_item["id"])
+                changes = {}
+                if float(existing_item["price"]) != price:
+                    changes["price"] = price
+                if (existing_item.get("description") or None) != desc:
+                    changes["description"] = desc
+                if pictures and existing_item.get("pictures") != pictures:
+                    changes["pictures"] = pictures
+                if existing_item.get("is_available") != is_available:
+                    changes["is_available"] = is_available
+                if changes:
+                    imp.patch_json(f"/staff/menu/menu-items/{existing_item['id']}", changes)
+                    existing_item.update(changes)
+                    updated_items += 1
+                    print(f"    ~ {item['name']}: {', '.join(changes.keys())}")
+                else:
+                    unchanged_items += 1
                 continue
 
-            pictures = [media_urls[f] for f in item.get("files", []) if f in media_urls]
             payload = {
                 "sub_category_id": sub["id"],
                 "title": item["name"],
-                "description": item.get("desc") or None,
-                "price": parse_price(item["price"]),
+                "description": desc,
+                "price": price,
                 "pictures": pictures,
-                "is_available": bool(item.get("on", True)),
+                "is_available": is_available,
             }
             created = imp.post_json("/staff/menu/menu-items", payload)
             existing_items.append(created)
+            touched_item_ids.add(created["id"])
             created_items += 1
-            print(f"    + {item['name']} — £{payload['price']:.2f}" + (" (photo)" if pictures else ""))
+            print(f"    + {item['name']} — £{price:.2f}" + (" (photo)" if pictures else ""))
+
+    # Anything left on (in a category this run covers) but not seen in the
+    # new JSON has been dropped from the menu pack — turn it off rather than
+    # delete it, since ordered items can't be removed without breaking order
+    # history. Re-running the old JSON brings it straight back.
+    sub_to_main = {s["id"]: s["main_category_id"] for s in existing_subs}
+    deactivated_items = []
+    for it in existing_items:
+        main_id = sub_to_main.get(it["sub_category_id"])
+        if main_id in touched_main_ids and it["id"] not in touched_item_ids and it.get("is_available"):
+            imp.deactivate_item(it)
+            deactivated_items.append(it["title"])
+
+    if deactivated_items:
+        print()
+        print(f"Turned off {len(deactivated_items)} dish(es) no longer in the menu pack:")
+        for title in deactivated_items:
+            print(f"    - {title}")
 
     print()
     print(
-        f"Done. {created_categories} categories, {created_subs} subcategories, {created_items} dishes "
-        f"created; {skipped_items} dishes already existed and were left alone."
+        f"Done. {created_categories} categories, {created_subs} subcategories, {created_items} dishes created; "
+        f"{updated_items} updated; {unchanged_items} already matched; {len(deactivated_items)} turned off."
     )
-    print("Re-run any time — existing categories, subcategories and dishes are matched by name and skipped.")
+    if dry_run:
+        print("This was a dry run — nothing was written. Drop --dry-run to apply it for real.")
 
 
 def _resolve(cli_value: str | None, env_name: str) -> str | None:
@@ -228,6 +312,7 @@ if __name__ == "__main__":
     parser.add_argument("--password", help="Or set SWEET1NE_PASSWORD")
     parser.add_argument("--supabase-url", help="Or set SWEET1NE_SUPABASE_URL")
     parser.add_argument("--supabase-key", help="Or set SWEET1NE_SUPABASE_KEY. The anon/public key, same one the frontend uses")
+    parser.add_argument("--dry-run", action="store_true", help="Print every planned change without writing anything")
     args = parser.parse_args()
 
     api_url = _resolve(args.api_url, "SWEET1NE_API_URL")
@@ -252,4 +337,4 @@ if __name__ == "__main__":
     if "\n" in supabase_url or "\n" in supabase_key:
         parser.error("supabase url/key contains a newline — a value got corrupted when it was copied in")
 
-    run(args.menu_json, args.media_dir, api_url, email, password, supabase_url, supabase_key)
+    run(args.menu_json, args.media_dir, api_url, email, password, supabase_url, supabase_key, args.dry_run)

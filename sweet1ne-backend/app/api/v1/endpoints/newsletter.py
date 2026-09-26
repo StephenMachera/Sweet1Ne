@@ -78,7 +78,7 @@ async def subscribe(
         existing.consented_at = datetime.now(timezone.utc)
         db.commit()
     else:
-        db.add(NewsletterSubscriber(tenant_id=tenant.id, email=email, source="website"))
+        db.add(NewsletterSubscriber(tenant_id=tenant.id, email=email, source=payload.source))
         db.commit()
 
     subject, html = newsletter_welcome.render(email=email)
@@ -206,6 +206,7 @@ def subscriber_stats(
         unsubscribed=count(NewsletterSubscriber.is_subscribed == False),
         from_website=count(NewsletterSubscriber.source == "website"),
         from_reservations=count(NewsletterSubscriber.source == "reservation"),
+        from_table=count(NewsletterSubscriber.source == "qr"),
     )
 
 

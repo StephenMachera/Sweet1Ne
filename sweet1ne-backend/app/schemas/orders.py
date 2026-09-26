@@ -38,6 +38,7 @@ class OrderOut(BaseModel):
     status: str
     special_request: str | None
     total_amount: float
+    promo_code: str | None = None
     order_items: list[OrderItemOut]
     created_at: datetime
     placed_by_staff_id: uuid.UUID | None

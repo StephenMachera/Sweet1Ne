@@ -26,6 +26,12 @@ class BranchOrderModeIn(BaseModel):
     order_mode: str  # "waiter" | "app"
 
 
+class BranchPhoneUrlIn(BaseModel):
+    # A general ordering/menu link for this branch — separate from any
+    # single table's own QR code, e.g. for a website "Order online" button.
+    phone_menu_url: str = ""
+
+
 class BranchOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

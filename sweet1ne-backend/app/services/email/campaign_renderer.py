@@ -85,7 +85,9 @@ def _eyebrow(block: dict[str, Any]) -> str:
 
 
 def _image(block: dict[str, Any]) -> str:
-    url = escape(block.get("url", ""))
+    # No picture picked yet — falls back to the real configured logo rather
+    # than rendering nothing, same as the logo block already does.
+    url = escape(block.get("url", "") or settings.EMAIL_LOGO_URL)
     alt = escape(block.get("alt", ""))
     if not url:
         return ""

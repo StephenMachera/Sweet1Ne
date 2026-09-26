@@ -2,9 +2,8 @@ import asyncio
 import uuid
 from datetime import datetime, timezone
 
-
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -13,6 +12,7 @@ from app.db.session import SessionLocal, get_db
 
 from app.models.campigns import Campaign
 from app.models.newsletter_subscriber import NewsletterSubscriber
+from app.models.reservation import Reservation
 
 from app.services.email.campaign_renderer import render_campaign
 from app.services.email.client import send_email
@@ -26,6 +26,55 @@ router = APIRouter()
 # domain also sends booking confirmations.
 SEND_DELAY_SECONDS = 0.12
 
+# How long since a real booking counts as "gone quiet", and how many real
+# bookings count as "a regular" — same thresholds Promotion audience
+# targeting already uses for guest_id visits, applied here to reservation
+# history instead, since that's the only guest activity actually tied to an
+# email address.
+QUIET_DAYS = 50
+REGULAR_VISITS = 4
+
+
+def _reservation_activity(db: Session, tenant_id: uuid.UUID) -> dict[str, tuple[int, datetime]]:
+    """Each email's real booking count and most recent booking — an
+    enquiry isn't a visit, so it's excluded."""
+    rows = db.execute(
+        select(Reservation.email, func.count(Reservation.id), func.max(Reservation.created_at))
+        .where(Reservation.tenant_id == tenant_id, Reservation.reservation_type != "enquiry")
+        .group_by(Reservation.email)
+    ).all()
+    return {email: (count, last_at) for email, count, last_at in rows}
+
+
+def _audience_emails(db: Session, tenant_id: uuid.UUID, audience: str) -> set[str] | None:
+    """The specific emails that qualify for "quiet"/"regular" — None means
+    the caller should fall back to its own source-based filter instead."""
+    if audience not in ("quiet", "regular"):
+        return None
+
+    activity = _reservation_activity(db, tenant_id)
+    now = datetime.now(timezone.utc)
+    matches: set[str] = set()
+    for email, (count, last_at) in activity.items():
+        if audience == "regular" and count >= REGULAR_VISITS:
+            matches.add(email)
+        elif audience == "quiet" and (now - last_at).days >= QUIET_DAYS:
+            matches.add(email)
+    return matches
+
+
+def _apply_audience(statement, audience: str, db: Session, tenant_id: uuid.UUID):
+    if audience == "website":
+        return statement.where(NewsletterSubscriber.source == "website")
+    if audience == "booking":
+        return statement.where(NewsletterSubscriber.source == "reservation")
+    if audience == "qr":
+        return statement.where(NewsletterSubscriber.source == "qr")
+    emails = _audience_emails(db, tenant_id, audience)
+    if emails is not None:
+        return statement.where(NewsletterSubscriber.email.in_(emails))
+    return statement  # "active" — everyone subscribed, however they joined
+
 
 
 @router.get("", response_model=list[CampaignOut])
@@ -38,6 +87,35 @@ def list_campaigns(
         .where(Campaign.tenant_id == staff.tenant_id)
         .order_by(Campaign.updated_at.desc())
     ).scalars().all()
+
+
+# Registered before /{campaign_id} so "audience-counts" isn't swallowed as
+# a campaign id — FastAPI matches routes in declaration order.
+@router.get("/audience-counts")
+def audience_counts(
+    staff: CurrentStaff = Depends(require_permission("manage_marketing")),
+    db: Session = Depends(get_db),
+):
+    """How many subscribed people fall into each audience right now — real
+    counts, not staff previews, computed the same way sending would filter
+    them."""
+    base = select(NewsletterSubscriber).where(
+        NewsletterSubscriber.tenant_id == staff.tenant_id,
+        NewsletterSubscriber.is_subscribed == True,
+    )
+
+    def count(audience: str) -> int:
+        statement = _apply_audience(base, audience, db, staff.tenant_id)
+        return len(db.execute(statement).scalars().all())
+
+    return {
+        "active": count("active"),
+        "website": count("website"),
+        "qr": count("qr"),
+        "booking": count("booking"),
+        "quiet": count("quiet"),
+        "regular": count("regular"),
+    }
 
 
 @router.post("", response_model=CampaignOut)
@@ -229,10 +307,7 @@ async def _send_to_list(campaign_id: uuid.UUID, tenant_id: uuid.UUID) -> None:
             NewsletterSubscriber.is_subscribed == True,
         )
         # "active" means everyone subscribed, regardless of how they joined.
-        if campaign.audience == "website":
-            statement = statement.where(NewsletterSubscriber.source == "website")
-        elif campaign.audience == "booking":
-            statement = statement.where(NewsletterSubscriber.source == "reservation")
+        statement = _apply_audience(statement, campaign.audience, db, tenant_id)
 
         subscribers = db.execute(statement).scalars().all()
 
@@ -297,10 +372,7 @@ def send_campaign(
         NewsletterSubscriber.tenant_id == staff.tenant_id,
         NewsletterSubscriber.is_subscribed == True,
     )
-    if campaign.audience == "website":
-        recipients_stmt = recipients_stmt.where(NewsletterSubscriber.source == "website")
-    elif campaign.audience == "booking":
-        recipients_stmt = recipients_stmt.where(NewsletterSubscriber.source == "reservation")
+    recipients_stmt = _apply_audience(recipients_stmt, campaign.audience, db, staff.tenant_id)
 
     recipients = db.execute(recipients_stmt).scalars().all()
 

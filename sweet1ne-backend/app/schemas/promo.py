@@ -8,9 +8,13 @@ class PromoIn(BaseModel):
     title: str
     description: str | None = None
     branch_id: uuid.UUID | None = None
+    # A guest must type this exact code for the promo to apply — leave
+    # blank for the original "always on for its target" behaviour.
+    code: str | None = None
 
-    target_type: str = "item"  # item | category
+    target_type: str = "item"  # item | sub_category | category
     target_menu_item_id: uuid.UUID | None = None
+    target_sub_category_id: uuid.UUID | None = None
     target_main_category_id: uuid.UUID | None = None
 
     discount_type: str = "percentage"  # percentage | fixed_price
@@ -24,8 +28,10 @@ class PromoIn(BaseModel):
 class PromoUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
+    code: str | None = None
     target_type: str | None = None
     target_menu_item_id: uuid.UUID | None = None
+    target_sub_category_id: uuid.UUID | None = None
     target_main_category_id: uuid.UUID | None = None
     discount_type: str | None = None
     discount_percent: float | None = None
@@ -42,8 +48,10 @@ class PromoOut(BaseModel):
     branch_id: uuid.UUID | None
     title: str
     description: str | None
+    code: str | None
     target_type: str
     target_menu_item_id: uuid.UUID | None
+    target_sub_category_id: uuid.UUID | None
     target_main_category_id: uuid.UUID | None
     discount_type: str
     discount_percent: float | None

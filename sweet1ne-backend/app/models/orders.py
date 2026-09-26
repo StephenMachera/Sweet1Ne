@@ -45,7 +45,11 @@ class Order(Base):
     )
     special_request: Mapped[str | None] = mapped_column(String)
     total_amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
-    
+    # The live "code" promotion's code that discounted this order, if any —
+    # stored so a later edit (adding items, changing the order) can
+    # re-check and reapply it, rather than silently losing the discount.
+    promo_code: Mapped[str | None] = mapped_column(String)
+
     #--- Timestamps ---
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

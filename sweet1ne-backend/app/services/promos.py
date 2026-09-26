@@ -12,17 +12,21 @@ from app.models.sub_menu_category import SubCategory
 
 
 def active_promos(
-    db: Session, tenant_id: uuid.UUID, branch_id: uuid.UUID | None
+    db: Session, tenant_id: uuid.UUID, branch_id: uuid.UUID | None, code: str | None = None
 ) -> list[Promo]:
     """Promos live right now for this branch, plus any tenant-wide ones.
-    A NULL start or end means "no bound on that side"."""
+    A NULL start or end means "no bound on that side". A promo with a code
+    of its own only comes back when the caller's code matches it — without
+    a matching code, only the always-on (code IS NULL) promos are live."""
     now = datetime.now(timezone.utc)
+    normalized_code = code.strip().upper() if code else None
 
     statement = select(Promo).where(
         Promo.tenant_id == tenant_id,
         Promo.is_active == True,
         or_(Promo.starts_at.is_(None), Promo.starts_at <= now),
         or_(Promo.ends_at.is_(None), Promo.ends_at >= now),
+        or_(Promo.code.is_(None), Promo.code == normalized_code) if normalized_code else Promo.code.is_(None),
     )
     if branch_id is not None:
         statement = statement.where(
@@ -32,28 +36,37 @@ def active_promos(
     return list(db.execute(statement).scalars().all())
 
 
-def category_map(db: Session, item_ids: list[uuid.UUID]) -> dict[uuid.UUID, uuid.UUID]:
-    """Which main category each item belongs to — resolved in one query so
-    pricing a whole menu doesn't trigger a lookup per item."""
+def category_map(db: Session, item_ids: list[uuid.UUID]) -> dict[uuid.UUID, tuple[uuid.UUID, uuid.UUID]]:
+    """Each item's (sub_category_id, main_category_id) — resolved in one
+    query so pricing a whole menu doesn't trigger a lookup per item."""
     if not item_ids:
         return {}
 
     rows = db.execute(
-        select(MenuItem.id, MainCategory.id)
+        select(MenuItem.id, SubCategory.id, MainCategory.id)
         .join(SubCategory, MenuItem.sub_category_id == SubCategory.id)
         .join(MainCategory, SubCategory.main_category_id == MainCategory.id)
         .where(MenuItem.id.in_(item_ids))
     ).all()
 
-    return {item_id: category_id for item_id, category_id in rows}
+    return {item_id: (sub_id, main_id) for item_id, sub_id, main_id in rows}
 
 
 def promos_for_item(
-    promos: list[Promo], menu_item_id: uuid.UUID, main_category_id: uuid.UUID | None
+    promos: list[Promo],
+    menu_item_id: uuid.UUID,
+    categories: tuple[uuid.UUID, uuid.UUID] | None,
 ) -> list[Promo]:
+    sub_category_id, main_category_id = categories if categories else (None, None)
     matched = []
     for promo in promos:
         if promo.target_type == "item" and promo.target_menu_item_id == menu_item_id:
+            matched.append(promo)
+        elif (
+            promo.target_type == "sub_category"
+            and sub_category_id is not None
+            and promo.target_sub_category_id == sub_category_id
+        ):
             matched.append(promo)
         elif (
             promo.target_type == "category"
@@ -92,7 +105,7 @@ def apply_promos(base_price: Decimal, promos: list[Promo]) -> tuple[Decimal, lis
 def price_for(
     menu_item: MenuItem,
     promos: list[Promo],
-    categories: dict[uuid.UUID, uuid.UUID],
+    categories: dict[uuid.UUID, tuple[uuid.UUID, uuid.UUID]],
 ) -> tuple[Decimal, list[str]]:
     matched = promos_for_item(promos, menu_item.id, categories.get(menu_item.id))
     return apply_promos(Decimal(menu_item.price), matched)

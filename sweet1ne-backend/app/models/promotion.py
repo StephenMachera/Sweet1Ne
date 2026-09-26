@@ -63,8 +63,9 @@ class Promotion(Base):
 
     # {enter, ribbon, phone, mail} -> bool
     surfaces: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
-    # Unused — the paid-tile preview (Google/Meta/Instagram) was removed
-    # from the UI. Column kept rather than migrated away, since it's inert.
+    # {google, meta, instagram} -> bool. Preview-only — no ad platform is
+    # actually called; this just previews the same copy as it would sit on
+    # each one.
     channels: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
 
     # The composer's block list — same shape family as Event/Campaign layouts.

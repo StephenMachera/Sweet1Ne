@@ -18,6 +18,14 @@ class PromotionLook(BaseModel):
     align: str = "left"
 
 
+class PromotionChannels(BaseModel):
+    """Preview-only — ticking one of these doesn't post anything to that
+    platform, it just shows staff how the same words would sit there."""
+    google: bool = False
+    meta: bool = False
+    instagram: bool = False
+
+
 class PromotionIn(BaseModel):
     branch_id: uuid.UUID | None = None
     kind: str = "notice"
@@ -36,6 +44,7 @@ class PromotionIn(BaseModel):
     quiet_days: int = 50
     regular_visits: int = 4
     surfaces: PromotionSurfaces = PromotionSurfaces()
+    channels: PromotionChannels = PromotionChannels()
     layout: list[dict[str, Any]] = []
     look: PromotionLook = PromotionLook()
     map_id: str | None = None
@@ -59,6 +68,7 @@ class PromotionUpdate(BaseModel):
     quiet_days: int | None = None
     regular_visits: int | None = None
     surfaces: PromotionSurfaces | None = None
+    channels: PromotionChannels | None = None
     layout: list[dict[str, Any]] | None = None
     look: PromotionLook | None = None
     map_id: str | None = None
@@ -85,6 +95,7 @@ class PromotionOut(BaseModel):
     quiet_days: int
     regular_visits: int
     surfaces: dict[str, Any]
+    channels: dict[str, Any]
     layout: list[dict[str, Any]]
     look: dict[str, Any]
     map_id: str | None

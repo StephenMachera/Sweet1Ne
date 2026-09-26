@@ -27,11 +27,21 @@ class Promo(Base):
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String)
 
+    # A guest-entered code that unlocks this promo. NULL means it's always
+    # on for whatever it targets (the original behaviour); set, it only
+    # ever applies to an order that supplied this exact code — same
+    # "re-checked at order time, never trusted from the client" rule as the
+    # basket-level Promotion code.
+    code: Mapped[str | None] = mapped_column(String, unique=True)
+
     # --- What it targets ---
-    # item | category | order
+    # item | sub_category | category
     target_type: Mapped[str] = mapped_column(String, nullable=False, server_default="item")
     target_menu_item_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("menu_items.id", ondelete="CASCADE")
+    )
+    target_sub_category_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("sub_categories.id", ondelete="CASCADE")
     )
     target_main_category_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("main_categories.id", ondelete="CASCADE")

@@ -111,7 +111,7 @@ def list_main_categories(
     staff: CurrentStaff = Depends(require_permission("view_menu")),
     db: Session = Depends(get_db),
 ):
-    statement = select(MainCategory)
+    statement = select(MainCategory).order_by(MainCategory.sort_order)
     statement = scope_to_branch(statement, staff.tenant_id, staff.branch_id)
 
     scope = resolve_menu_scope(staff, branch_id, shared_only)

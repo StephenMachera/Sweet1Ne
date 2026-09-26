@@ -25,6 +25,7 @@ from app.schemas.orders import OrderItemIn, OrderOut, StaffOrderCreate, OrderUpd
 
 #---services---
 from app.services.promos import price_for, category_map, active_promos
+from app.services import promotions as promotions_service
 router = APIRouter()
 
 from app.api.v1.endpoints.reports import _period_bounds  # or move it to a shared module
@@ -232,7 +233,7 @@ def update_order_items(
                 detail="An order needs at least one item. Void it instead if it's not wanted.",
             )
 
-        promos = active_promos(db, staff.tenant_id, table.branch_id)
+        promos = active_promos(db, staff.tenant_id, table.branch_id, code=order.promo_code)
         categories = category_map(db, [i.menu_item_id for i in payload.items])
 
         for existing in list(order.order_items):
@@ -261,12 +262,13 @@ def update_order_items(
                 )
             )
 
-        order.total_amount = total
+        order.total_amount = promotions_service.apply_code_discount(
+            db, staff.tenant_id, table.branch_id, order.promo_code, total
+        )
 
     db.commit()
     db.refresh(order)
     return order
-
 
 
 
@@ -296,10 +298,9 @@ def add_items_to_order(
     if not payload.items:
         raise HTTPException(status_code=400, detail="No items to add.")
 
-    promos = active_promos(db, staff.tenant_id, table.branch_id)
+    promos = active_promos(db, staff.tenant_id, table.branch_id, code=order.promo_code)
     categories = category_map(db, [i.menu_item_id for i in payload.items])
 
-    added = Decimal("0")
     for item_in in payload.items:
         menu_item = db.get(MenuItem, item_in.menu_item_id)
         if menu_item is None or not menu_item.is_available:
@@ -307,7 +308,6 @@ def add_items_to_order(
 
         unit_price, _titles = price_for(menu_item, promos, categories)
         line_total = unit_price * item_in.quantity
-        added += line_total
 
         db.add(
             OrderItem(
@@ -319,7 +319,14 @@ def add_items_to_order(
             )
         )
 
-    order.total_amount = Decimal(order.total_amount) + added
+    # Re-summed from scratch rather than added on top — a percent-off code
+    # applies across the whole basket, not just what's newly added.
+    db.flush()
+    db.refresh(order)
+    raw_subtotal = sum((Decimal(str(oi.total_price)) for oi in order.order_items), Decimal("0"))
+    order.total_amount = promotions_service.apply_code_discount(
+        db, staff.tenant_id, table.branch_id, order.promo_code, raw_subtotal
+    )
     db.commit()
     db.refresh(order)
     return order
