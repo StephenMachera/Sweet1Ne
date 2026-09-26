@@ -126,13 +126,21 @@ class Importer:
         self.post_json("/media", {"label": label, "kind": "still", "src": url})
         return url
 
-    def find_or_create_main_category(self, name: str, prep_station: str, sort_order: int, existing: list) -> dict:
+    def find_or_create_main_category(self, name: str, prep_station: str, sort_order: int, existing: list, aliases: list[str] | None = None) -> dict:
+        candidates = {name.strip().lower(), *(a.strip().lower() for a in (aliases or []))}
         for c in existing:
-            if c["name"].strip().lower() == name.strip().lower() and c["branch_id"] is None:
+            if c["name"].strip().lower() in candidates and c["branch_id"] is None:
+                changes = {}
+                if c["name"].strip().lower() != name.strip().lower():
+                    print(f"  ~ main category: {c['name']!r} -> {name!r} (renamed)")
+                    changes["name"] = name
+                    changes["slug"] = slugify(name)
                 if c["sort_order"] != sort_order:
                     print(f"  ~ main category: {name} sort_order {c['sort_order']} -> {sort_order}")
-                    c["sort_order"] = sort_order
-                    self.patch_json(f"/staff/menu/main-categories/{c['id']}", {"sort_order": sort_order})
+                    changes["sort_order"] = sort_order
+                if changes:
+                    c.update(changes)
+                    self.patch_json(f"/staff/menu/main-categories/{c['id']}", changes)
                 return c
         created = self.post_json(
             "/staff/menu/main-categories",
@@ -215,7 +223,8 @@ def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, passwor
         display_name = DISPLAY_NAME.get(cat_name, cat_name)
         prep_station = "bar" if cat_name == "Bar" else "kitchen"
         before = len(existing_mains)
-        main = imp.find_or_create_main_category(display_name, prep_station, index, existing_mains)
+        aliases = [cat_name] if cat_name in DISPLAY_NAME else []
+        main = imp.find_or_create_main_category(display_name, prep_station, index, existing_mains, aliases)
         if len(existing_mains) > before:
             created_categories += 1
         touched_main_ids.add(main["id"])

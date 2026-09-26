@@ -23,6 +23,7 @@ from app.services.email.client import send_email
 from app.services.turnstile import verify_turnstile
 from app.services.email.templates import (
     enquiry_notification,
+    enquiry_reply,
     reservation_confirmed,
     reservation_declined,
     reservation_received,
@@ -238,8 +239,10 @@ async def decide_reservation(
     staff: CurrentStaff = Depends(require_permission("manage_reservations")),
     db: Session = Depends(get_db),
 ):
-    """Confirm or decline — either way the customer hears back."""
-    if payload.status not in {"confirmed", "declined", "cancelled"}:
+    """Confirm or decline — either way the customer hears back. An enquiry
+    reply doesn't decide anything, so "pending" (its own current status) is
+    allowed too — it just carries a staff_message the guest gets emailed."""
+    if payload.status not in {"pending", "confirmed", "declined", "cancelled"}:
         raise HTTPException(status_code=400, detail="Unknown status")
 
     reservation = db.get(Reservation, reservation_id)
@@ -259,10 +262,26 @@ async def decide_reservation(
     branch = db.get(Branch, reservation.branch_id)
     branch_settings = branch.settings or {}
 
-    # Both templates read as a table booking ("you're booked", "we can't do
-    # that time") — that copy doesn't fit an enquiry, which has no date or
-    # party size to confirm or decline in the first place.
-    if reservation.reservation_type != "enquiry":
+    # An enquiry has no date or party size to confirm/decline in the first
+    # place — a staff reply there is just an answer to what they wrote in,
+    # sent for real (not the admin's own mailto: link, which only worked if
+    # their OS had a mail client configured and they remembered to hit send).
+    if reservation.reservation_type == "enquiry":
+        if payload.staff_message:
+            subject, html = enquiry_reply.render(
+                name=reservation.name,
+                branch_name=branch.name,
+                original_message=reservation.notes,
+                staff_message=reservation.staff_message,
+            )
+            background.add_task(
+                send_email,
+                to=reservation.email,
+                subject=subject,
+                html=html,
+                reply_to=settings.EMAIL_REPLY_TO,
+            )
+    else:
         if payload.status == "confirmed":
             subject, html = reservation_confirmed.render(
                 name=reservation.name,
