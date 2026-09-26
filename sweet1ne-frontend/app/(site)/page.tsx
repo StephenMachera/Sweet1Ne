@@ -1,5 +1,4 @@
 import { StageProvider } from "@/components/site/home/stage-provider";
-import Gate from "@/components/site/home/gate";
 import Cinema from "@/components/site/home/cinema";
 import { PromoCard } from "@/components/site/home/promo-card";
 import House from "@/components/site/home/house";
@@ -22,7 +21,6 @@ export default function HomePage() {
           depend on this wrapper. The header comes from the (site) layout;
           rendering it here as well puts two on the page. */}
       <div className="home-page">
-        <Gate />
         <Cinema />
         <PromoCard />
         <House />

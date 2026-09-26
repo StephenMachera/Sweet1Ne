@@ -100,14 +100,7 @@ export default function AdminInboxPage() {
       });
       setEnquiries((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
       setEditing(updated);
-
-      const subject = `Re: ${editing.occasion || "Sweet1NE"}`;
-      const body = `${replyText.trim()}\n\n—\n${editing.notes ?? ""}`;
-      const params = new URLSearchParams();
-      if (tenantEmail) params.set("bcc", tenantEmail);
-      params.set("subject", subject);
-      params.set("body", body);
-      window.location.href = `mailto:${encodeURIComponent(editing.email)}?${params.toString()}`;
+      setReplyText("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't send that reply.");
     } finally {
@@ -261,8 +254,12 @@ export default function AdminInboxPage() {
             <tbody>
               {visible.map((row) => {
                 const st = statusOf(row);
+                const open = () => {
+                  setEditing(row);
+                  setReplyText("");
+                };
                 return (
-                  <tr key={row.id}>
+                  <tr key={row.id} onClick={open} style={{ cursor: "pointer" }}>
                     <td>
                       <span className="admin-name">{row.name}</span>
                     </td>
@@ -279,9 +276,9 @@ export default function AdminInboxPage() {
                         type="button"
                         className="admin-edit"
                         aria-label="Open"
-                        onClick={() => {
-                          setEditing(row);
-                          setReplyText("");
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          open();
                         }}
                       >
                         <Eye size={15} />
@@ -290,7 +287,10 @@ export default function AdminInboxPage() {
                         type="button"
                         className="admin-edit"
                         aria-label="Remove"
-                        onClick={() => setConfirmDelete(row)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmDelete(row);
+                        }}
                       >
                         <Trash2 size={15} />
                       </button>

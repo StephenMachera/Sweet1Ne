@@ -11,8 +11,10 @@ export const metadata: Metadata = {
 
 async function getMenu(): Promise<PublicMenuData> {
   try {
+    // An admin turning a dish on/off must show up right away, not up to a
+    // minute later — this page is read on every request, never cached.
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/site/menu`, {
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!res.ok) return { categories: [], items: [], allergen_notice: null };
     return res.json();

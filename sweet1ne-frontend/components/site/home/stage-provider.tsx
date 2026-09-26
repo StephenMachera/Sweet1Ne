@@ -4,7 +4,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useRef,
   useState,
   type ReactNode,
@@ -30,7 +29,10 @@ export function useStage(): StageValue {
 }
 
 export function StageProvider({ children }: { children: ReactNode }) {
-  const [gated, setGated] = useState(true);
+  // The "Enter Sweet1NE" splash is gone — the homepage renders straight
+  // away. `gated` stays in the context (Cinema's pause button and
+  // PromoCard both read it) but nothing sets it back to true any more.
+  const [gated, setGated] = useState(false);
   const [headerSolid, setHeaderSolid] = useState(false);
   const playRef = useRef<PlayFn | null>(null);
 
@@ -40,36 +42,10 @@ export function StageProvider({ children }: { children: ReactNode }) {
 
   const openHouse = useCallback(() => setGated(false), []);
 
-  // Safari unlock: play() must run inside the same user gesture.
   const enter = useCallback(() => {
     playRef.current?.();
     setGated(false);
   }, []);
-
-  // reduced motion skips the gate entirely
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setGated(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    document.body.classList.toggle("is-gated", gated);
-    return () => document.body.classList.remove("is-gated");
-  }, [gated]);
-
-  // keyboard entry while gated
-  useEffect(() => {
-    if (!gated) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" || e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        enter();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [gated, enter]);
 
   return (
     <StageContext.Provider
