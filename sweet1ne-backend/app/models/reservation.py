@@ -43,6 +43,9 @@ class Reservation(Base):
     # --- Progress ---
     # pending | confirmed | declined | cancelled
     status: Mapped[str] = mapped_column(String, nullable=False, server_default="pending")
+    # Seen by staff yet — an inbox concept (Contact enquiries), not part of
+    # the booking workflow itself, so it's independent of status.
+    is_read: Mapped[bool] = mapped_column(default=False, server_default="false")
     # What a manager wants the customer to know when confirming or declining.
     staff_message: Mapped[str | None] = mapped_column(Text)
     handled_by_staff_id: Mapped[uuid.UUID | None] = mapped_column(

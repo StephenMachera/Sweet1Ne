@@ -38,8 +38,8 @@ class Tenant(Base):
     city: Mapped[str | None] = mapped_column(String)
     state: Mapped[str | None] = mapped_column(String)
     country: Mapped[str | None] = mapped_column(String)
-    currency: Mapped[str] = mapped_column(String, default="USD", server_default="USD")
-    timezone: Mapped[str] = mapped_column(String, default="America/New_York", server_default="America/New_York")
+    currency: Mapped[str] = mapped_column(String, default="GBP", server_default="GBP")
+    timezone: Mapped[str] = mapped_column(String, default="Europe/London", server_default="Europe/London")
 
     # --- Branding & customization ---
     logo_url: Mapped[str | None] = mapped_column(String)

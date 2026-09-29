@@ -149,7 +149,7 @@ def create_subscriber(
         if payload.consented and not existing.is_subscribed:
             existing.is_subscribed = True
             existing.unsubscribed_at = None
-            existing.consented_at = datetime.now(timezone.utc)
+            existing.consented_at = payload.consented_at or datetime.now(timezone.utc)
         db.commit()
         db.refresh(existing)
         return SubscriberCreateOut(subscriber=_subscriber_out(existing), created=False)
@@ -160,6 +160,8 @@ def create_subscriber(
         source=payload.source,
         is_subscribed=payload.consented,
     )
+    if payload.consented_at:
+        subscriber.consented_at = payload.consented_at
     db.add(subscriber)
     db.commit()
     db.refresh(subscriber)
@@ -186,6 +188,24 @@ def toggle_subscriber(
     db.commit()
     db.refresh(subscriber)
     return _subscriber_out(subscriber)
+
+
+@router.delete("/newsletter/subscribers/{subscriber_id}", status_code=204)
+def delete_subscriber(
+    subscriber_id: uuid.UUID,
+    staff: CurrentStaff = Depends(require_permission("manage_marketing")),
+    db: Session = Depends(get_db),
+):
+    """A real removal, not opting out — nothing else references a
+    subscriber by id (campaigns match by source/email at send time, not a
+    stored foreign key), so there's no order or send history at risk here,
+    unlike deleting a branch or a menu item."""
+    subscriber = db.get(NewsletterSubscriber, subscriber_id)
+    if subscriber is None or str(subscriber.tenant_id) != staff.tenant_id:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    db.delete(subscriber)
+    db.commit()
 
 
 @router.get("/newsletter/stats", response_model=SubscriberStats)

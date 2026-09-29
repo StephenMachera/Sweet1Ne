@@ -18,6 +18,7 @@ from app.schemas.reservation import (
     ReservationIn,
     ReservationOut,
     ReservationPublicOut,
+    ReservationReadIn,
 )
 from app.services.email.client import send_email
 from app.services.turnstile import verify_turnstile
@@ -218,9 +219,15 @@ def list_reservations(
     if upcoming_only:
         today_start = datetime.combine(date.today(), time.min, tzinfo=timezone.utc)
         # An enquiry has no date at all — "upcoming" doesn't apply to it, so
-        # it should never be filtered out by this check.
+        # it should never be filtered out by this check. It's stored with
+        # requested_at set to its submission time (for sorting), not NULL,
+        # so it needs its own clause here rather than relying on the NULL one.
         statement = statement.where(
-            or_(Reservation.requested_at >= today_start, Reservation.requested_at.is_(None))
+            or_(
+                Reservation.requested_at >= today_start,
+                Reservation.requested_at.is_(None),
+                Reservation.reservation_type == "enquiry",
+            )
         )
 
     # Soonest first — the ones needing an answer are the ones happening next.
@@ -316,6 +323,28 @@ async def decide_reservation(
                 reply_to=settings.EMAIL_REPLY_TO,
             )
 
+    return _to_out(db, reservation)
+
+
+@router.patch("/reservations/{reservation_id}/read", response_model=ReservationOut)
+def mark_reservation_read(
+    reservation_id: uuid.UUID,
+    payload: ReservationReadIn,
+    staff: CurrentStaff = Depends(require_permission("manage_reservations")),
+    db: Session = Depends(get_db),
+):
+    """Separate from deciding a reservation — opening or un-reading a row
+    doesn't confirm/decline anything and shouldn't stamp handled_by/handled_at
+    or email the guest."""
+    reservation = db.get(Reservation, reservation_id)
+    if reservation is None or str(reservation.tenant_id) != staff.tenant_id:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+    if staff.branch_id is not None and str(reservation.branch_id) != staff.branch_id:
+        raise HTTPException(status_code=403, detail="Not allowed to handle this reservation")
+
+    reservation.is_read = payload.is_read
+    db.commit()
+    db.refresh(reservation)
     return _to_out(db, reservation)
 
 

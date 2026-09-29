@@ -26,13 +26,13 @@ def header() -> str:
     """
     if settings.EMAIL_LOGO_URL:
         return f"""
-          <tr><td style="padding:28px 40px;border-bottom:1px solid {HAIRLINE_FAINT};">
+          <tr><td style="padding:28px 40px;border-bottom:1px solid {HAIRLINE_FAINT};text-align:center;">
             <img src="{settings.EMAIL_LOGO_URL}" alt="Sweet1NE" width="90"
-                 style="display:block;width:90px;height:auto;border:0;font-family:Georgia,serif;font-size:22px;color:{GOLD};" />
+                 style="display:inline-block;width:90px;height:auto;border:0;font-family:Georgia,serif;font-size:22px;color:{GOLD};" />
           </td></tr>"""
 
     return f"""
-          <tr><td style="padding:28px 40px;border-bottom:1px solid {HAIRLINE_FAINT};">
+          <tr><td style="padding:28px 40px;border-bottom:1px solid {HAIRLINE_FAINT};text-align:center;">
             <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:22px;color:{GOLD};">Sweet1NE</p>
           </td></tr>"""
 
@@ -59,8 +59,13 @@ def footer(*, unsubscribe_email: str | None = None) -> str:
 
 
 def wrap(*, title: str, body: str, preheader: str | None = None,
-         unsubscribe_email: str | None = None) -> str:
-    """Puts a body between the header and footer."""
+         unsubscribe_email: str | None = None, show_header: bool = True) -> str:
+    """Puts a body between the header and footer.
+
+    show_header=False for campaigns — they carry their own "logo" block
+    (with real size/position control) as the first thing in body, so the
+    fixed, uncustomisable chrome logo would just be a second one stacked
+    above it."""
     preheader_block = ""
     if preheader:
         # Hidden text that inboxes show beside the subject line.
@@ -79,7 +84,7 @@ def wrap(*, title: str, body: str, preheader: str | None = None,
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:{BACKGROUND};padding:36px 16px;">
       <tr><td align="center">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background-color:{SURFACE};border:1px solid {HAIRLINE};">
-{header()}
+{header() if show_header else ""}
 {body}
 {footer(unsubscribe_email=unsubscribe_email)}
         </table>

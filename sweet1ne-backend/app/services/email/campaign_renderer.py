@@ -21,9 +21,18 @@ from app.services.email.templates._layout import (
 # Where a CTA preset kind actually points on the guest site. "url" isn't
 # here — that's a marketer-typed custom link, handled separately in _ctas.
 CTA_PRESET_PATHS: dict[str, tuple[str, str]] = {
-    "book": ("/reservations", "Book"),
+    "book": ("/reservations", "Book a table"),
     "menu": ("/menu", "Menu"),
     "order": ("/order", "Order"),
+}
+
+# A 9-point anchor grid, same as the Promotions banner-position picker —
+# only meaningful once the image is cropped to a fixed height (fit="fill"),
+# since object-position does nothing on a natural-height image.
+_BANNER_POSITION_COORDS: dict[str, str] = {
+    "top-left": "0% 0%", "top": "50% 0%", "top-right": "100% 0%",
+    "left": "0% 50%", "center": "50% 50%", "right": "100% 50%",
+    "bottom-left": "0% 100%", "bottom": "50% 100%", "bottom-right": "100% 100%",
 }
 
 
@@ -85,9 +94,7 @@ def _eyebrow(block: dict[str, Any]) -> str:
 
 
 def _image(block: dict[str, Any]) -> str:
-    # No picture picked yet — falls back to the real configured logo rather
-    # than rendering nothing, same as the logo block already does.
-    url = escape(block.get("url", "") or settings.EMAIL_LOGO_URL)
+    url = escape(block.get("url", ""))
     alt = escape(block.get("alt", ""))
     if not url:
         return ""
@@ -96,10 +103,23 @@ def _image(block: dict[str, Any]) -> str:
     # and an inline picture.
     padding = "0 0 24px" if block.get("full_width") else "4px 40px 24px"
 
+    # "fill" crops to a fixed banner height with a focal point, same as the
+    # Promotions picture control — object-position only means anything once
+    # there's a fixed height to crop against. Outlook's Word engine ignores
+    # object-fit/-position entirely and just shows the image at its own
+    # aspect ratio, never stretched or broken — a safe degrade, not a bug.
+    if block.get("fit") == "fill":
+        position = _BANNER_POSITION_COORDS.get(block.get("position", "center"), "50% 50%")
+        style = (
+            f"display:block;width:100%;max-width:560px;height:220px;"
+            f"object-fit:cover;object-position:{position};border:0;"
+        )
+    else:
+        style = "display:block;width:100%;max-width:560px;height:auto;border:0;"
+
     return f"""
           <tr><td style="padding:{padding};">
-            <img src="{url}" alt="{alt}" width="100%"
-                 style="display:block;width:100%;max-width:560px;height:auto;border:0;" />
+            <img src="{url}" alt="{alt}" width="100%" style="{style}" />
           </td></tr>"""
 
 
@@ -113,8 +133,8 @@ def _button(block: dict[str, Any]) -> str:
     return f"""
           <tr><td style="padding:8px 40px 28px;" align="{align}">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-              <tr><td style="background-color:{GOLD};">
-                <a href="{url}" style="display:inline-block;padding:15px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;letter-spacing:0.2px;color:#0e0e0e;text-decoration:none;">
+              <tr><td style="border:1px solid {GOLD};">
+                <a href="{url}" style="display:inline-block;padding:14px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:{GOLD};text-decoration:none;">
                   {label}
                 </a>
               </td></tr>
@@ -145,9 +165,12 @@ def _quote(block: dict[str, Any]) -> str:
 
 
 def _logo(block: dict[str, Any]) -> str:
-    """A repeated/resized mark mid-email — the header already carries one
-    fixed-size logo (see _layout.wrap); this is for a marketer who wants a
-    bigger one before a sign-off, say."""
+    """Campaigns skip the fixed chrome header (see _layout.wrap's
+    show_header) precisely so this block can be the logo instead — real
+    size and position control, first thing in the email, same as the
+    reference build's "logo is first" spec. Can also repeat mid-email (a
+    bigger one before a sign-off, say), which is why it's still a block
+    rather than baked into the wrapper."""
     width = {"s": "56", "m": "90", "l": "140"}.get(block.get("size", "m"), "90")
     align = "center" if block.get("align", "center") == "center" else "left"
 
@@ -158,7 +181,7 @@ def _logo(block: dict[str, Any]) -> str:
         mark = f"""<span style="font-family:Georgia,'Times New Roman',serif;font-size:22px;color:{GOLD};">Sweet1NE</span>"""
 
     return f"""
-          <tr><td style="padding:10px 40px 6px;text-align:{align};">
+          <tr><td style="padding:10px 40px 18px;text-align:{align};border-bottom:1px solid {HAIRLINE_FAINT};">
             {mark}
           </td></tr>"""
 
@@ -206,8 +229,8 @@ def _ctas(block: dict[str, Any]) -> str:
         buttons.append(
             f"""<td style="padding:0 8px 0 0;">
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                    <tr><td style="background-color:{GOLD};">
-                      <a href="{escape(href)}" style="display:inline-block;padding:15px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;letter-spacing:0.2px;color:#0e0e0e;text-decoration:none;">
+                    <tr><td style="border:1px solid {GOLD};">
+                      <a href="{escape(href)}" style="display:inline-block;padding:14px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:{GOLD};text-decoration:none;">
                         {escape(label)}
                       </a>
                     </td></tr>
@@ -276,9 +299,15 @@ def render_campaign(
     body = """
           <tr><td style="padding-top:28px;">&nbsp;</td></tr>""" + body
 
+    # The fixed chrome header is only redundant once the marketer has their
+    # own "logo" block — remove that block (nothing stops them) and the
+    # email falls back to the automatic one rather than going unbranded.
+    has_logo_block = any(b.get("type") == "logo" for b in blocks)
+
     return wrap(
         title=escape(subject),
         body=body,
         preheader=escape(preheader) if preheader else None,
         unsubscribe_email=recipient_email,
+        show_header=not has_logo_block,
     )

@@ -23,6 +23,12 @@ def list_branches(
 
 RESERVED_SLUGS = {"admin", "login", "signup", "api", "auth", "static", "_next"}
 
+# Lewisham and Chingford are real, currently-open restaurants, not sample
+# rows — removing either here would deactivate a live location and (via
+# Table's cascade) its whole table/QR setup. Staff can still add and remove
+# any other branch freely.
+LOCKED_SLUGS = {"lewisham", "chingford"}
+
 
 @router.post("", response_model=BranchOut)
 def create_branch(
@@ -34,6 +40,20 @@ def create_branch(
         raise HTTPException(
             status_code=400,
             detail=f"'{payload.slug}' is reserved and can't be used as a branch URL.",
+        )
+    # No DB-level unique constraint on slug — it's what the guest URL and QR
+    # codes route on, so two branches sharing one would be ambiguous, not
+    # just untidy.
+    existing = db.execute(
+        select(Branch).where(
+            Branch.tenant_id == staff.tenant_id,
+            Branch.slug == payload.slug,
+        )
+    ).scalars().first()
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"A branch already uses the URL '{payload.slug}'.",
         )
 
     branch = Branch(**payload.model_dump(), tenant_id=staff.tenant_id)
@@ -104,3 +124,25 @@ def update_branch_phone_menu_url(
     db.commit()
     db.refresh(branch)
     return branch
+
+
+@router.delete("/{branch_id}", status_code=204)
+def remove_branch(
+    branch_id: uuid.UUID,
+    staff: CurrentStaff = Depends(require_permission("manage_tenant")),
+    db: Session = Depends(get_db),
+):
+    """Deactivates rather than deletes — a branch that's ever taken a real
+    order can't be hard-deleted without breaking that order's history, same
+    reasoning as the menu category/sub-category "delete" endpoints."""
+    branch = db.get(Branch, branch_id)
+    if branch is None or str(branch.tenant_id) != staff.tenant_id:
+        raise HTTPException(status_code=404, detail="Branch not found")
+    if branch.slug in LOCKED_SLUGS:
+        raise HTTPException(
+            status_code=403,
+            detail="Lewisham and Chingford are real restaurants and can't be removed.",
+        )
+
+    branch.is_active = False
+    db.commit()

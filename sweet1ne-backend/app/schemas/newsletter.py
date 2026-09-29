@@ -34,6 +34,9 @@ class SubscriberCreateIn(BaseModel):
     email: EmailStr
     source: str = "import"
     consented: bool = False
+    # Lets staff backdate to when someone actually agreed (e.g. entering a
+    # signup from a paper form a week later) — defaults to now if omitted.
+    consented_at: datetime | None = None
 
 
 class SubscriberCreateOut(BaseModel):

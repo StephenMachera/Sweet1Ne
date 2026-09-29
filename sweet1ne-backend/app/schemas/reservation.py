@@ -49,6 +49,10 @@ class ReservationDecision(BaseModel):
     staff_message: str | None = None
 
 
+class ReservationReadIn(BaseModel):
+    is_read: bool = True
+
+
 class ReservationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -63,6 +67,7 @@ class ReservationOut(BaseModel):
     occasion: str | None
     notes: str | None
     status: str
+    is_read: bool
     staff_message: str | None
     handled_at: datetime | None
     marketing_consent: bool
