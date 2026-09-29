@@ -17,6 +17,7 @@ type Counts = {
   tablesAttached: number | null;
   staff: number | null;
   leads: number | null;
+  inboxUnread: number | null;
 };
 
 const EMPTY_COUNTS: Counts = {
@@ -29,6 +30,7 @@ const EMPTY_COUNTS: Counts = {
   tablesAttached: null,
   staff: null,
   leads: null,
+  inboxUnread: null,
 };
 
 function Stat({ value, wait = false }: { value: number | string | null; wait?: boolean }) {
@@ -102,6 +104,15 @@ export default function DashboardPage() {
       // data until Leads has its own model (QR scans, site joins, imports).
       apiFetch("/newsletter/stats")
         .then((stats: { total: number }) => apply({ leads: stats.total }))
+        .catch(() => {});
+    }
+    if (hasPermission(me, "manage_reservations")) {
+      apiFetch("/reservations")
+        .then((rows: { reservation_type: string; is_read: boolean }[]) =>
+          apply({
+            inboxUnread: rows.filter((r) => r.reservation_type === "enquiry" && !r.is_read).length,
+          })
+        )
         .catch(() => {});
     }
 
@@ -235,8 +246,13 @@ export default function DashboardPage() {
         <section className="admin-board" aria-label="People">
           <article className="admin-card">
             <h2>Inbox</h2>
-            <Stat value={null} />
-            <p>Enquiries from Contact. Also sent to info@sweet1ne.com.</p>
+            <Stat value={counts.inboxUnread} />
+            <p>
+              {counts.inboxUnread !== null
+                ? `${counts.inboxUnread} unread ${counts.inboxUnread === 1 ? "enquiry" : "enquiries"} from Contact.`
+                : "Enquiries from Contact."}{" "}
+              Also sent to info@sweet1ne.com.
+            </p>
             <Link className="admin-act" href="/admin/inbox">Inbox</Link>
           </article>
           <article className="admin-card">

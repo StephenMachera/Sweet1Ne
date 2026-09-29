@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Menu, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission, type Me } from "@/lib/use-me";
 import { NAV_GROUPS } from "./nav-items";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -14,6 +15,54 @@ import { MobileHeader } from "./mobile-header";
 const STORAGE_KEY = "sweet1ne_sidebar_collapsed";
 
 type Variant = "admin" | "branch";
+
+/** Re-checked on every nav change, so it drops as soon as the Inbox page
+ * itself marks things read — not a poll, just piggybacking on navigation. */
+function useUnreadInboxCount(me: Me | null): number | null {
+  const pathname = usePathname();
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!me || !hasPermission(me, "manage_reservations")) return;
+    let cancelled = false;
+    apiFetch("/reservations")
+      .then((rows: { reservation_type: string; is_read: boolean }[]) => {
+        if (cancelled) return;
+        setCount(rows.filter((r) => r.reservation_type === "enquiry" && !r.is_read).length);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [me, pathname]);
+
+  return count;
+}
+
+function NavBadge({ count }: { count: number }) {
+  return (
+    <span
+      aria-label={`${count} unread`}
+      style={{
+        marginLeft: "auto",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minWidth: 18,
+        height: 18,
+        padding: "0 5px",
+        borderRadius: 999,
+        background: "#c9a24a",
+        color: "#0e0e0e",
+        fontSize: 11,
+        fontWeight: 700,
+        lineHeight: 1,
+      }}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 
 /**
  * The admin console's rail — same tokens as the public site, one element
@@ -29,6 +78,7 @@ function AdminRail({ basePath }: { basePath: string }) {
   const router = useRouter();
   const supabase = createClient();
   const [open, setOpen] = useState(false);
+  const unreadInboxCount = useUnreadInboxCount(me);
 
   const visibleGroups = NAV_GROUPS.map((group) => ({
     ...group,
@@ -103,6 +153,9 @@ function AdminRail({ basePath }: { basePath: string }) {
                 >
                   <Icon size={17} strokeWidth={1.6} />
                   <span>{item.label}</span>
+                  {item.href === "/inbox" && !!unreadInboxCount && (
+                    <NavBadge count={unreadInboxCount} />
+                  )}
                 </Link>
               );
             })}
@@ -143,6 +196,7 @@ function SidebarBody({
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const unreadInboxCount = useUnreadInboxCount(me);
 
   const isBranch = variant === "branch";
 
@@ -239,6 +293,9 @@ function SidebarBody({
                   )}
                   <Icon size={18} className="shrink-0" />
                   {!collapsed && <span>{item.label}</span>}
+                  {!collapsed && item.href === "/inbox" && !!unreadInboxCount && (
+                    <NavBadge count={unreadInboxCount} />
+                  )}
                 </Link>
               );
 

@@ -6,8 +6,26 @@ import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { AdminLoading } from "@/components/admin/admin-loading";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+const DARK_DIALOG =
+  "border border-[rgba(201,162,74,0.42)] bg-[#0c0c0c] text-[#e5e2e1] sm:max-w-sm";
+const DIALOG_BOOK_BTN =
+  "inline-block rounded-[3px] border border-[rgba(201,162,74,0.9)] bg-transparent px-[1.15rem] py-[0.7rem] text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-[#c9a24a] hover:bg-[#c9a24a] hover:text-[#0e0e0e]";
+const DIALOG_GHOST_BTN =
+  "inline-block rounded-[3px] border border-[rgba(229,226,225,0.25)] bg-transparent px-[1.15rem] py-[0.7rem] text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-[#e5e2e1] hover:bg-[rgba(229,226,225,0.08)]";
 
 type Place = "both" | "lewisham" | "chingford";
+
+// Lewisham and Chingford are real, currently-open restaurants seeded for
+// every tenant — not sample rows a staff member should be able to rename
+// away from or remove. Any other branch they add is fully theirs.
+const LOCKED_SLUGS = new Set(["lewisham", "chingford"]);
 
 type Branch = {
   id: string;
@@ -15,7 +33,7 @@ type Branch = {
   slug: string;
   phone: string | null;
   address: string | null;
-  settings: { hours?: string; toast?: string };
+  settings: { kicker?: string; hours?: string; toast?: string };
   is_active: boolean;
 };
 
@@ -25,6 +43,47 @@ type Branch = {
 function telHref(phone: string) {
   const digits = phone.replace(/\D/g, "").replace(/^0/, "");
   return `tel:+44${digits}`;
+}
+
+/** A URL-safe slug from a name, made unique against the branches already
+   loaded — mirrors how a second "Chingford" wouldn't silently collide with
+   the first one's guest URL. */
+function slugFor(name: string, taken: Set<string>): string {
+  const base =
+    name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "branch";
+  let slug = base;
+  let n = 2;
+  while (taken.has(slug)) {
+    slug = `${base}-${n}`;
+    n += 1;
+  }
+  return slug;
+}
+
+type Draft = {
+  id: string | null;
+  name: string;
+  kicker: string;
+  phone: string;
+  address: string;
+  hours: string;
+  toast: string;
+};
+
+function emptyDraft(): Draft {
+  return {
+    id: null,
+    name: "",
+    kicker: "",
+    phone: "",
+    address: "",
+    hours: "",
+    toast: "",
+  };
 }
 
 export default function AdminBranchesPage() {
@@ -37,13 +96,10 @@ export default function AdminBranchesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [editing, setEditing] = useState<Branch | null>(null);
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [hours, setHours] = useState("");
-  const [toast, setToast] = useState("");
+  const [editingId, setEditingId] = useState<string | null | "new">(null);
+  const [draft, setDraft] = useState<Draft>(emptyDraft());
   const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState<Branch | null>(null);
   const [drawerSlot, setDrawerSlot] = useState<Element | null>(null);
 
   useEffect(() => {
@@ -57,7 +113,7 @@ export default function AdminBranchesPage() {
         .then(setBranches)
         .catch((e) => setError(e.message))
         .finally(() => setLoading(false)),
-    []
+    [],
   );
 
   useEffect(() => {
@@ -70,30 +126,67 @@ export default function AdminBranchesPage() {
   }, [meLoading, me, canManage, router]);
 
   function openEdit(branch: Branch) {
-    setEditing(branch);
-    setName(branch.name);
-    setPhone(branch.phone ?? "");
-    setAddress(branch.address ?? "");
-    setHours(branch.settings.hours ?? "");
-    setToast(branch.settings.toast ?? "");
+    setEditingId(branch.id);
+    setDraft({
+      id: branch.id,
+      name: branch.name,
+      kicker: branch.settings.kicker ?? "",
+      phone: branch.phone ?? "",
+      address: branch.address ?? "",
+      hours: branch.settings.hours ?? "",
+      toast: branch.settings.toast ?? "",
+    });
+  }
+
+  function openAdd() {
+    setEditingId("new");
+    setDraft(emptyDraft());
   }
 
   function closeEdit() {
-    setEditing(null);
+    setEditingId(null);
   }
+
+  const editingBranch = branches.find((b) => b.id === editingId) ?? null;
+  const locked = editingBranch ? LOCKED_SLUGS.has(editingBranch.slug) : false;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!editing) return;
+    const name = draft.name.trim();
+    const phone = draft.phone.trim();
+    const address = draft.address.trim();
+    if (!name || !phone || !address) return;
 
     setSaving(true);
     setError(null);
     try {
-      const updated = await apiFetch(`/branches/${editing.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ name, phone, address, settings: { hours, toast } }),
-      });
-      setBranches((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+      const settings = {
+        kicker: draft.kicker.trim(),
+        hours: draft.hours.trim(),
+        toast: draft.toast.trim(),
+      };
+      if (editingId && editingId !== "new") {
+        const updated = await apiFetch(`/branches/${editingId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ name, phone, address, settings }),
+        });
+        setBranches((prev) =>
+          prev.map((b) => (b.id === updated.id ? updated : b)),
+        );
+      } else {
+        const taken = new Set(branches.map((b) => b.slug));
+        const created = await apiFetch("/branches", {
+          method: "POST",
+          body: JSON.stringify({
+            name,
+            phone,
+            address,
+            slug: slugFor(name, taken),
+            settings,
+          }),
+        });
+        setBranches((prev) => [...prev, created]);
+      }
       closeEdit();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save that.");
@@ -102,11 +195,27 @@ export default function AdminBranchesPage() {
     }
   }
 
+  async function confirmRemove() {
+    if (!removing) return;
+    setError(null);
+    try {
+      await apiFetch(`/branches/${removing.id}`, { method: "DELETE" });
+      setBranches((prev) => prev.filter((b) => b.id !== removing.id));
+      setRemoving(null);
+      if (editingId === removing.id) closeEdit();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't remove that.");
+      setRemoving(null);
+    }
+  }
+
   if (meLoading || !me || !canManage) {
     return <AdminLoading />;
   }
 
-  const visible = branches.filter((b) => place === "both" || b.slug.includes(place));
+  const visible = branches.filter(
+    (b) => b.is_active && (place === "both" || b.slug.includes(place)),
+  );
 
   return (
     <>
@@ -119,7 +228,11 @@ export default function AdminBranchesPage() {
               className={place === p ? "is-on" : undefined}
               onClick={() => setPlace(p)}
             >
-              {p === "both" ? "Both" : p === "lewisham" ? "Lewisham" : "Chingford"}
+              {p === "both"
+                ? "Both"
+                : p === "lewisham"
+                  ? "Lewisham"
+                  : "Chingford"}
             </button>
           ))}
         </div>
@@ -127,7 +240,15 @@ export default function AdminBranchesPage() {
       </div>
 
       <h1>Branches</h1>
-      <p className="admin-dek">Lewisham · Chingford. Hours, phones, collection.</p>
+      <p className="admin-dek">
+        Hours, phones, collection. Add a restaurant when there is a real door.
+      </p>
+
+      <div className="admin-tools">
+        <button type="button" className="admin-book" onClick={openAdd}>
+          Add branch
+        </button>
+      </div>
 
       {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
 
@@ -141,11 +262,18 @@ export default function AdminBranchesPage() {
               <p className="admin-stat">{branch.phone || "—"}</p>
               <p>{branch.address || "—"}</p>
               <p className="admin-muted">
-                {branch.settings.hours ? branch.settings.hours.replace(/\n/g, " · ") : "Hours not set yet."}
+                {branch.settings.hours
+                  ? branch.settings.hours.replace(/\n/g, " · ")
+                  : "Hours not set yet."}
               </p>
               <div className="admin-acts">
                 {branch.settings.toast && (
-                  <a className="admin-book" href={branch.settings.toast} target="_blank" rel="noopener">
+                  <a
+                    className="admin-book"
+                    href={branch.settings.toast}
+                    target="_blank"
+                    rel="noopener"
+                  >
                     Toast
                   </a>
                 )}
@@ -154,7 +282,11 @@ export default function AdminBranchesPage() {
                     Call
                   </a>
                 )}
-                <button type="button" className="admin-book" onClick={() => openEdit(branch)}>
+                <button
+                  type="button"
+                  className="admin-book"
+                  onClick={() => openEdit(branch)}
+                >
                   Edit
                 </button>
               </div>
@@ -165,49 +297,132 @@ export default function AdminBranchesPage() {
 
       {/* Editor — portaled into the third grid column owned by the shared
           /admin layout. See #admin-drawer-slot in admin/layout.tsx. */}
-      {editing &&
+      {editingId &&
         drawerSlot &&
         createPortal(
           <aside className="admin-drawer-edit is-wide">
-            <h2>{name || editing.name}</h2>
+            <h2>
+              {draft.name ||
+                (editingId === "new" ? "Add branch" : editingBranch?.name)}
+            </h2>
             <form onSubmit={handleSubmit} className="admin-form">
               <label>
                 Name
-                <input required value={name} onChange={(e) => setName(e.target.value)} />
+                <input
+                  required
+                  readOnly={locked}
+                  value={draft.name}
+                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                />
+              </label>
+              <label>
+                Kicker
+                <input
+                  placeholder="East London"
+                  value={draft.kicker}
+                  onChange={(e) =>
+                    setDraft({ ...draft, kicker: e.target.value })
+                  }
+                />
               </label>
               <label>
                 Phone
-                <input required value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <input
+                  required
+                  value={draft.phone}
+                  onChange={(e) =>
+                    setDraft({ ...draft, phone: e.target.value })
+                  }
+                />
               </label>
               <label>
                 Address
-                <input required value={address} onChange={(e) => setAddress(e.target.value)} />
+                <input
+                  required
+                  value={draft.address}
+                  onChange={(e) =>
+                    setDraft({ ...draft, address: e.target.value })
+                  }
+                />
               </label>
               <label>
                 Hours
-                <textarea value={hours} onChange={(e) => setHours(e.target.value)} />
-              </label>
-              <label>
-                Toast link
-                <input
-                  type="url"
-                  placeholder="https://order.toasttab.com/…"
-                  value={toast}
-                  onChange={(e) => setToast(e.target.value)}
+                <textarea
+                  value={draft.hours}
+                  onChange={(e) =>
+                    setDraft({ ...draft, hours: e.target.value })
+                  }
                 />
               </label>
-              <div className="flex gap-3 pt-1">
+              <label>
+                Collection link
+                <input
+                  type="url"
+                  placeholder="https://order.toasttab.com/online/…"
+                  value={draft.toast}
+                  onChange={(e) =>
+                    setDraft({ ...draft, toast: e.target.value })
+                  }
+                />
+              </label>
+              <p className="admin-row-acts">
                 <button type="submit" className="admin-book" disabled={saving}>
                   {saving ? "Saving…" : "Save"}
                 </button>
-                <button type="button" className="admin-book" onClick={closeEdit}>
+                <button
+                  type="button"
+                  className="admin-book"
+                  onClick={closeEdit}
+                >
                   Close
                 </button>
-              </div>
+                {editingId !== "new" && !locked && editingBranch && (
+                  <button
+                    type="button"
+                    className="admin-edit"
+                    onClick={() => setRemoving(editingBranch)}
+                  >
+                    Remove
+                  </button>
+                )}
+              </p>
             </form>
           </aside>,
-          drawerSlot
+          drawerSlot,
         )}
+
+      <Dialog
+        open={removing !== null}
+        onOpenChange={(open) => !open && setRemoving(null)}
+      >
+        <DialogContent className={DARK_DIALOG}>
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl text-[#e5e2e1]">
+              Remove this branch?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-[#a8a4a2]">
+            {removing?.name} stops showing everywhere staff pick a restaurant.
+            Its past orders and history stay on record.
+          </p>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              className={DIALOG_GHOST_BTN}
+              onClick={() => setRemoving(null)}
+            >
+              Keep it
+            </button>
+            <button
+              type="button"
+              className={DIALOG_BOOK_BTN}
+              onClick={confirmRemove}
+            >
+              Remove
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

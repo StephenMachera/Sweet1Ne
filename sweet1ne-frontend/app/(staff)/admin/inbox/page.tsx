@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Eye, Trash2 } from "lucide-react";
+import { Eye, Mail, MailOpen, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
@@ -27,12 +27,13 @@ type Enquiry = {
   occasion: string | null;
   notes: string | null;
   status: string;
+  is_read: boolean;
   staff_message: string | null;
   branch_id: string;
   branch_name: string | null;
 };
 
-type StateFilter = "all" | "open" | "replied" | "done";
+type StateFilter = "all" | "unread" | "open" | "replied" | "done";
 
 function statusOf(row: Enquiry): { key: "open" | "replied" | "done"; text: string; cls: string } {
   if (row.status !== "pending") return { key: "done", text: "Done", cls: "admin-status" };
@@ -108,6 +109,20 @@ export default function AdminInboxPage() {
     }
   }
 
+  async function setRead(row: Enquiry, isRead: boolean) {
+    try {
+      const updated: Enquiry = await apiFetch(`/reservations/${row.id}/read`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_read: isRead }),
+      });
+      setEnquiries((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      setEditing((prev) => (prev?.id === updated.id ? updated : prev));
+    } catch {
+      // Not worth surfacing an error banner for a read receipt — worst case
+      // it's re-sent next time the row is opened.
+    }
+  }
+
   async function markDone() {
     if (!editing) return;
     setSaving(true);
@@ -144,13 +159,18 @@ export default function AdminInboxPage() {
 
   const branchScoped = enquiries.filter((r) => !branchFilter || r.branch_id === branchFilter);
   const visible = branchScoped.filter((r) => {
-    if (stateFilter !== "all" && statusOf(r).key !== stateFilter) return false;
+    if (stateFilter === "unread") {
+      if (r.is_read) return false;
+    } else if (stateFilter !== "all" && statusOf(r).key !== stateFilter) {
+      return false;
+    }
     if (!query.trim()) return true;
     const q = query.trim().toLowerCase();
     return [r.name, r.occasion, r.notes, r.email].some((v) => (v ?? "").toLowerCase().includes(q));
   });
 
   const openCount = branchScoped.filter((r) => r.status === "pending").length;
+  const unreadCount = branchScoped.filter((r) => !r.is_read).length;
 
   return (
     <>
@@ -178,7 +198,10 @@ export default function AdminInboxPage() {
       </div>
 
       <h1>Inbox</h1>
-      <p className="admin-dek">{openCount} open</p>
+      <p className="admin-dek">
+        {unreadCount > 0 ? `${unreadCount} unread · ` : ""}
+        {openCount} open
+      </p>
 
       {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
 
@@ -208,6 +231,13 @@ export default function AdminInboxPage() {
           onClick={() => setStateFilter("all")}
         >
           All
+        </button>
+        <button
+          type="button"
+          className={stateFilter === "unread" ? "is-on" : undefined}
+          onClick={() => setStateFilter("unread")}
+        >
+          Unread{unreadCount > 0 ? ` (${unreadCount})` : ""}
         </button>
         <button
           type="button"
@@ -254,17 +284,39 @@ export default function AdminInboxPage() {
             <tbody>
               {visible.map((row) => {
                 const st = statusOf(row);
+                const unread = !row.is_read;
                 const open = () => {
                   setEditing(row);
                   setReplyText("");
+                  if (unread) setRead(row, true);
                 };
                 return (
-                  <tr key={row.id} onClick={open} style={{ cursor: "pointer" }}>
+                  <tr
+                    key={row.id}
+                    onClick={open}
+                    style={{ cursor: "pointer" }}
+                    className={unread ? "is-unread" : undefined}
+                  >
                     <td>
-                      <span className="admin-name">{row.name}</span>
+                      <span className="admin-name" style={unread ? { fontWeight: 700 } : undefined}>
+                        {unread && (
+                          <span
+                            aria-hidden
+                            style={{
+                              display: "inline-block",
+                              width: 7,
+                              height: 7,
+                              borderRadius: "50%",
+                              background: "#c9a24a",
+                              marginRight: 7,
+                            }}
+                          />
+                        )}
+                        {row.name}
+                      </span>
                     </td>
                     <td>
-                      <span>{row.occasion}</span>
+                      <span style={unread ? { fontWeight: 700 } : undefined}>{row.occasion}</span>
                       <div className="admin-muted">{row.email}</div>
                     </td>
                     <td className="admin-muted">{row.branch_name ?? "—"}</td>
@@ -282,6 +334,17 @@ export default function AdminInboxPage() {
                         }}
                       >
                         <Eye size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-edit"
+                        aria-label={unread ? "Mark read" : "Mark unread"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRead(row, unread);
+                        }}
+                      >
+                        {unread ? <MailOpen size={15} /> : <Mail size={15} />}
                       </button>
                       <button
                         type="button"

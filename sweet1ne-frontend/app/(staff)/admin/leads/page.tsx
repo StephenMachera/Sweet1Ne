@@ -7,6 +7,19 @@ import { apiFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { AdminLoading } from "@/components/admin/admin-loading";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+const DARK_DIALOG =
+  "border border-[rgba(201,162,74,0.42)] bg-[#0c0c0c] text-[#e5e2e1] sm:max-w-sm";
+const DIALOG_BOOK_BTN =
+  "inline-block rounded-[3px] border border-[rgba(201,162,74,0.9)] bg-transparent px-[1.15rem] py-[0.7rem] text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-[#c9a24a] hover:bg-[#c9a24a] hover:text-[#0e0e0e]";
+const DIALOG_GHOST_BTN =
+  "inline-block rounded-[3px] border border-[rgba(229,226,225,0.25)] bg-transparent px-[1.15rem] py-[0.7rem] text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-[#e5e2e1] hover:bg-[rgba(229,226,225,0.08)]";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -48,10 +61,16 @@ function sourceLabel(source: string) {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
-function parseCsvRows(text: string): { email: string; source: string; consented: boolean }[] {
+function parseCsvRows(
+  text: string,
+): { email: string; source: string; consented: boolean }[] {
   const lines = text.split(/\r\n|\n|\r/).filter((l) => l.trim());
   if (lines.length === 0) return [];
 
@@ -69,7 +88,10 @@ function parseCsvRows(text: string): { email: string; source: string; consented:
     .map((cols) => ({
       email: cols[col].trim(),
       source: sourceIdx !== -1 ? cols[sourceIdx]?.trim() || "import" : "import",
-      consented: consentIdx !== -1 ? /^(y|yes|true|1)$/i.test(cols[consentIdx]?.trim() || "") : false,
+      consented:
+        consentIdx !== -1
+          ? /^(y|yes|true|1)$/i.test(cols[consentIdx]?.trim() || "")
+          : false,
     }));
 }
 
@@ -90,6 +112,14 @@ export default function AdminLeadsPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [drawerSlot, setDrawerSlot] = useState<Element | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
+  // Non-null opens the confirm dialog — set to either the whole checked
+  // selection (the bulk "Delete selected" button) or a single row (that
+  // row's own Remove button), so one dialog and one delete function cover
+  // both.
+  const [deleteTargets, setDeleteTargets] = useState<Subscriber[] | null>(null);
 
   const load = useCallback(() => {
     apiFetch("/newsletter/subscribers?subscribed_only=false")
@@ -119,9 +149,65 @@ export default function AdminLeadsPage() {
         method: "PATCH",
         body: JSON.stringify({ is_subscribed: !row.is_subscribed }),
       });
-      setSubscribers((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      setSubscribers((prev) =>
+        prev.map((r) => (r.id === updated.id ? updated : r)),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't update that.");
+    }
+  }
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllVisible(ids: string[]) {
+    setSelected((prev) => {
+      const allSelected = ids.length > 0 && ids.every((id) => prev.has(id));
+      if (allSelected) {
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      }
+      return new Set([...prev, ...ids]);
+    });
+  }
+
+  async function confirmDelete() {
+    if (!deleteTargets || deleteTargets.length === 0) return;
+    setDeleting(true);
+    setError(null);
+    const ids = deleteTargets.map((r) => r.id);
+    try {
+      // One request per lead, not a bulk endpoint — there isn't one, and
+      // the list here is small enough that this stays instant.
+      await Promise.all(
+        ids.map((id) =>
+          apiFetch(`/newsletter/subscribers/${id}`, { method: "DELETE" }),
+        ),
+      );
+      const idSet = new Set(ids);
+      setSubscribers((prev) => prev.filter((r) => !idSet.has(r.id)));
+      setSelected((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      });
+      setDeleteTargets(null);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Couldn't remove all of those — reload and check what's left.",
+      );
+      load();
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -134,7 +220,9 @@ export default function AdminLeadsPage() {
       } = await createClient().auth.getSession();
 
       const res = await fetch(`${API_URL}/newsletter/export`, {
-        headers: session ? { Authorization: `Bearer ${session.access_token}` } : {},
+        headers: session
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : {},
       });
       if (!res.ok) throw new Error("Export failed.");
 
@@ -146,7 +234,9 @@ export default function AdminLeadsPage() {
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't export the list.");
+      setError(
+        err instanceof Error ? err.message : "Couldn't export the list.",
+      );
     } finally {
       setExporting(false);
     }
@@ -177,7 +267,7 @@ export default function AdminLeadsPage() {
         }
       }
       setImportNote(
-        `${added} added · ${updated} already there · ${skipped} skipped. Consent yes is the send list.`
+        `${added} added · ${updated} already there · ${skipped} skipped. Consent yes is the send list.`,
       );
       load();
     } catch (err) {
@@ -200,7 +290,11 @@ export default function AdminLeadsPage() {
     if (sourceFilter !== "all" && row.source !== sourceFilter) return false;
     if (mailFilter === "on" && !row.is_subscribed) return false;
     if (mailFilter === "off" && row.is_subscribed) return false;
-    if (query.trim() && !row.email.toLowerCase().includes(query.trim().toLowerCase())) return false;
+    if (
+      query.trim() &&
+      !row.email.toLowerCase().includes(query.trim().toLowerCase())
+    )
+      return false;
     return true;
   });
 
@@ -237,40 +331,98 @@ export default function AdminLeadsPage() {
       </div>
 
       <div className="admin-cats" role="group" aria-label="Came from">
-        <button type="button" className={sourceFilter === "all" ? "is-on" : undefined} onClick={() => setSourceFilter("all")}>
+        <button
+          type="button"
+          className={sourceFilter === "all" ? "is-on" : undefined}
+          onClick={() => setSourceFilter("all")}
+        >
           All
         </button>
         {SOURCE_FILTERS.map((s) => (
-          <button key={s} type="button" className={sourceFilter === s ? "is-on" : undefined} onClick={() => setSourceFilter(s)}>
+          <button
+            key={s}
+            type="button"
+            className={sourceFilter === s ? "is-on" : undefined}
+            onClick={() => setSourceFilter(s)}
+          >
             {sourceLabel(s)}
           </button>
         ))}
       </div>
 
       <div className="admin-cats" role="group" aria-label="Mail">
-        <button type="button" className={mailFilter === "all" ? "is-on" : undefined} onClick={() => setMailFilter("all")}>
+        <button
+          type="button"
+          className={mailFilter === "all" ? "is-on" : undefined}
+          onClick={() => setMailFilter("all")}
+        >
           All
         </button>
-        <button type="button" className={mailFilter === "on" ? "is-on" : undefined} onClick={() => setMailFilter("on")}>
+        <button
+          type="button"
+          className={mailFilter === "on" ? "is-on" : undefined}
+          onClick={() => setMailFilter("on")}
+        >
           Can be emailed
         </button>
-        <button type="button" className={mailFilter === "off" ? "is-on" : undefined} onClick={() => setMailFilter("off")}>
+        <button
+          type="button"
+          className={mailFilter === "off" ? "is-on" : undefined}
+          onClick={() => setMailFilter("off")}
+        >
           Opted out
         </button>
       </div>
 
       <div className="admin-tools">
-        <input type="search" className="flex-1" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by email" />
-        <button type="button" className="admin-book" onClick={() => setAddOpen(true)}>
+        <input
+          type="search"
+          className="flex-1"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by email"
+        />
+        <button
+          type="button"
+          className="admin-book"
+          onClick={() => setAddOpen(true)}
+        >
           Add lead
         </button>
-        <button type="button" className="admin-book" onClick={() => fileInputRef.current?.click()} disabled={importing}>
+        <button
+          type="button"
+          className="admin-book"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={importing}
+        >
           {importing ? "Importing…" : "Import CSV"}
         </button>
-        <input ref={fileInputRef} type="file" accept=".csv,text/csv" hidden onChange={handleImport} />
-        <button type="button" className="admin-book" onClick={exportCsv} disabled={exporting}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,text/csv"
+          hidden
+          onChange={handleImport}
+        />
+        <button
+          type="button"
+          className="admin-book"
+          onClick={exportCsv}
+          disabled={exporting}
+        >
           {exporting ? "Preparing…" : "Export CSV"}
         </button>
+        {selected.size > 0 && (
+          <button
+            type="button"
+            className="admin-book"
+            onClick={() =>
+              setDeleteTargets(subscribers.filter((s) => selected.has(s.id)))
+            }
+          >
+            Delete selected ({selected.size})
+          </button>
+        )}
       </div>
       {importNote && <p className="admin-dek">{importNote}</p>}
 
@@ -283,15 +435,37 @@ export default function AdminLeadsPage() {
           <table className="admin-sheet">
             <thead>
               <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    aria-label="Select all on this filter"
+                    checked={
+                      visible.length > 0 &&
+                      visible.every((r) => selected.has(r.id))
+                    }
+                    onChange={() =>
+                      toggleSelectAllVisible(visible.map((r) => r.id))
+                    }
+                  />
+                </th>
                 <th>Mail</th>
                 <th>Email</th>
                 <th>Came from</th>
                 <th>Agreed</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {visible.map((row) => (
                 <tr key={row.id}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${row.email}`}
+                      checked={selected.has(row.id)}
+                      onChange={() => toggleSelected(row.id)}
+                    />
+                  </td>
                   <td>
                     <button
                       type="button"
@@ -304,13 +478,62 @@ export default function AdminLeadsPage() {
                     <span className="admin-name">{row.email}</span>
                   </td>
                   <td className="admin-muted">{sourceLabel(row.source)}</td>
-                  <td className="admin-muted">{formatDate(row.consented_at)}</td>
+                  <td className="admin-muted">
+                    {formatDate(row.consented_at)}
+                  </td>
+                  <td className="admin-row-acts">
+                    <button
+                      type="button"
+                      className="admin-edit"
+                      onClick={() => setDeleteTargets([row])}
+                    >
+                      Remove
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      <Dialog
+        open={deleteTargets !== null}
+        onOpenChange={(open) => !open && setDeleteTargets(null)}
+      >
+        <DialogContent className={DARK_DIALOG}>
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl text-[#e5e2e1]">
+              Remove {deleteTargets?.length ?? 0}{" "}
+              {deleteTargets?.length === 1 ? "lead" : "leads"}?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-[#a8a4a2]">
+            {deleteTargets?.length === 1 && deleteTargets[0].email}
+            {deleteTargets?.length === 1 ? " is " : "They're "}
+            deleted for good — not the same as opting them out. Campaigns can no
+            longer reach them, and re-adding a removed email starts their
+            consent record over.
+          </p>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              className={DIALOG_GHOST_BTN}
+              onClick={() => setDeleteTargets(null)}
+            >
+              Keep them
+            </button>
+            <button
+              type="button"
+              className={DIALOG_BOOK_BTN}
+              onClick={confirmDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Removing…" : "Delete"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Add lead — portaled into the third grid column owned by the shared
           /admin layout, same as menu, events, tables, staff, roles, inbox
@@ -329,7 +552,7 @@ export default function AdminLeadsPage() {
               setAddOpen(false);
             }}
           />,
-          drawerSlot
+          drawerSlot,
         )}
     </>
   );
@@ -378,7 +601,12 @@ function AddLeadDrawer({
 
           <label>
             Email
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </label>
 
           <label>
@@ -397,7 +625,11 @@ function AddLeadDrawer({
           </label>
 
           <label className="!mb-1 flex items-center gap-2 !normal-case !tracking-normal text-sm text-[var(--ivory)]">
-            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+            />
             They asked to be emailed
           </label>
           <p className="!mb-3 !mt-[-0.4rem] text-xs normal-case tracking-normal text-[var(--ivory-dim)]">

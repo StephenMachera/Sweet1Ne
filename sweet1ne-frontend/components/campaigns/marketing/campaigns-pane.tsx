@@ -1,23 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  ChevronDown,
-  ChevronUp,
-  Copy,
-  Heading as HeadingIcon,
-  ImageIcon,
-  Link2,
-  Minus,
-  Plus,
-  Trash2,
-  Type,
-} from "lucide-react";
+import { Copy, ImageIcon, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useMediaLibrary, mediaThumb } from "@/lib/use-media-library";
 import { EmojiField } from "@/components/ui/emoji-field";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { BANNER_POSITIONS } from "@/lib/promotion-blocks";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { AdminLoading } from "@/components/admin/admin-loading";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
@@ -26,12 +21,14 @@ const MEDIA_PAGE_SIZE = 9;
 // The delete/test/send dialogs are portaled by @base-ui to document.body,
 // outside .admin-shell — var(--x) tokens don't cascade there, so literal
 // hex/rgba values are used instead (same fix as the other admin dialogs).
-const DARK_DIALOG = "border border-[rgba(201,162,74,0.42)] bg-[#0c0c0c] text-[#e5e2e1] sm:max-w-sm";
+const DARK_DIALOG =
+  "border border-[rgba(201,162,74,0.42)] bg-[#0c0c0c] text-[#e5e2e1] sm:max-w-sm";
 const DIALOG_BOOK_BTN =
   "inline-flex items-center justify-center rounded-[3px] border border-[rgba(201,162,74,0.9)] bg-transparent px-[1.15rem] py-[0.6rem] text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-[#c9a24a] hover:bg-[#c9a24a] hover:text-[#0e0e0e] disabled:opacity-50";
 const DIALOG_GHOST_BTN =
   "px-[1.15rem] py-[0.6rem] text-[0.75rem] uppercase tracking-[0.1em] text-[rgba(229,226,225,0.68)] hover:text-[#e5e2e1]";
-const DIALOG_FIELD = "border-[rgba(201,162,74,0.35)] bg-[#050505] text-[#e5e2e1]";
+const DIALOG_FIELD =
+  "border-[rgba(201,162,74,0.35)] bg-[#050505] text-[#e5e2e1]";
 
 type Channels = { google?: boolean; meta?: boolean; instagram?: boolean };
 
@@ -69,11 +66,16 @@ const AUDIENCE_LABELS: Record<string, string> = {
 
 type Block = Record<string, any> & { type: string };
 type CtaItem = { kind: string; label: string; href: string };
-type PreviewDraft = { name: string; subject: string; preheader: string | null; blocks: Block[] };
+type PreviewDraft = {
+  name: string;
+  subject: string;
+  preheader: string | null;
+  blocks: Block[];
+};
 
 type CampaignCtaKind = "book" | "menu" | "order";
 const CTA_PRESETS: Record<CampaignCtaKind, string> = {
-  book: "Book",
+  book: "Book a table",
   menu: "Menu",
   order: "Order",
 };
@@ -86,17 +88,102 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-const BLOCK_KINDS: { type: string; label: string; icon: typeof Type; make: () => Block }[] = [
-  { type: "logo", label: "Logo", icon: ImageIcon, make: () => ({ type: "logo", size: "m", align: "center" }) },
-  { type: "kicker", label: "Kicker", icon: Type, make: () => ({ type: "kicker", text: "" }) },
-  { type: "heading", label: "Title", icon: HeadingIcon, make: () => ({ type: "heading", text: "", size: "medium", align: "left" }) },
-  { type: "paragraph", label: "Copy", icon: Type, make: () => ({ type: "paragraph", text: "", align: "left" }) },
-  { type: "image", label: "Picture", icon: ImageIcon, make: () => ({ type: "image", url: "", alt: "", full_width: false }) },
-  { type: "note", label: "Note", icon: Type, make: () => ({ type: "note", text: "" }) },
-  { type: "ctas", label: "Buttons", icon: Link2, make: () => ({ type: "ctas", items: [{ kind: "book", label: "Book", href: "" }] }) },
-  { type: "slogan", label: "Slogan", icon: Type, make: () => ({ type: "slogan", text: "Always in the mood for you." }) },
-  { type: "button", label: "Button", icon: Link2, make: () => ({ type: "button", label: "", url: "", align: "left" }) },
-  { type: "divider", label: "Divider", icon: Minus, make: () => ({ type: "divider" }) },
+// Same shape as the reference build's own new-campaign default — logo
+// first, then the letter — so a fresh draft already reads as a real email
+// instead of an empty box. The logo block replaces the fixed chrome header
+// (see campaign_renderer.render_campaign's show_header) so the marketer gets
+// real size/position control over it rather than a fixed, uneditable one.
+// No default photo: unlike the mockup's fixed asset pack, a real tenant has
+// no guaranteed stock image to fall back to, so the picture slot starts
+// empty for the marketer to fill.
+function defaultCampaignBlocks(): Block[] {
+  return [
+    { type: "logo", size: "l", align: "center" },
+    { type: "kicker", text: "Sweet1NE", align: "center" },
+    { type: "heading", text: "", size: "medium", align: "center" },
+    { type: "paragraph", text: "", align: "center" },
+    {
+      type: "image",
+      url: "",
+      alt: "",
+      full_width: false,
+      position: "center",
+      fit: "fit",
+    },
+    {
+      type: "ctas",
+      items: [{ kind: "book", label: "Book a table", href: "" }],
+      align: "center",
+    },
+    { type: "slogan", text: "Always in the mood for you." },
+  ];
+}
+
+const BLOCK_KINDS: {
+  type: string;
+  label: string;
+  make: () => Block;
+}[] = [
+  {
+    type: "logo",
+    label: "Logo",
+    make: () => ({ type: "logo", size: "m", align: "center" }),
+  },
+  {
+    type: "kicker",
+    label: "Kicker",
+    make: () => ({ type: "kicker", text: "" }),
+  },
+  {
+    type: "heading",
+    label: "Title",
+    make: () => ({ type: "heading", text: "", size: "medium", align: "left" }),
+  },
+  {
+    type: "paragraph",
+    label: "Copy",
+    make: () => ({ type: "paragraph", text: "", align: "left" }),
+  },
+  {
+    type: "image",
+    label: "Picture",
+    make: () => ({
+      type: "image",
+      url: "",
+      alt: "",
+      full_width: false,
+      position: "center",
+      fit: "fit",
+    }),
+  },
+  {
+    type: "note",
+    label: "Note",
+    make: () => ({ type: "note", text: "" }),
+  },
+  {
+    type: "ctas",
+    label: "Buttons",
+    make: () => ({
+      type: "ctas",
+      items: [{ kind: "book", label: "Book a table", href: "" }],
+    }),
+  },
+  {
+    type: "slogan",
+    label: "Slogan",
+    make: () => ({ type: "slogan", text: "Always in the mood for you." }),
+  },
+  {
+    type: "button",
+    label: "Button",
+    make: () => ({ type: "button", label: "", url: "", align: "left" }),
+  },
+  {
+    type: "divider",
+    label: "Divider",
+    make: () => ({ type: "divider" }),
+  },
 ];
 
 /**
@@ -119,7 +206,10 @@ export function CampaignsPane() {
   // Close actually closes instead of silently reopening campaigns[0].
   const [manuallyClosed, setManuallyClosed] = useState(false);
   const [previewDraft, setPreviewDraft] = useState<PreviewDraft | null>(null);
-  const [audienceCounts, setAudienceCounts] = useState<Record<string, number> | null>(null);
+  const [audienceCounts, setAudienceCounts] = useState<Record<
+    string,
+    number
+  > | null>(null);
   // Only true for the campaign just created by "New campaign", and only
   // until it's explicitly saved or the admin selects something else —
   // every campaign gets a real id immediately in this app, so id presence
@@ -133,12 +223,15 @@ export function CampaignsPane() {
         .then(setCampaigns)
         .catch((e) => setError(e.message))
         .finally(() => setLoading(false)),
-    []
+    [],
   );
 
   const loadAudienceCounts = useCallback(
-    () => apiFetch("/campaigns/audience-counts").then(setAudienceCounts).catch(() => setAudienceCounts(null)),
-    []
+    () =>
+      apiFetch("/campaigns/audience-counts")
+        .then(setAudienceCounts)
+        .catch(() => setAudienceCounts(null)),
+    [],
   );
 
   useEffect(() => {
@@ -151,7 +244,8 @@ export function CampaignsPane() {
   // at render time rather than synced via an effect, since it's just a
   // fallback over campaigns that are already in state — unless the admin
   // just closed it, in which case that fallback is suppressed.
-  const activeId = editingId ?? (manuallyClosed ? null : campaigns[0]?.id ?? null);
+  const activeId =
+    editingId ?? (manuallyClosed ? null : (campaigns[0]?.id ?? null));
 
   function select(id: string) {
     setManuallyClosed(false);
@@ -165,7 +259,12 @@ export function CampaignsPane() {
     try {
       const draft = await apiFetch("/campaigns", {
         method: "POST",
-        body: JSON.stringify({ name: "Untitled campaign", subject: "", preheader: null, blocks: [] }),
+        body: JSON.stringify({
+          name: "Untitled campaign",
+          subject: "",
+          preheader: null,
+          blocks: defaultCampaignBlocks(),
+        }),
       });
       setCampaigns((prev) => [draft, ...prev]);
       setManuallyClosed(false);
@@ -181,7 +280,9 @@ export function CampaignsPane() {
   async function duplicate(campaign: Campaign) {
     setError(null);
     try {
-      const copy = await apiFetch(`/campaigns/${campaign.id}/duplicate`, { method: "POST" });
+      const copy = await apiFetch(`/campaigns/${campaign.id}/duplicate`, {
+        method: "POST",
+      });
       setCampaigns((prev) => [copy, ...prev]);
       select(copy.id);
     } catch (err) {
@@ -212,7 +313,12 @@ export function CampaignsPane() {
       {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
 
       <div className="admin-tools">
-        <button type="button" className="admin-book" onClick={createDraft} disabled={creating}>
+        <button
+          type="button"
+          className="admin-book"
+          onClick={createDraft}
+          disabled={creating}
+        >
           {creating ? "Creating…" : "New campaign"}
         </button>
       </div>
@@ -221,7 +327,8 @@ export function CampaignsPane() {
         <AdminLoading />
       ) : campaigns.length === 0 ? (
         <p className="admin-empty">
-          No campaigns yet. New campaign uses this look — logo first, then the letter.
+          No campaigns yet. New campaign uses this look — logo first, then the
+          letter.
         </p>
       ) : (
         <div className="admin-data-panel">
@@ -243,7 +350,11 @@ export function CampaignsPane() {
                   audienceCount={audienceCounts?.[campaign.audience] ?? null}
                   onEdit={() => select(campaign.id)}
                   onDuplicate={() => duplicate(campaign)}
-                  onDelete={campaign.status === "draft" ? () => setDeleting(campaign) : undefined}
+                  onDelete={
+                    campaign.status === "draft"
+                      ? () => setDeleting(campaign)
+                      : undefined
+                  }
                 />
               ))}
             </tbody>
@@ -251,7 +362,10 @@ export function CampaignsPane() {
         </div>
       )}
 
-      <Dialog open={deleting !== null} onOpenChange={(open) => !open && setDeleting(null)}>
+      <Dialog
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+      >
         <DialogContent className={DARK_DIALOG}>
           <DialogHeader>
             <DialogTitle className="font-display text-xl text-[#e5e2e1]">
@@ -261,14 +375,23 @@ export function CampaignsPane() {
 
           <div className="space-y-4">
             <p className="text-sm text-[rgba(229,226,225,0.68)]">
-              &ldquo;{deleting?.subject || "This draft"}&rdquo; will be gone for good.
+              &ldquo;{deleting?.subject || "This draft"}&rdquo; will be gone for
+              good.
             </p>
 
             <div className="flex justify-end gap-3">
-              <button type="button" className={DIALOG_GHOST_BTN} onClick={() => setDeleting(null)}>
+              <button
+                type="button"
+                className={DIALOG_GHOST_BTN}
+                onClick={() => setDeleting(null)}
+              >
                 Keep it
               </button>
-              <button type="button" className={DIALOG_BOOK_BTN} onClick={confirmDelete}>
+              <button
+                type="button"
+                className={DIALOG_BOOK_BTN}
+                onClick={confirmDelete}
+              >
                 Delete
               </button>
             </div>
@@ -281,7 +404,7 @@ export function CampaignsPane() {
           away in a side drawer. */}
       {activeId && (
         <div className="admin-camp-desk">
-          <LivePreview draft={previewDraft} />
+          <MailStagePreview draft={previewDraft} />
           <CampaignEditor
             key={activeId}
             id={activeId}
@@ -294,7 +417,9 @@ export function CampaignsPane() {
             }}
             onDraftChange={setPreviewDraft}
             onSaved={(updated) => {
-              setCampaigns((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+              setCampaigns((prev) =>
+                prev.map((c) => (c.id === updated.id ? updated : c)),
+              );
               setIsNewDraft(false);
               loadAudienceCounts();
             }}
@@ -330,11 +455,14 @@ function CampaignRow({
   return (
     <tr onClick={onEdit} style={{ cursor: "pointer" }}>
       <td>
-        <span className="admin-name">{campaign.subject || "No subject yet"}</span>
+        <span className="admin-name">
+          {campaign.subject || "No subject yet"}
+        </span>
       </td>
       <td className="admin-muted">{campaign.map_id || ""}</td>
       <td className="admin-muted">
-        {audienceCount ?? "—"} · {AUDIENCE_LABELS[campaign.audience] ?? campaign.audience}
+        {audienceCount ?? "—"} ·{" "}
+        {AUDIENCE_LABELS[campaign.audience] ?? campaign.audience}
       </td>
       <td>
         <span className={statusCls[campaign.status]}>
@@ -342,15 +470,36 @@ function CampaignRow({
         </span>
       </td>
       <td className="admin-row-acts">
-        <button type="button" className="admin-edit" onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>
+        <button
+          type="button"
+          className="admin-edit"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDuplicate();
+          }}
+        >
           <Copy size={14} />
         </button>
         {onDelete && (
-          <button type="button" className="admin-edit" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+          <button
+            type="button"
+            className="admin-edit"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
             <Trash2 size={14} />
           </button>
         )}
-        <button type="button" className="admin-edit" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+        <button
+          type="button"
+          className="admin-edit"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+        >
           {campaign.status === "draft" ? "Edit" : "View"}
         </button>
       </td>
@@ -363,35 +512,124 @@ function CampaignRow({
  *  from the drawer's own in-memory draft (lifted up via onDraftChange) —
  *  a short debounce on the network call, not a fixed poll, so it reflects
  *  what's being typed right now rather than what was last saved. */
-function LivePreview({ draft }: { draft: PreviewDraft | null }) {
-  const [html, setHtml] = useState("");
-  const [loading, setLoading] = useState(true);
+// Hint copy so an unwritten draft still reads as a laid-out email — shown
+// only in this preview call, never saved and never in a real send. If the
+// draft is actually sent still blank, the real email just omits that block,
+// same as it always has; nothing here reaches a real subscriber's inbox.
+const LOGO_SRC = "/images/brand/logo.png";
 
-  useEffect(() => {
-    if (!draft) return;
-    let cancelled = false;
+/** What the marketer actually sees on screen — a direct DOM mockup, not the
+   email-safe inline-style HTML /campaigns/preview builds for a real inbox
+   (that endpoint's HTML still backs "Send test" and the real send; this
+   component never touches it). Renders straight from the live block state,
+   so it updates instantly with no debounce or network round trip. */
+function MailStagePreview({ draft }: { draft: PreviewDraft | null }) {
+  const { media } = useMediaLibrary();
+  if (!draft) return <div className="admin-mail-preview" />;
 
-    const timer = setTimeout(() => {
-      apiFetch("/campaigns/preview", { method: "POST", body: JSON.stringify(draft) })
-        .then(({ html }) => !cancelled && setHtml(html))
-        .catch(() => {})
-        .finally(() => !cancelled && setLoading(false));
-    }, 250);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [draft]);
+  // The tenant's own most recent upload — a real photo they actually own,
+  // never the logo — shown only when the marketer hasn't picked one yet.
+  const defaultImage = media[0] ? mediaThumb(media[0]) : "";
+  const hasLogoBlock = draft.blocks.some((b) => b.type === "logo");
+  const isLeft = draft.blocks.some(
+    (b) => b.type === "logo" && b.align === "left",
+  );
 
   return (
-    <div className="admin-mail-preview">
-      {loading && !html ? (
-        <p className="p-6 text-sm text-[var(--ivory-dim)]">Rendering…</p>
-      ) : (
-        <iframe title="Campaign preview" srcDoc={html} />
+    <section className={`admin-mail-preview${isLeft ? " is-left" : ""}`}>
+      {/* No logo block yet — the real send falls back to the same
+          fixed header logo (see campaign_renderer.render_campaign's
+          show_header), so the preview must match that, not go bare. */}
+      {!hasLogoBlock && (
+        <div>
+          <img className="admin-mark" src={LOGO_SRC} alt="Sweet1NE" />
+          <hr />
+        </div>
       )}
-    </div>
+      {draft.blocks.map((block, i) => {
+        switch (block.type) {
+          case "logo": {
+            const sizeClass =
+              block.size === "s" ? " is-s" : block.size === "l" ? " is-l" : "";
+            return (
+              <div key={i}>
+                <img
+                  className={`admin-mark${sizeClass}`}
+                  src={LOGO_SRC}
+                  alt="Sweet1NE"
+                />
+                <hr />
+              </div>
+            );
+          }
+          case "kicker":
+            return (
+              <p key={i} className="admin-kicker">
+                {block.text || "Sweet1NE"}
+              </p>
+            );
+          case "heading":
+            return (
+              <h2 key={i}>{block.text || "Subject and title sit here."}</h2>
+            );
+          case "paragraph":
+            return (
+              <p key={i} className="admin-dek">
+                {block.text || "Write the mail. The look stays the website."}
+              </p>
+            );
+          case "note":
+            return block.text ? (
+              <p key={i} className="admin-dek">
+                {block.text}
+              </p>
+            ) : null;
+          case "image": {
+            const url = block.url || defaultImage;
+            if (!url) return null;
+            const objectFit = block.fit === "fit" ? "contain" : "cover";
+            return (
+              <img
+                key={i}
+                className="admin-still"
+                src={url}
+                alt=""
+                style={{ objectFit }}
+              />
+            );
+          }
+          case "ctas":
+            return (
+              <div key={i} className="admin-mail-ctas">
+                {(block.items ?? []).map((item: CtaItem, j: number) => (
+                  <a
+                    key={j}
+                    className="admin-book"
+                    href="#"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    {item.label ||
+                      CTA_PRESETS[item.kind as CampaignCtaKind] ||
+                      "Open"}
+                  </a>
+                ))}
+              </div>
+            );
+          case "slogan":
+            return (
+              <p key={i} className="admin-slogan">
+                {block.text || "Always in the mood for you."}
+              </p>
+            );
+          default:
+            return null;
+        }
+      })}
+      <p className="admin-foot">
+        You asked to hear from Sweet1NE. Unsubscribe any time.{" "}
+        <a href="/privacy">Privacy</a> · info@sweet1ne.com
+      </p>
+    </section>
   );
 }
 
@@ -415,6 +653,10 @@ function CampaignEditor({
   const [subject, setSubject] = useState("");
   const [preheader, setPreheader] = useState("");
   const [blocks, setBlocks] = useState<Block[]>([]);
+  // Which layout row reads gold — purely a "you're looking at this one"
+  // marker, same as the reference build's own selection concept. Every
+  // block's fields stay visible regardless of which is selected.
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [audience, setAudience] = useState("active");
   const [channels, setChannels] = useState<Channels>({});
   const [mapId, setMapId] = useState("");
@@ -429,7 +671,9 @@ function CampaignEditor({
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
 
-  const readOnly = campaign ? ["sent", "sending"].includes(campaign.status) : false;
+  const readOnly = campaign
+    ? ["sent", "sending"].includes(campaign.status)
+    : false;
 
   useEffect(() => {
     apiFetch(`/campaigns/${id}`)
@@ -443,7 +687,11 @@ function CampaignEditor({
         setChannels(c.channels ?? {});
         setMapId(c.map_id ?? "");
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Couldn't load that campaign."))
+      .catch((e) =>
+        setError(
+          e instanceof Error ? e.message : "Couldn't load that campaign.",
+        ),
+      )
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -454,10 +702,27 @@ function CampaignEditor({
   }, [name, subject, preheader, blocks, onDraftChange]);
 
   function updateBlock(index: number, patch: Partial<Block>) {
-    setBlocks((prev) => prev.map((b, i) => (i === index ? { ...b, ...patch } : b)));
+    setBlocks((prev) =>
+      prev.map((b, i) => (i === index ? { ...b, ...patch } : b)),
+    );
   }
 
-  function addBlock(make: () => Block) {
+  function addBlock(type: string, make: () => Block) {
+    // "+ Picture" while an empty picture slot already exists (the default
+    // one every new campaign starts with, showing a stand-in photo) should
+    // point at that same slot, not pile up a second, separate one — a
+    // marketer clicking it to replace what they see shouldn't end up with
+    // two Picture rows in the Look stack.
+    if (type === "image") {
+      const existingEmpty = blocks.findIndex(
+        (b) => b.type === "image" && !b.url,
+      );
+      if (existingEmpty !== -1) {
+        setSelectedIndex(existingEmpty);
+        return;
+      }
+    }
+    setSelectedIndex(blocks.length);
     setBlocks((prev) => [...prev, make()]);
   }
 
@@ -508,7 +773,10 @@ function CampaignEditor({
     setSendingTest(true);
     setError(null);
     try {
-      await apiFetch(`/campaigns/${id}/test`, { method: "POST", body: JSON.stringify({ email: testEmail }) });
+      await apiFetch(`/campaigns/${id}/test`, {
+        method: "POST",
+        body: JSON.stringify({ email: testEmail }),
+      });
       setTestDialogOpen(false);
       setTestEmail("");
     } catch (err) {
@@ -522,7 +790,9 @@ function CampaignEditor({
     setSending(true);
     setError(null);
     try {
-      const updated = await apiFetch(`/campaigns/${id}/send`, { method: "POST" });
+      const updated = await apiFetch(`/campaigns/${id}/send`, {
+        method: "POST",
+      });
       setCampaign(updated);
       onSaved(updated);
       setSendDialogOpen(false);
@@ -545,7 +815,8 @@ function CampaignEditor({
         <>
           <h2 id="camp-title">{isNew ? "New campaign" : "Edit campaign"}</h2>
           <p className="admin-dek">
-            Tap a box — gold is the one you are on. Logo is first: size and alignment. Buttons
+            Tap a box — gold is the one you are on. Logo is first: size and
+            alignment. Pictures take a banner position and fit or fill. Buttons
             can be reordered.
             {campaign.status === "sent" &&
               ` Sent to ${campaign.sent_count} ${campaign.sent_count === 1 ? "person" : "people"}${campaign.failed_count > 0 ? ` · ${campaign.failed_count} failed` : ""}.`}
@@ -565,14 +836,22 @@ function CampaignEditor({
               // <input> by default, which would save the draft just from
               // typing a CTA label or the campaign ID and hitting return.
               // Only <input> is guarded — buttons still activate on Enter.
-              if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") {
+              if (
+                e.key === "Enter" &&
+                (e.target as HTMLElement).tagName === "INPUT"
+              ) {
                 e.preventDefault();
               }
             }}
           >
             <label>
               Subject
-              <EmojiField value={subject} onChange={setSubject} placeholder="What shows up in the inbox" required />
+              <EmojiField
+                value={subject}
+                onChange={setSubject}
+                placeholder="What shows up in the inbox"
+                required
+              />
             </label>
             <label>
               Preheader
@@ -595,11 +874,9 @@ function CampaignEditor({
             <p className="!mb-2 !mt-[-0.4rem] text-xs normal-case tracking-normal text-[var(--ivory-dim)]">
               Same ID as the promotion if this mail is that offer.
             </p>
-            <div className="!mb-3 flex items-center gap-2 rounded-[3px] border border-[var(--gold-line)] bg-[#050505] px-3 py-2">
-              <span className="!mb-0 text-[0.68rem] uppercase tracking-[0.14em] text-[var(--gold)]">
-                On the tags
-              </span>
-              <code className="flex-1 truncate text-xs text-[var(--ivory)]">{campaignTag}</code>
+            <div className="admin-tag-box">
+              <p className="admin-kicker">On the tags</p>
+              <code>{campaignTag}</code>
               <button
                 type="button"
                 className="admin-edit"
@@ -610,95 +887,114 @@ function CampaignEditor({
             </div>
 
             <p className="admin-kicker">Audience</p>
-            <div className="admin-cats" role="radiogroup" aria-label="Audience" style={{ flexWrap: "wrap" }}>
+            <div
+              className="admin-chip-row"
+              role="radiogroup"
+              aria-label="Audience"
+            >
               {Object.entries(AUDIENCE_LABELS).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  role="radio"
-                  aria-checked={audience === value}
-                  disabled={readOnly}
-                  className={audience === value ? "is-on" : undefined}
-                  onClick={() => setAudience(value)}
-                >
-                  {label}
-                </button>
+                <label key={value} className="admin-chip">
+                  <input
+                    type="radio"
+                    name="audience"
+                    checked={audience === value}
+                    disabled={readOnly}
+                    onChange={() => setAudience(value)}
+                  />
+                  <span>{label}</span>
+                </label>
               ))}
             </div>
-            <p className="!mb-0 !mt-1 text-xs normal-case tracking-normal text-[var(--ivory-dim)]">
-              {audienceCount === null ? "—" : `${audienceCount} people will be included.`} Opted
-              out stay off.
+            <p className="admin-dek">
+              {audienceCount === null ? "—" : audienceCount} people on the
+              first-party list. Opted out stay off.
             </p>
 
-          {/* Blocks */}
-          <div className="mt-4 space-y-3">
-            {blocks.length === 0 && (
-              <p className="admin-empty">Nothing here yet — add a block below to get started.</p>
-            )}
+            {/* Blocks */}
+            <div className="mt-4 space-y-3">
+              {blocks.length === 0 && (
+                <p className="admin-empty">
+                  Nothing here yet — add a block below to get started.
+                </p>
+              )}
 
-            {blocks.map((block, index) => (
-              <BlockCard
-                key={index}
-                block={block}
-                index={index}
-                total={blocks.length}
-                readOnly={readOnly}
-                onChange={(patch) => updateBlock(index, patch)}
-                onRemove={() => removeBlock(index)}
-                onMove={(dir) => moveBlock(index, dir)}
-              />
-            ))}
-          </div>
-
-          {!readOnly && (
-            <div className="mt-3 flex flex-wrap gap-2 rounded-[3px] border border-dashed border-[var(--gold-line)] p-3">
-              {BLOCK_KINDS.map((kind) => (
-                <button
-                  key={kind.type}
-                  type="button"
-                  onClick={() => addBlock(kind.make)}
-                  className="flex items-center gap-1.5 rounded-[3px] border border-[var(--gold-line)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--ivory-dim)] transition-colors hover:text-[var(--ivory)]"
-                >
-                  <Plus size={14} />
-                  <kind.icon size={14} />
-                  {kind.label}
-                </button>
+              {blocks.map((block, index) => (
+                <BlockCard
+                  key={index}
+                  block={block}
+                  index={index}
+                  total={blocks.length}
+                  readOnly={readOnly}
+                  selected={selectedIndex === index}
+                  onSelect={() => setSelectedIndex(index)}
+                  onChange={(patch) => updateBlock(index, patch)}
+                  onRemove={() => removeBlock(index)}
+                  onMove={(dir) => moveBlock(index, dir)}
+                />
               ))}
             </div>
-          )}
 
-          <p className="admin-row-acts is-sticky">
             {!readOnly && (
-              <>
-                <button type="submit" className="admin-book" disabled={saving}>
-                  {saving ? "Saving…" : "Save draft"}
-                </button>
-                {campaign.status !== "sent" && (
+              <div
+                className="admin-bit-bar"
+                role="group"
+                aria-label="Add a bit"
+              >
+                {BLOCK_KINDS.slice(0, 8).map((kind) => (
+                  <button
+                    key={kind.type}
+                    type="button"
+                    className="admin-add-bit"
+                    onClick={() => addBlock(kind.type, kind.make)}
+                  >
+                    + {kind.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <p className="admin-row-acts is-sticky">
+              {!readOnly && (
+                <>
+                  <button
+                    type="submit"
+                    className="admin-book"
+                    disabled={saving}
+                  >
+                    {saving ? "Saving…" : "Save draft"}
+                  </button>
+                  {campaign.status !== "sent" && (
+                    <button
+                      type="button"
+                      className="admin-book"
+                      onClick={() => setSendDialogOpen(true)}
+                      disabled={blocks.length === 0}
+                    >
+                      Send
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="admin-book"
-                    onClick={() => setSendDialogOpen(true)}
-                    disabled={blocks.length === 0}
+                    onClick={() => setTestDialogOpen(true)}
                   >
-                    Mark sent
+                    Send test
                   </button>
-                )}
-                <button type="button" className="admin-book" onClick={() => setTestDialogOpen(true)}>
-                  Send test
-                </button>
-              </>
-            )}
-            <button type="button" className="admin-book" onClick={onClose}>
-              Close
-            </button>
-          </p>
+                </>
+              )}
+              <button type="button" className="admin-book" onClick={onClose}>
+                Close
+              </button>
+            </p>
           </form>
 
           {/* Send test */}
           <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
             <DialogContent className={DARK_DIALOG}>
               <DialogHeader>
-                <DialogTitle className="font-display text-xl text-[#e5e2e1]">Send a test</DialogTitle>
+                <DialogTitle className="font-display text-xl text-[#e5e2e1]">
+                  Send a test
+                </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-1.5">
@@ -714,7 +1010,11 @@ function CampaignEditor({
                   />
                 </div>
                 <div className="flex justify-end gap-3">
-                  <button type="button" className={DIALOG_GHOST_BTN} onClick={() => setTestDialogOpen(false)}>
+                  <button
+                    type="button"
+                    className={DIALOG_GHOST_BTN}
+                    onClick={() => setTestDialogOpen(false)}
+                  >
                     Cancel
                   </button>
                   <button
@@ -741,14 +1041,26 @@ function CampaignEditor({
               <div className="space-y-4">
                 <p className="text-sm text-[rgba(229,226,225,0.68)]">
                   This goes out to {audienceCount ?? "every"} subscribed{" "}
-                  {audience === "active" ? "address" : AUDIENCE_LABELS[audience].toLowerCase()} right
-                  away, and can&rsquo;t be undone. Save any changes first — sending locks the campaign.
+                  {audience === "active"
+                    ? "address"
+                    : AUDIENCE_LABELS[audience].toLowerCase()}{" "}
+                  right away, and can&rsquo;t be undone. Save any changes first
+                  — sending locks the campaign.
                 </p>
                 <div className="flex justify-end gap-3">
-                  <button type="button" className={DIALOG_GHOST_BTN} onClick={() => setSendDialogOpen(false)}>
+                  <button
+                    type="button"
+                    className={DIALOG_GHOST_BTN}
+                    onClick={() => setSendDialogOpen(false)}
+                  >
                     Not yet
                   </button>
-                  <button type="button" className={DIALOG_BOOK_BTN} onClick={confirmSend} disabled={sending}>
+                  <button
+                    type="button"
+                    className={DIALOG_BOOK_BTN}
+                    onClick={confirmSend}
+                    disabled={sending}
+                  >
                     {sending ? "Sending…" : "Send it"}
                   </button>
                 </div>
@@ -766,6 +1078,8 @@ function BlockCard({
   index,
   total,
   readOnly,
+  selected,
+  onSelect,
   onChange,
   onRemove,
   onMove,
@@ -774,6 +1088,8 @@ function BlockCard({
   index: number;
   total: number;
   readOnly: boolean;
+  selected: boolean;
+  onSelect: () => void;
   onChange: (patch: Partial<Block>) => void;
   onRemove: () => void;
   onMove: (direction: -1 | 1) => void;
@@ -781,132 +1097,196 @@ function BlockCard({
   const kind = BLOCK_KINDS.find((k) => k.type === block.type);
 
   return (
-    <div className="admin-form rounded-[3px] border border-[var(--gold-line)] bg-[var(--panel)] p-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-[0.1em] text-[var(--ivory-dim)]">
-          {kind && <kind.icon size={13} />}
-          {kind?.label ?? block.type}
-        </span>
+    <div
+      className={`admin-layout-row is-mail${selected ? " is-on" : ""}`}
+      style={{ cursor: "pointer" }}
+      onClick={onSelect}
+    >
+      <div className="admin-block-head">
+        <p>{kind?.label ?? block.type}</p>
 
         {!readOnly && (
-          <div className="flex items-center gap-1">
-            <button type="button" className="admin-edit" onClick={() => onMove(-1)} disabled={index === 0} aria-label="Move up">
-              <ChevronUp size={14} />
+          <span className="admin-row-acts">
+            <button
+              type="button"
+              className="admin-add-bit"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMove(-1);
+              }}
+              disabled={index === 0}
+            >
+              Up
             </button>
             <button
               type="button"
-              className="admin-edit"
-              onClick={() => onMove(1)}
+              className="admin-add-bit"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMove(1);
+              }}
               disabled={index === total - 1}
-              aria-label="Move down"
             >
-              <ChevronDown size={14} />
+              Down
             </button>
-            <button type="button" className="admin-edit" onClick={onRemove} aria-label="Remove block">
-              <Trash2 size={14} />
+            <button
+              type="button"
+              className="admin-add-bit"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove();
+              }}
+            >
+              Remove
             </button>
-          </div>
+          </span>
         )}
       </div>
 
-      {block.type === "logo" && (
-        <div className="flex flex-wrap gap-3">
-          <select value={block.size ?? "m"} disabled={readOnly} onChange={(e) => onChange({ size: e.target.value })}>
-            <option value="s">Small</option>
-            <option value="m">Medium</option>
-            <option value="l">Large</option>
-          </select>
-          <select
-            value={block.align ?? "center"}
-            disabled={readOnly}
-            onChange={(e) => onChange({ align: e.target.value })}
-          >
-            <option value="center">Center</option>
-            <option value="left">Left</option>
-          </select>
-        </div>
-      )}
-
-      {block.type === "kicker" && (
-        <EmojiField
-          value={block.text ?? ""}
-          disabled={readOnly}
-          onChange={(text) => onChange({ text })}
-          placeholder="Sweet1NE"
-        />
-      )}
-
-      {block.type === "heading" && (
-        <div className="space-y-3">
-          <EmojiField value={block.text ?? ""} disabled={readOnly} onChange={(text) => onChange({ text })} placeholder="Heading text" />
+      {/* The whole row selects on click (see the wrapper's onClick, and
+          .admin-layout-row.is-on above) — everything actually editable in
+          here stops that bubbling, so picking a banner position or ticking
+          a checkbox doesn't fight with that for the click. */}
+      <div onClick={(e) => e.stopPropagation()}>
+        {block.type === "logo" && (
           <div className="flex flex-wrap gap-3">
-            <select value={block.size ?? "medium"} disabled={readOnly} onChange={(e) => onChange({ size: e.target.value })}>
-              <option value="small">Small</option>
-              <option value="medium">Medium</option>
-              <option value="large">Large</option>
+            <select
+              value={block.size ?? "m"}
+              disabled={readOnly}
+              onChange={(e) => onChange({ size: e.target.value })}
+            >
+              <option value="s">Small</option>
+              <option value="m">Medium</option>
+              <option value="l">Large</option>
             </select>
-            <AlignSelect value={block.align} disabled={readOnly} onChange={(align) => onChange({ align })} />
+            <select
+              value={block.align ?? "center"}
+              disabled={readOnly}
+              onChange={(e) => onChange({ align: e.target.value })}
+            >
+              <option value="center">Center</option>
+              <option value="left">Left</option>
+            </select>
           </div>
-        </div>
-      )}
+        )}
 
-      {block.type === "paragraph" && (
-        <div className="space-y-3">
+        {block.type === "kicker" && (
           <EmojiField
             value={block.text ?? ""}
             disabled={readOnly}
             onChange={(text) => onChange({ text })}
-            placeholder="Body text — a blank line starts a new paragraph"
-            multiline
+            placeholder="Sweet1NE"
           />
-          <AlignSelect value={block.align} disabled={readOnly} onChange={(align) => onChange({ align })} />
-        </div>
-      )}
+        )}
 
-      {block.type === "image" && (
-        <ImageBlockFields block={block} readOnly={readOnly} onChange={onChange} />
-      )}
-
-      {block.type === "note" && (
-        <EmojiField
-          value={block.text ?? ""}
-          disabled={readOnly}
-          onChange={(text) => onChange({ text })}
-          placeholder="Limited seats tonight"
-        />
-      )}
-
-      {block.type === "ctas" && (
-        <CtaStack items={block.items ?? []} readOnly={readOnly} onChange={(items) => onChange({ items })} />
-      )}
-
-      {block.type === "slogan" && (
-        <EmojiField
-          value={block.text ?? ""}
-          disabled={readOnly}
-          onChange={(text) => onChange({ text })}
-          placeholder="Always in the mood for you."
-        />
-      )}
-
-      {block.type === "button" && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <EmojiField value={block.label ?? ""} disabled={readOnly} onChange={(label) => onChange({ label })} placeholder="Button text" />
-          <input
-            value={block.url ?? ""}
-            disabled={readOnly}
-            onChange={(e) => onChange({ url: e.target.value })}
-            placeholder="https://…"
-          />
-          <div className="sm:col-span-2">
-            <AlignSelect value={block.align} disabled={readOnly} onChange={(align) => onChange({ align })} />
+        {block.type === "heading" && (
+          <div className="space-y-3">
+            <EmojiField
+              value={block.text ?? ""}
+              disabled={readOnly}
+              onChange={(text) => onChange({ text })}
+              placeholder="Heading text"
+            />
+            <div className="flex flex-wrap gap-3">
+              <select
+                value={block.size ?? "medium"}
+                disabled={readOnly}
+                onChange={(e) => onChange({ size: e.target.value })}
+              >
+                <option value="small">Small</option>
+                <option value="medium">Medium</option>
+                <option value="large">Large</option>
+              </select>
+              <AlignSelect
+                value={block.align}
+                disabled={readOnly}
+                onChange={(align) => onChange({ align })}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {block.type === "divider" && (
-        <p className="text-sm text-[var(--ivory-dim)]">A plain hairline — nothing to set.</p>
-      )}
+        {block.type === "paragraph" && (
+          <div className="space-y-3">
+            <EmojiField
+              value={block.text ?? ""}
+              disabled={readOnly}
+              onChange={(text) => onChange({ text })}
+              placeholder="Body text — a blank line starts a new paragraph"
+              multiline
+            />
+            <AlignSelect
+              value={block.align}
+              disabled={readOnly}
+              onChange={(align) => onChange({ align })}
+            />
+          </div>
+        )}
+
+        {block.type === "image" && (
+          <ImageBlockFields
+            block={block}
+            readOnly={readOnly}
+            onChange={onChange}
+          />
+        )}
+
+        {block.type === "note" && (
+          <EmojiField
+            value={block.text ?? ""}
+            disabled={readOnly}
+            onChange={(text) => onChange({ text })}
+            placeholder="Limited seats tonight"
+          />
+        )}
+
+        {block.type === "ctas" && (
+          <CtaStack
+            items={block.items ?? []}
+            readOnly={readOnly}
+            onChange={(items) => onChange({ items })}
+          />
+        )}
+
+        {block.type === "slogan" && (
+          <EmojiField
+            value={block.text ?? ""}
+            disabled={readOnly}
+            onChange={(text) => onChange({ text })}
+            placeholder="Always in the mood for you."
+          />
+        )}
+
+        {block.type === "button" && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <EmojiField
+              value={block.label ?? ""}
+              disabled={readOnly}
+              onChange={(label) => onChange({ label })}
+              placeholder="Button text"
+            />
+            <input
+              value={block.url ?? ""}
+              disabled={readOnly}
+              onChange={(e) => onChange({ url: e.target.value })}
+              placeholder="https://…"
+            />
+            <div className="sm:col-span-2">
+              <AlignSelect
+                value={block.align}
+                disabled={readOnly}
+                onChange={(align) => onChange({ align })}
+              />
+            </div>
+          </div>
+        )}
+
+        {block.type === "divider" && (
+          <p className="text-sm text-[var(--ivory-dim)]">
+            A plain hairline — nothing to set.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -924,6 +1304,14 @@ function CtaStack({
     onChange(items.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
   }
 
+  function move(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (j < 0 || j >= items.length) return;
+    const next = items.slice();
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  }
+
   return (
     <div className="admin-cta-stack">
       {items.map((cta, i) => (
@@ -935,11 +1323,17 @@ function CtaStack({
               disabled={readOnly}
               onChange={(e) => {
                 const kind = e.target.value;
-                if (kind === "url") update(i, { kind, label: cta.label || "Open", href: "" });
-                else update(i, { kind, label: CTA_PRESETS[kind as CampaignCtaKind], href: "" });
+                if (kind === "url")
+                  update(i, { kind, label: cta.label || "Open", href: "" });
+                else
+                  update(i, {
+                    kind,
+                    label: CTA_PRESETS[kind as CampaignCtaKind],
+                    href: "",
+                  });
               }}
             >
-              <option value="book">Book</option>
+              <option value="book">Book a table</option>
               <option value="menu">Menu</option>
               <option value="order">Order</option>
               <option value="url">URL</option>
@@ -947,7 +1341,11 @@ function CtaStack({
           </label>
           <label>
             Label
-            <EmojiField value={cta.label} disabled={readOnly} onChange={(label) => update(i, { label })} />
+            <EmojiField
+              value={cta.label}
+              disabled={readOnly}
+              onChange={(label) => update(i, { label })}
+            />
           </label>
           <label>
             URL
@@ -960,17 +1358,44 @@ function CtaStack({
             />
           </label>
           {!readOnly && (
-            <button type="button" className="admin-ghost" onClick={() => onChange(items.filter((_, idx) => idx !== i))}>
-              Remove
-            </button>
+            <>
+              <button
+                type="button"
+                className="admin-ghost"
+                onClick={() => move(i, -1)}
+                disabled={i === 0}
+              >
+                Up
+              </button>
+              <button
+                type="button"
+                className="admin-ghost"
+                onClick={() => move(i, 1)}
+                disabled={i === items.length - 1}
+              >
+                Down
+              </button>
+              <button
+                type="button"
+                className="admin-ghost"
+                onClick={() => onChange(items.filter((_, idx) => idx !== i))}
+              >
+                Remove
+              </button>
+            </>
           )}
         </div>
       ))}
       {!readOnly && (
         <button
           type="button"
-          className="admin-edit"
-          onClick={() => onChange([...items, { kind: "book", label: CTA_PRESETS.book, href: "" }])}
+          className="admin-add-bit"
+          onClick={() =>
+            onChange([
+              ...items,
+              { kind: "book", label: CTA_PRESETS.book, href: "" },
+            ])
+          }
         >
           Add button
         </button>
@@ -989,7 +1414,11 @@ function AlignSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <select value={value ?? "left"} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+    <select
+      value={value ?? "left"}
+      disabled={disabled}
+      onChange={(e) => onChange(e.target.value)}
+    >
       <option value="left">Left</option>
       <option value="center">Center</option>
       <option value="right">Right</option>
@@ -1028,7 +1457,9 @@ function ImageBlockFields({
 
       const res = await fetch(`${API_URL}/uploads/images?folder=misc`, {
         method: "POST",
-        headers: session ? { Authorization: `Bearer ${session.access_token}` } : {},
+        headers: session
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : {},
         body: formData,
       });
 
@@ -1040,7 +1471,9 @@ function ImageBlockFields({
       const { url } = await res.json();
       onChange({ url });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't upload that image.");
+      setError(
+        err instanceof Error ? err.message : "Couldn't upload that image.",
+      );
     } finally {
       setUploading(false);
     }
@@ -1049,7 +1482,11 @@ function ImageBlockFields({
   return (
     <div className="space-y-3">
       {block.url && (
-        <img src={block.url} alt="" className="max-h-48 w-full rounded-[3px] object-cover" />
+        <img
+          src={block.url}
+          alt=""
+          className="max-h-48 w-full rounded-[3px] object-cover"
+        />
       )}
 
       {error && <p className="admin-hold text-xs">{error}</p>}
@@ -1077,14 +1514,22 @@ function ImageBlockFields({
             })}
           </div>
           {visibleMedia < media.length && (
-            <button type="button" className="admin-ghost" onClick={() => setVisibleMedia((v) => v + MEDIA_PAGE_SIZE)}>
+            <button
+              type="button"
+              className="admin-ghost"
+              onClick={() => setVisibleMedia((v) => v + MEDIA_PAGE_SIZE)}
+            >
               More images
             </button>
           )}
 
           <label className="!mb-0 !inline-flex cursor-pointer items-center gap-1.5 !normal-case !tracking-normal text-[var(--ivory-dim)] hover:text-[var(--ivory)]">
             <ImageIcon size={14} />
-            {uploading ? "Uploading…" : block.url ? "Replace with a new upload" : "Or upload a new image"}
+            {uploading
+              ? "Uploading…"
+              : block.url
+                ? "Replace with a new upload"
+                : "Or upload a new image"}
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp,image/gif"
@@ -1113,6 +1558,40 @@ function ImageBlockFields({
         />
         Full width (no side padding)
       </label>
+
+      <label>
+        Fit
+        <select
+          value={block.fit ?? "fit"}
+          disabled={readOnly}
+          onChange={(e) => onChange({ fit: e.target.value })}
+        >
+          <option value="fit">Show all of it</option>
+          <option value="fill">Fill the frame</option>
+        </select>
+      </label>
+      {block.url && (
+        <div
+          className="admin-anchor-grid"
+          role="group"
+          aria-label="Banner position"
+        >
+          {BANNER_POSITIONS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              aria-label={label}
+              disabled={readOnly}
+              className={
+                (block.position ?? "center") === key ? "is-on" : undefined
+              }
+              onClick={() => onChange({ position: key })}
+            >
+              <span />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

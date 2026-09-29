@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
-import { Download, Mail, Search, Send, TrendingUp, UserMinus, Users } from "lucide-react";
+import {
+  Download,
+  Mail,
+  Search,
+  Send,
+  TrendingUp,
+  UserMinus,
+  Users,
+} from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -71,7 +79,9 @@ export function SubscriberList({
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [showAll, setShowAll] = useState(false);
-  const [adminFilter, setAdminFilter] = useState<"active" | "out" | "all">("active");
+  const [adminFilter, setAdminFilter] = useState<"active" | "out" | "all">(
+    "active",
+  );
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -95,8 +105,12 @@ export function SubscriberList({
   const primary = isBranch
     ? "bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
     : "bg-[var(--gold)] text-[#0e0e0e] hover:opacity-90";
-  const activeBadge = isBranch ? "bg-success-bg text-success" : "admin-status is-ok";
-  const inactiveBadge = isBranch ? "bg-slate-bg text-slate-subtle" : "admin-status";
+  const activeBadge = isBranch
+    ? "bg-success-bg text-success"
+    : "admin-status is-ok";
+  const inactiveBadge = isBranch
+    ? "bg-slate-bg text-slate-subtle"
+    : "admin-status";
   const headerRow = isBranch ? "bg-slate-bg/40" : "";
 
   const load = useCallback(() => {
@@ -127,7 +141,9 @@ export function SubscriberList({
         method: "PATCH",
         body: JSON.stringify({ is_subscribed: !row.is_subscribed }),
       });
-      setSubscribers((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      setSubscribers((prev) =>
+        prev.map((r) => (r.id === updated.id ? updated : r)),
+      );
       onChanged?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't update that.");
@@ -143,7 +159,9 @@ export function SubscriberList({
       } = await createClient().auth.getSession();
 
       const res = await fetch(`${API_URL}/newsletter/export`, {
-        headers: session ? { Authorization: `Bearer ${session.access_token}` } : {},
+        headers: session
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : {},
       });
       if (!res.ok) throw new Error("Export failed.");
 
@@ -157,7 +175,9 @@ export function SubscriberList({
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't export the list.");
+      setError(
+        err instanceof Error ? err.message : "Couldn't export the list.",
+      );
     } finally {
       setExporting(false);
     }
@@ -176,7 +196,9 @@ export function SubscriberList({
       {isBranch ? (
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className={`text-2xl font-semibold sm:text-3xl ${text}`}>Marketing</h1>
+            <h1 className={`text-2xl font-semibold sm:text-3xl ${text}`}>
+              Marketing
+            </h1>
             <p className={`mt-1 text-sm ${subtle}`}>
               Everyone who's agreed to hear from Sweet1NE
             </p>
@@ -208,7 +230,9 @@ export function SubscriberList({
         !hideHeader && (
           <>
             <h1>Marketing</h1>
-            <p className="admin-dek">Everyone who&rsquo;s agreed to hear from Sweet1NE</p>
+            <p className="admin-dek">
+              Everyone who&rsquo;s agreed to hear from Sweet1NE
+            </p>
           </>
         )
       )}
@@ -351,10 +375,19 @@ export function SubscriberList({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by email"
           />
-          <button type="button" className="admin-book" onClick={() => setAddOpen(true)}>
+          <button
+            type="button"
+            className="admin-book"
+            onClick={() => setAddOpen(true)}
+          >
             Add
           </button>
-          <button type="button" className="admin-book" onClick={exportCsv} disabled={exporting || !stats?.subscribed}>
+          <button
+            type="button"
+            className="admin-book"
+            onClick={exportCsv}
+            disabled={exporting || !stats?.subscribed}
+          >
             {exporting ? "Preparing…" : "Export CSV"}
           </button>
         </div>
@@ -371,7 +404,9 @@ export function SubscriberList({
           <div className="rounded-xl border border-dashed border-slate-border px-6 py-16 text-center">
             <Mail size={26} strokeWidth={1} className={`mx-auto ${muted}`} />
             <p className={`mt-3 text-sm ${muted}`}>
-              {query ? "Nobody matches that search." : "Nobody's subscribed yet."}
+              {query
+                ? "Nobody matches that search."
+                : "Nobody's subscribed yet."}
             </p>
           </div>
         ) : (
@@ -381,7 +416,9 @@ export function SubscriberList({
         <div className={`overflow-x-auto rounded-xl border ${card}`}>
           <table className="w-full min-w-[560px] text-sm">
             <thead className={`border-b border-slate-bg ${headerRow}`}>
-              <tr className={`text-left text-[11px] uppercase tracking-[0.14em] ${muted}`}>
+              <tr
+                className={`text-left text-[11px] uppercase tracking-[0.14em] ${muted}`}
+              >
                 <th className="px-5 py-3 font-medium">Email</th>
                 <th className="px-5 py-3 font-medium">Came from</th>
                 <th className="px-5 py-3 font-medium">Agreed</th>
@@ -397,14 +434,19 @@ export function SubscriberList({
                     </a>
                   </td>
                   <td className={`px-5 py-3.5 ${muted}`}>
-                    {subscriber.source === "reservation" ? "A booking" : "The website"}
+                    {subscriber.source === "reservation"
+                      ? "A booking"
+                      : "The website"}
                   </td>
                   <td className={`px-5 py-3.5 ${muted}`}>
-                    {new Date(subscriber.consented_at).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
+                    {new Date(subscriber.consented_at).toLocaleDateString(
+                      "en-GB",
+                      {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      },
+                    )}
                   </td>
                   <td className="px-5 py-3.5">
                     <span
@@ -444,20 +486,32 @@ export function SubscriberList({
                     />
                   </td>
                   <td>
-                    <a href={`mailto:${subscriber.email}`} className="admin-name">
+                    <a
+                      href={`mailto:${subscriber.email}`}
+                      className="admin-name"
+                    >
                       {subscriber.email}
                     </a>
                   </td>
-                  <td className="admin-muted">{sourceLabel(subscriber.source)}</td>
                   <td className="admin-muted">
-                    {new Date(subscriber.consented_at).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
+                    {sourceLabel(subscriber.source)}
+                  </td>
+                  <td className="admin-muted">
+                    {new Date(subscriber.consented_at).toLocaleDateString(
+                      "en-GB",
+                      {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      },
+                    )}
                   </td>
                   <td>
-                    <span className={subscriber.is_subscribed ? activeBadge : inactiveBadge}>
+                    <span
+                      className={
+                        subscriber.is_subscribed ? activeBadge : inactiveBadge
+                      }
+                    >
                       {subscriber.is_subscribed ? "Active" : "Opted out"}
                     </span>
                   </td>
@@ -493,7 +547,7 @@ export function SubscriberList({
               onChanged?.();
             }}
           />,
-          drawerSlot
+          drawerSlot,
         )}
     </div>
   );
@@ -508,6 +562,9 @@ function AddSubscriberDrawer({
 }) {
   const [email, setEmail] = useState("");
   const [source, setSource] = useState("website");
+  const [agreed, setAgreed] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
   const [consent, setConsent] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -523,7 +580,12 @@ function AddSubscriberDrawer({
     try {
       const result = await apiFetch("/newsletter/subscribers", {
         method: "POST",
-        body: JSON.stringify({ email, source, consented: true }),
+        body: JSON.stringify({
+          email,
+          source,
+          consented: true,
+          consented_at: agreed ? `${agreed}T12:00:00Z` : null,
+        }),
       });
       onAdded(result.subscriber);
     } catch (err) {
@@ -546,7 +608,12 @@ function AddSubscriberDrawer({
 
           <label>
             Email
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </label>
 
           <label>
@@ -561,8 +628,22 @@ function AddSubscriberDrawer({
             </select>
           </label>
 
+          <label>
+            Agreed
+            <input
+              type="date"
+              required
+              value={agreed}
+              onChange={(e) => setAgreed(e.target.value)}
+            />
+          </label>
+
           <label className="!mb-1 flex items-center gap-2 !normal-case !tracking-normal text-sm text-[var(--ivory)]">
-            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+            />
             Consent
           </label>
           <p className="!mb-3 !mt-[-0.4rem] text-xs normal-case tracking-normal text-[var(--ivory-dim)]">
@@ -625,10 +706,14 @@ function StatCard({
       >
         {icon}
       </span>
-      <p className={`mt-4 text-3xl font-semibold ${isBranch ? "text-navy" : "text-ink"}`}>
+      <p
+        className={`mt-4 text-3xl font-semibold ${isBranch ? "text-navy" : "text-ink"}`}
+      >
         {value}
       </p>
-      <p className={`mt-1 text-sm ${isBranch ? "text-slate-subtle" : "text-ink-muted"}`}>
+      <p
+        className={`mt-1 text-sm ${isBranch ? "text-slate-subtle" : "text-ink-muted"}`}
+      >
         {label}
       </p>
     </div>

@@ -74,11 +74,9 @@ body {
   --color-info-bg: #dbeafe;
   --color-purple: #7c3aed;
   --color-purple-bg: #f3e8ff;
-
 }
 
-@theme inline{
-  
+@theme inline {
   --color-guest-bg: var(--guest-bg);
   --color-guest-card: var(--guest-card);
   --color-guest-elevated: var(--guest-elevated);
@@ -115,9 +113,29 @@ body {
   --animate-gate-fade: gateFade 0.4s ease forwards;
   --animate-rail: railMove 42s linear infinite;
 }
-@keyframes gateLogo { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
-@keyframes gateFade { to { opacity: 1; } }
-@keyframes railMove { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes gateLogo {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes gateFade {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes railMove {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
 
 /* =========================================================================
    Admin console — same tokens as the public site, dark chrome.
@@ -152,7 +170,11 @@ body {
   min-width: 0;
   padding: 1.15rem 1.4rem 2.4rem;
   background:
-    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 162, 74, 0.07), transparent 55%),
+    radial-gradient(
+      ellipse 120% 80% at 50% -20%,
+      rgba(201, 162, 74, 0.07),
+      transparent 55%
+    ),
     var(--bg);
   /* .admin-board below responds to this element's actual rendered width via
      @container, not the viewport — needed because opening a drawer
@@ -176,7 +198,9 @@ body {
   box-shadow: inset -1px 0 0 var(--gold-glow);
 }
 
-.admin-rail-bar { display: contents; }
+.admin-rail-bar {
+  display: contents;
+}
 
 .admin-rail-menu,
 .admin-rail-now,
@@ -190,9 +214,13 @@ body {
   padding: 0.15rem 0 0.35rem;
   text-align: center;
 }
-.admin-rail-home:hover { opacity: 0.92; }
+.admin-rail-home:hover {
+  opacity: 0.92;
+}
 
-.admin-rail-group + .admin-rail-group { margin-top: 0.45rem; }
+.admin-rail-group + .admin-rail-group {
+  margin-top: 0.45rem;
+}
 
 .admin-rail-label {
   margin: 0.15rem 0 0.25rem;
@@ -230,7 +258,9 @@ body {
   color: var(--ivory-dim);
   cursor: pointer;
 }
-.admin-rail-out:hover { color: var(--gold); }
+.admin-rail-out:hover {
+  color: var(--gold);
+}
 
 .admin-rail nav a {
   display: flex;
@@ -243,7 +273,9 @@ body {
   text-transform: uppercase;
   color: var(--ivory-dim);
 }
-.admin-rail nav a:hover { color: var(--ivory); }
+.admin-rail nav a:hover {
+  color: var(--ivory);
+}
 .admin-rail nav a[aria-current="page"] {
   background: var(--gold);
   border: 1px solid var(--gold);
@@ -283,14 +315,28 @@ body {
   position: absolute;
   left: 0;
 }
-.admin-rail-menu span::before { top: -5px; }
-.admin-rail-menu span::after { top: 5px; }
-.admin-rail.is-open .admin-rail-menu span { background: transparent; }
-.admin-rail.is-open .admin-rail-menu span::before { top: 0; transform: rotate(45deg); }
-.admin-rail.is-open .admin-rail-menu span::after { top: 0; transform: rotate(-45deg); }
+.admin-rail-menu span::before {
+  top: -5px;
+}
+.admin-rail-menu span::after {
+  top: 5px;
+}
+.admin-rail.is-open .admin-rail-menu span {
+  background: transparent;
+}
+.admin-rail.is-open .admin-rail-menu span::before {
+  top: 0;
+  transform: rotate(45deg);
+}
+.admin-rail.is-open .admin-rail-menu span::after {
+  top: 0;
+  transform: rotate(-45deg);
+}
 
 @media (max-width: 960px) {
-  .admin-stage { padding: 0.9rem 0.9rem 2rem; }
+  .admin-stage {
+    padding: 0.9rem 0.9rem 2rem;
+  }
 
   .admin-rail {
     position: sticky;
@@ -332,7 +378,11 @@ body {
     padding: 0;
     text-align: left;
   }
-  .admin-rail-home img { width: auto; height: 28px; margin: 0; }
+  .admin-rail-home img {
+    width: auto;
+    height: 28px;
+    margin: 0;
+  }
   .admin-rail-now {
     display: block;
     overflow: hidden;
@@ -351,7 +401,9 @@ body {
     flex-shrink: 0;
     padding: 0.35rem 0.15rem;
   }
-  .admin-rail-foot { display: none; }
+  .admin-rail-foot {
+    display: none;
+  }
   .admin-rail-veil {
     display: none;
     position: fixed;
@@ -362,7 +414,9 @@ body {
     background: rgba(5, 5, 5, 0.62);
     cursor: pointer;
   }
-  .admin-rail.is-open .admin-rail-veil { display: block; }
+  .admin-rail.is-open .admin-rail-veil {
+    display: block;
+  }
   .admin-rail nav {
     display: none;
     position: fixed;
@@ -378,15 +432,29 @@ body {
     background: #080808;
     border-top: 1px solid rgba(201, 162, 74, 0.18);
   }
-  .admin-rail.is-open nav { display: flex; }
+  .admin-rail.is-open nav {
+    display: flex;
+  }
   .admin-rail-group {
     padding: 0.35rem 0 0.85rem;
     border-bottom: 1px solid rgba(201, 162, 74, 0.12);
   }
-  .admin-rail-group + .admin-rail-group { margin-top: 0.15rem; }
-  .admin-rail-label { display: block; margin: 0 0 0.35rem; padding: 0 0.55rem; }
-  .admin-rail nav a { padding: 0.7rem 0.55rem; font-size: 0.78rem; }
-  .admin-rail nav a svg { width: 1.15rem; height: 1.15rem; }
+  .admin-rail-group + .admin-rail-group {
+    margin-top: 0.15rem;
+  }
+  .admin-rail-label {
+    display: block;
+    margin: 0 0 0.35rem;
+    padding: 0 0.55rem;
+  }
+  .admin-rail nav a {
+    padding: 0.7rem 0.55rem;
+    font-size: 0.78rem;
+  }
+  .admin-rail nav a svg {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
 }
 
 /* ── Dashboard boards — house.css's .top/.places/.who/.board/.card, only
@@ -423,9 +491,16 @@ body {
   cursor: pointer;
   flex-shrink: 0;
 }
-.admin-places button.is-on { border-color: var(--gold); color: var(--gold); }
+.admin-places button.is-on {
+  border-color: var(--gold);
+  color: var(--gold);
+}
 
-.admin-who { margin-left: auto; font-size: 0.78rem; color: var(--ivory-dim); }
+.admin-who {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--ivory-dim);
+}
 
 .admin-clock {
   margin: 0;
@@ -442,9 +517,15 @@ body {
   letter-spacing: -0.02em;
   margin: 0 0 0.4rem;
 }
-.admin-dek { margin: 0 0 1rem; color: var(--ivory-dim); max-width: 36rem; }
+.admin-dek {
+  margin: 0 0 1rem;
+  color: var(--ivory-dim);
+  max-width: 36rem;
+}
 
-.admin-board-group { margin: 0 0 1.35rem; }
+.admin-board-group {
+  margin: 0 0 1.35rem;
+}
 .admin-board-group h2 {
   margin: 0 0 0.65rem;
   font-family: var(--font-display);
@@ -459,13 +540,21 @@ body {
   gap: 0.85rem;
 }
 @container admin-stage (max-width: 1100px) {
-  .admin-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @container admin-stage (max-width: 960px) {
-  .admin-board { grid-template-columns: 1fr; }
+  .admin-board {
+    grid-template-columns: 1fr;
+  }
 }
-.admin-board.tight { margin: 0 0 1.2rem; }
-.admin-board.tight .admin-card { min-height: 0; }
+.admin-board.tight {
+  margin: 0 0 1.2rem;
+}
+.admin-board.tight .admin-card {
+  min-height: 0;
+}
 
 /* Marketing's stats board — 4 cards, matching the reference build's own
    distinct .board.stats treatment rather than the compact .admin-kpi-strip
@@ -474,9 +563,14 @@ body {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: 0 0 1.2rem;
 }
-.admin-board-stats .admin-card { min-height: 0; gap: 0.3rem; }
+.admin-board-stats .admin-card {
+  min-height: 0;
+  gap: 0.3rem;
+}
 @container admin-stage (max-width: 900px) {
-  .admin-board-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-board-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* Tables' own card grid — same container-query idea as .admin-board above
@@ -489,13 +583,19 @@ body {
   gap: 1rem;
 }
 @container admin-stage (max-width: 1400px) {
-  .admin-tables-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .admin-tables-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 @container admin-stage (max-width: 1100px) {
-  .admin-tables-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-tables-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @container admin-stage (max-width: 700px) {
-  .admin-tables-grid { grid-template-columns: 1fr; }
+  .admin-tables-grid {
+    grid-template-columns: 1fr;
+  }
 }
 .admin-card {
   background: linear-gradient(180deg, var(--panel) 0%, #0a0a0a 100%);
@@ -505,7 +605,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(201, 162, 74, 0.06);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(201, 162, 74, 0.06);
 }
 .admin-card h2 {
   margin: 0;
@@ -515,7 +617,11 @@ body {
   color: var(--gold);
   font-weight: 600;
 }
-.admin-card p { margin: 0; color: var(--ivory-dim); font-size: 0.92rem; }
+.admin-card p {
+  margin: 0;
+  color: var(--ivory-dim);
+  font-size: 0.92rem;
+}
 .admin-card .admin-stat {
   font-family: var(--font-display);
   font-size: 1.85rem;
@@ -537,14 +643,28 @@ body {
   margin-top: auto;
   padding-top: 0.7rem;
 }
-.admin-card .admin-acts .admin-act { margin-top: 0; padding-top: 0; }
-.admin-card.is-wait { border-style: dashed; }
-.admin-card.is-wait .admin-stat { color: var(--gold); }
-.admin-hold { color: var(--gold); }
+.admin-card .admin-acts .admin-act {
+  margin-top: 0;
+  padding-top: 0;
+}
+.admin-card.is-wait {
+  border-style: dashed;
+}
+.admin-card.is-wait .admin-stat {
+  color: var(--gold);
+}
+.admin-hold {
+  color: var(--gold);
+}
 
 @media (max-width: 960px) {
-  .admin-who { display: none; }
-  .admin-top { padding: 0.45rem 0.55rem; margin-bottom: 1rem; }
+  .admin-who {
+    display: none;
+  }
+  .admin-top {
+    padding: 0.45rem 0.55rem;
+    margin-bottom: 1rem;
+  }
 }
 
 /* ── Menu page — house.css's .tools/.cats/.kpi-strip/.sheet/.toggle, plus a
@@ -569,9 +689,17 @@ body {
   min-width: 12rem;
 }
 .admin-tools input:focus,
-.admin-tools select:focus { outline: none; border-color: var(--gold); }
-.admin-tools .short { min-width: 7rem; width: 7rem; }
-.admin-tools select.short { min-width: 9.5rem; }
+.admin-tools select:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+.admin-tools .short {
+  min-width: 7rem;
+  width: 7rem;
+}
+.admin-tools select.short {
+  min-width: 9.5rem;
+}
 .admin-tools-label {
   display: flex;
   align-items: center;
@@ -603,10 +731,15 @@ body {
   cursor: pointer;
   flex-shrink: 0;
 }
-.admin-cats button.is-on { border-color: var(--gold); color: var(--gold); }
+.admin-cats button.is-on {
+  border-color: var(--gold);
+  color: var(--gold);
+}
 /* Spreads pills across the full row width instead of clustering left —
    harmless when there's no extra space, since overflow-x still scrolls. */
-.admin-cats.is-spread { justify-content: space-between; }
+.admin-cats.is-spread {
+  justify-content: space-between;
+}
 
 .admin-kpi-strip {
   display: grid;
@@ -648,8 +781,14 @@ body {
   cursor: pointer;
 }
 .admin-book:hover,
-.admin-book.is-on { background: var(--gold); color: #0e0e0e; }
-.admin-book:disabled { opacity: 0.5; cursor: not-allowed; }
+.admin-book.is-on {
+  background: var(--gold);
+  color: #0e0e0e;
+}
+.admin-book:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .admin-data-panel {
   border: 1px solid rgba(201, 162, 74, 0.32);
@@ -670,8 +809,12 @@ body {
   border-bottom: 1px solid rgba(229, 226, 225, 0.06);
   vertical-align: top;
 }
-.admin-sheet tbody tr:hover td { background: rgba(201, 162, 74, 0.04); }
-.admin-sheet tbody tr:nth-child(even) td { background: rgba(255, 255, 255, 0.02); }
+.admin-sheet tbody tr:hover td {
+  background: rgba(201, 162, 74, 0.04);
+}
+.admin-sheet tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02);
+}
 .admin-sheet th {
   font-size: 0.62rem;
   letter-spacing: 0.16em;
@@ -681,11 +824,23 @@ body {
   background: var(--gold);
   border-bottom: 0;
 }
-.admin-data-panel .admin-sheet th:first-child { border-radius: 2px 0 0 0; }
-.admin-data-panel .admin-sheet th:last-child { border-radius: 0 2px 0 0; }
-.admin-sheet .admin-name { color: var(--ivory); }
-.admin-sheet .admin-muted { color: var(--ivory-dim); font-size: 0.82rem; }
-.admin-sheet .admin-price { white-space: nowrap; color: var(--gold); }
+.admin-data-panel .admin-sheet th:first-child {
+  border-radius: 2px 0 0 0;
+}
+.admin-data-panel .admin-sheet th:last-child {
+  border-radius: 0 2px 0 0;
+}
+.admin-sheet .admin-name {
+  color: var(--ivory);
+}
+.admin-sheet .admin-muted {
+  color: var(--ivory-dim);
+  font-size: 0.82rem;
+}
+.admin-sheet .admin-price {
+  white-space: nowrap;
+  color: var(--gold);
+}
 .admin-sheet .admin-pic {
   width: 3rem;
   color: var(--ivory-dim);
@@ -718,8 +873,15 @@ body {
   border-radius: 50%;
   background: var(--ivory-dim);
 }
-.admin-toggle.is-on { background: rgba(201, 162, 74, 0.25); border-color: var(--gold); }
-.admin-toggle.is-on::after { left: auto; right: 2px; background: var(--gold); }
+.admin-toggle.is-on {
+  background: rgba(201, 162, 74, 0.25);
+  border-color: var(--gold);
+}
+.admin-toggle.is-on::after {
+  left: auto;
+  right: 2px;
+  background: var(--gold);
+}
 
 .admin-edit {
   appearance: none;
@@ -732,8 +894,13 @@ body {
   text-transform: uppercase;
   padding: 0;
 }
-.admin-edit:hover { opacity: 0.85; }
-.admin-edit:disabled { opacity: 0.35; cursor: not-allowed; }
+.admin-edit:hover {
+  opacity: 0.85;
+}
+.admin-edit:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
 
 .admin-bit-bar {
   display: flex;
@@ -752,7 +919,10 @@ body {
   text-transform: capitalize;
   cursor: pointer;
 }
-.admin-bit-bar button.is-on { border-color: var(--gold); color: var(--gold); }
+.admin-bit-bar button.is-on {
+  border-color: var(--gold);
+  color: var(--gold);
+}
 
 .admin-media-grid {
   display: grid;
@@ -788,8 +958,13 @@ body {
   color: var(--ivory);
   background: linear-gradient(transparent, rgba(5, 5, 5, 0.88));
 }
-.admin-media-grid button.is-on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
-.admin-media-grid button.is-film { background: #12100b; }
+.admin-media-grid button.is-on {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold);
+}
+.admin-media-grid button.is-film {
+  background: #12100b;
+}
 .admin-media-grid button.is-none {
   display: grid;
   place-items: center;
@@ -799,14 +974,80 @@ body {
   text-transform: uppercase;
   cursor: default;
 }
-.admin-media-grid button.is-none span { position: static; padding: 0; background: none; }
+.admin-media-grid button.is-none span {
+  position: static;
+  padding: 0;
+  background: none;
+}
 
 /* The quick-add gallery under "Picture" — a 5x5 grid, padded with empty
    tiles until a real media library exists to fill it. */
-.admin-media-grid.is-quick { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.admin-media-grid.is-quick {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+/* The single-hero picker — same 5-column grid, tighter bottom margin. */
+.admin-media-grid.is-compact {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: 0.55rem;
+}
 
 @media (max-width: 720px) {
-  .admin-media-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .admin-media-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* "Show on" — a row of checkbox chips, gold when checked. */
+.admin-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.95rem;
+}
+label.admin-chip {
+  display: block;
+  margin: 0 !important;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0;
+}
+label.admin-chip input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+label.admin-chip span {
+  display: block;
+  padding: 0.48rem 0.72rem;
+  border: 1px solid var(--gold-line);
+  background: #050505;
+  color: var(--ivory-dim);
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+label.admin-chip:has(input:checked) span {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #050505;
+  font-weight: 600;
+}
+
+/* "On the tags" — the utm_campaign readout inside "When and tags". */
+.admin-tag-box {
+  margin: 0.2rem 0 0.4rem;
+  padding: 0.9rem 0.95rem;
+  border: 1px solid var(--gold-line);
+  background: var(--panel);
+}
+.admin-tag-box code {
+  display: block;
+  margin: 0.35rem 0 0.55rem;
+  color: var(--gold);
+  font-size: 0.82rem;
+  word-break: break-all;
 }
 
 .admin-block-head {
@@ -874,7 +1115,10 @@ body {
   letter-spacing: -0.02em;
   margin: 0 0 0.4rem;
 }
-.admin-preview-copy .admin-dek { margin: 0; max-width: none; }
+.admin-preview-copy .admin-dek {
+  margin: 0;
+  max-width: none;
+}
 .admin-preview-meta {
   margin: 0 0 0.45rem;
   font-size: 0.78rem;
@@ -889,8 +1133,12 @@ body {
   text-transform: uppercase;
   color: var(--ivory-dim);
 }
-.admin-status.is-wait { color: var(--gold); }
-.admin-status.is-ok { color: var(--ivory); }
+.admin-status.is-wait {
+  color: var(--gold);
+}
+.admin-status.is-ok {
+  color: var(--ivory);
+}
 
 .admin-row-acts {
   display: flex;
@@ -935,16 +1183,16 @@ body {
    tell where a promotion actually sits. Gold border = on; frames are
    clickable only while live-editing a draft. ─────────────────────────── */
 
-.admin-look-desk,
-.admin-paid-desk {
+.admin-look-desk {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1.15fr 0.85fr;
   gap: 1rem;
   margin: 0 0 1.5rem;
 }
 @container admin-stage (max-width: 900px) {
-  .admin-look-desk,
-  .admin-paid-desk { grid-template-columns: 1fr; }
+  .admin-look-desk {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-look-frame {
@@ -956,9 +1204,26 @@ body {
   gap: 0.5rem;
   transition: border-color 0.15s ease;
 }
-.admin-look-frame.is-interactive { cursor: pointer; }
-.admin-look-frame.is-interactive:hover { border-color: rgba(201, 162, 74, 0.55); }
-.admin-look-frame.is-on { border-color: var(--gold); box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.25); }
+.admin-look-frame.is-enter {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+@container admin-stage (max-width: 900px) {
+  .admin-look-frame.is-enter {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+.admin-look-frame.is-interactive {
+  cursor: pointer;
+}
+.admin-look-frame.is-interactive:hover {
+  border-color: rgba(201, 162, 74, 0.55);
+}
+.admin-look-frame.is-on {
+  border-color: var(--gold);
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.25);
+}
 
 .admin-look-kicker {
   display: flex;
@@ -971,9 +1236,17 @@ body {
   text-transform: uppercase;
   color: var(--ivory-dim);
 }
-.admin-look-state { color: var(--ivory-dim); }
-.admin-look-frame.is-on .admin-look-state { color: var(--gold); }
-.admin-look-cap { margin: 0; font-size: 0.8rem; color: var(--ivory-dim); }
+.admin-look-state {
+  color: var(--ivory-dim);
+}
+.admin-look-frame.is-on .admin-look-state {
+  color: var(--gold);
+}
+.admin-look-cap {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ivory-dim);
+}
 
 /* "After they enter" — a dark film behind the popup, echoing the moment
    right after Enter Sweet1NE on the real homepage. */
@@ -981,8 +1254,6 @@ body {
   background: radial-gradient(circle at 50% 15%, #1a1a1a 0%, #050505 75%);
   padding: 1.2rem 0.7rem;
 }
-.admin-promo-film .admin-preview-copy { padding: 0; max-width: none; }
-.admin-promo-film .admin-preview-next { margin: 0; }
 
 /* "Quiet line" — a mock site header so the ribbon reads as sitting under
    real navigation, not floating on its own. */
@@ -997,7 +1268,10 @@ body {
   letter-spacing: 0.06em;
   color: var(--ivory-dim);
 }
-.admin-look-header img { height: 1.6rem; width: auto; }
+.admin-look-header img {
+  height: 1.6rem;
+  width: auto;
+}
 
 /* "Table phone" — a small handset mockup: a bar naming the table, the
    promo itself, and a dock standing in for the guest's basket total. */
@@ -1014,13 +1288,196 @@ body {
   color: var(--ivory-dim);
   border-bottom: 1px solid rgba(229, 226, 225, 0.12);
 }
-.admin-look-handset .admin-preview-copy { padding: 0.9rem 0.7rem; max-width: none; }
 .admin-look-handset-dock {
   padding: 0.55rem 0.7rem;
   font-size: 0.78rem;
   color: var(--gold);
   border-top: 1px solid rgba(229, 226, 225, 0.12);
   background: #0a0a0a;
+}
+
+/* ── The promo card itself — three genuinely different shapes, one per
+   surface, matching what a guest actually sees in each place. Not one
+   card reused with different wrappers: "After they enter" is a two-column
+   card with a photo, the quiet line is a single-line bar with no photo,
+   and the table phone is a compact stacked card with no photo or button. */
+.admin-promo-kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 600;
+}
+.admin-promo-title {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(1.15rem, 3vw, 1.5rem);
+  letter-spacing: -0.02em;
+  color: var(--ivory);
+  line-height: 1.18;
+}
+.admin-promo-dek {
+  margin: 0 0 0.75rem;
+  color: var(--ivory-dim);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+.admin-promo-note {
+  margin: 0 0 0.6rem;
+  color: var(--ivory-dim);
+  font-size: 0.8rem;
+  font-style: italic;
+}
+.admin-promo-code {
+  margin: 0 0 0.6rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.admin-promo-off {
+  margin: 0 0 0.6rem;
+  color: var(--gold);
+  font-size: 0.8rem;
+}
+.admin-promo-cta {
+  align-self: flex-start;
+  display: inline-block;
+  margin: 0;
+  padding: 0.48rem 0.85rem;
+  font-size: 0.66rem;
+}
+
+/* "After they enter" — the real homepage popup: photo on one side, copy
+   on the other. */
+.admin-promo-card {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 8.6rem minmax(0, 1fr);
+  border: 1px solid rgba(201, 162, 74, 0.48);
+  background: rgba(5, 5, 5, 0.68);
+  box-shadow:
+    inset 0 0 0 4px #050505,
+    inset 0 0 0 5px rgba(201, 162, 74, 0.16);
+}
+.admin-promo-card[data-still="top"] {
+  grid-template-columns: 1fr;
+}
+.admin-promo-card[data-still="top"] .admin-promo-card-still {
+  height: 8.6rem;
+  min-height: 8.6rem;
+}
+.admin-promo-card[data-still="none"] {
+  grid-template-columns: 1fr;
+}
+.admin-promo-card[data-still="none"] .admin-promo-card-still {
+  display: none;
+}
+.admin-promo-card[data-tone="solid"] {
+  background: #080808;
+}
+.admin-promo-card[data-align="center"] .admin-promo-card-copy {
+  text-align: center;
+  align-items: center;
+}
+.admin-promo-card-still {
+  position: relative;
+  min-height: 100%;
+  overflow: hidden;
+  background: #080808;
+}
+.admin-promo-card-still img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.admin-promo-card-copy {
+  padding: 0.9rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+@media (max-width: 720px) {
+  .admin-promo-card {
+    grid-template-columns: 1fr;
+  }
+  .admin-promo-card-still {
+    height: 5.4rem;
+    min-height: 5.4rem;
+  }
+}
+
+/* "Quiet line" — a single-line bar, no photo, title clipped to one line. */
+.admin-promo-ribbon {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid rgba(201, 162, 74, 0.28);
+  background: rgba(5, 5, 5, 0.92);
+}
+.admin-promo-ribbon .admin-promo-kicker {
+  margin: 0;
+  flex: 0 0 auto;
+}
+.admin-promo-ribbon .admin-promo-title {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-promo-ribbon .admin-promo-code {
+  margin: 0;
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+}
+.admin-promo-ribbon .admin-promo-cta {
+  flex: 0 0 auto;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--gold);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* "Table phone" — a compact stacked card, no photo, no button. */
+.admin-promo-phone-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid rgba(201, 162, 74, 0.35);
+  background: rgba(8, 8, 8, 0.9);
+}
+.admin-promo-phone-card .admin-promo-kicker {
+  margin: 0 0 0.2rem;
+}
+.admin-promo-phone-card .admin-promo-title {
+  margin: 0;
+  font-size: 1rem;
+}
+.admin-promo-phone-card .admin-promo-dek {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+}
+.admin-promo-phone-card .admin-promo-off {
+  margin: 0.25rem 0 0;
+}
+.admin-promo-phone-card .admin-promo-code {
+  margin: 0;
+  align-self: center;
 }
 
 /* ── Event composer — the block stack, its per-block rows, and the CTA
@@ -1032,21 +1489,38 @@ body {
   border: 1px solid rgba(201, 162, 74, 0.22);
   background: #080808;
 }
-.admin-layout-row .admin-block-head { margin-bottom: 0; }
+/* Tap a box, gold is the one you're on — a plain "currently focused" marker,
+   same as the reference build's .layout-row.is-on. Nothing is hidden or
+   collapsed by it, every block's fields stay visible either way. */
+.admin-layout-row.is-on {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold);
+  background: #100e08;
+}
+.admin-layout-row.is-on .admin-block-head p {
+  color: var(--gold);
+}
+.admin-layout-row .admin-block-head {
+  margin-bottom: 0;
+}
 .admin-layout-row .admin-block-head p {
   color: var(--ivory);
   text-transform: none;
   letter-spacing: 0;
   font-size: 0.82rem;
 }
-.admin-layout-row .admin-row-acts { gap: 0.5rem; }
+.admin-layout-row .admin-row-acts {
+  gap: 0.5rem;
+}
 .admin-layout-row .admin-media-grid,
 .admin-layout-row select,
 .admin-layout-row textarea,
 .admin-layout-row input {
   margin-top: 0.55rem;
 }
-.admin-layout-row.is-drop-target { border-color: var(--gold); }
+.admin-layout-row.is-drop-target {
+  border-color: var(--gold);
+}
 
 .admin-drag-handle {
   appearance: none;
@@ -1058,7 +1532,9 @@ body {
   line-height: 1;
   cursor: grab;
 }
-.admin-drag-handle:active { cursor: grabbing; }
+.admin-drag-handle:active {
+  cursor: grabbing;
+}
 
 .admin-emoji-bar {
   display: flex;
@@ -1077,14 +1553,26 @@ body {
   cursor: pointer;
 }
 
-.admin-cta-stack { display: grid; gap: 0.55rem; margin: 0 0 0.7rem; }
-.admin-cta-row {
+.admin-cta-stack {
   display: grid;
-  grid-template-columns: 7.5rem 1fr 1fr auto;
+  gap: 0.55rem;
+  margin: 0 0 0.7rem;
+}
+/* Flex-wrap, not a fixed 6-column grid — the reference's own grid assumed
+   a full-width page column, but this panel is a fixed ~22-26rem regardless
+   of screen size (see .admin-camp-desk), so a viewport media query never
+   fires there. Wrapping naturally fits whatever width it actually has. */
+.admin-cta-row {
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
   align-items: end;
 }
-.admin-cta-row label { margin: 0; }
+.admin-cta-row label {
+  margin: 0;
+  flex: 1 1 7.5rem;
+  min-width: 7.5rem;
+}
 .admin-ghost {
   appearance: none;
   background: transparent;
@@ -1096,10 +1584,6 @@ body {
   text-transform: uppercase;
   cursor: pointer;
   height: 2.45rem;
-}
-
-@media (max-width: 720px) {
-  .admin-cta-row { grid-template-columns: 1fr; }
 }
 
 /* Reusable dark form, applied to the item/category editors (kept as
@@ -1114,7 +1598,7 @@ body {
   text-transform: uppercase;
   color: var(--ivory-dim);
 }
-.admin-form input,
+.admin-form input:not([type="checkbox"]):not([type="radio"]),
 .admin-form select,
 .admin-form textarea {
   appearance: none;
@@ -1130,11 +1614,24 @@ body {
 }
 .admin-form input:focus,
 .admin-form select:focus,
-.admin-form textarea:focus { outline: none; border-color: var(--gold); }
-.admin-form select:disabled { opacity: 0.5; }
-.admin-form textarea { min-height: 5rem; resize: vertical; }
-.admin-form .admin-row { display: flex; gap: 0.6rem; }
-.admin-form .admin-row label { flex: 1; }
+.admin-form textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+.admin-form select:disabled {
+  opacity: 0.5;
+}
+.admin-form textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+.admin-form .admin-row {
+  display: flex;
+  gap: 0.6rem;
+}
+.admin-form .admin-row label {
+  flex: 1;
+}
 .admin-form label:has([type="checkbox"]) {
   display: flex;
   align-items: center;
@@ -1144,7 +1641,9 @@ body {
   font-size: 0.9rem;
   color: var(--ivory);
 }
-.admin-form label:has([type="checkbox"]) input { width: auto; }
+.admin-form label:has([type="checkbox"]) input {
+  width: auto;
+}
 .admin-form input[type="checkbox"] {
   accent-color: var(--gold);
   width: 1.05rem;
@@ -1163,7 +1662,8 @@ body {
 }
 .admin-shell input[type="date"]::-webkit-calendar-picker-indicator,
 .admin-shell input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-  filter: invert(72%) sepia(23%) saturate(638%) hue-rotate(358deg) brightness(93%) contrast(89%);
+  filter: invert(72%) sepia(23%) saturate(638%) hue-rotate(358deg)
+    brightness(93%) contrast(89%);
   cursor: pointer;
 }
 
@@ -1180,7 +1680,9 @@ body {
   color: var(--gold);
   margin: 0 0 0.6rem;
 }
-.admin-drawer-fold[open] summary { margin-bottom: 0.8rem; }
+.admin-drawer-fold[open] summary {
+  margin-bottom: 0.8rem;
+}
 
 /* Banner position — a 3x3 anchor grid, like a photo editor's crop-focus
    picker. One cell is ever "on" at a time (it's a focal point, not a set
@@ -1207,9 +1709,43 @@ body {
   border-radius: 50%;
   background: var(--ivory-dim);
 }
-.admin-anchor-grid button:hover { border-color: rgba(201, 162, 74, 0.55); }
-.admin-anchor-grid button.is-on { border-color: var(--gold); box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.35); }
-.admin-anchor-grid button.is-on span { background: var(--gold); width: 0.55rem; height: 0.55rem; }
+.admin-anchor-grid button:hover {
+  border-color: rgba(201, 162, 74, 0.55);
+}
+.admin-anchor-grid button.is-on {
+  border-color: var(--gold);
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.35);
+}
+.admin-anchor-grid button.is-on span {
+  background: var(--gold);
+  width: 0.55rem;
+  height: 0.55rem;
+}
+
+/* Campaigns' own picture block reuses the same anchor-grid component as
+   Promotions, but the reference build's ".focal" for it is a smaller,
+   plain 9-dot grid with no inner marker. Scoped to campaigns' own row
+   modifier specifically — .admin-layout-row is also shared by Promotions'
+   Pieces composer (its own extra-image banner picker included), which
+   keeps its existing bigger, dot-marker style untouched. */
+.admin-layout-row.is-mail .admin-anchor-grid {
+  grid-template-columns: repeat(3, 1.15rem);
+  gap: 0.25rem;
+  margin: 0.45rem 0 0;
+}
+.admin-layout-row.is-mail .admin-anchor-grid button {
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 1px solid rgba(201, 162, 74, 0.4);
+}
+.admin-layout-row.is-mail .admin-anchor-grid button span {
+  display: none;
+}
+.admin-layout-row.is-mail .admin-anchor-grid button.is-on {
+  background: var(--gold);
+  border-color: var(--gold);
+  box-shadow: none;
+}
 
 /* Keeps Save/Close/Open-in-Marketing visible while the rest of a long
    drawer form scrolls underneath — .admin-drawer-edit is the scrolling
@@ -1259,25 +1795,51 @@ body {
   animation: admin-loading-fill 2.2s ease-in-out infinite;
 }
 @keyframes admin-loading-breathe {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 @keyframes admin-loading-fill {
-  0% { width: 0; opacity: 1; }
-  75% { width: 100%; opacity: 1; }
-  100% { width: 100%; opacity: 0; }
+  0% {
+    width: 0;
+    opacity: 1;
+  }
+  75% {
+    width: 100%;
+    opacity: 1;
+  }
+  100% {
+    width: 100%;
+    opacity: 0;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .admin-loading-logo, .admin-loading-bar span { animation: none; opacity: 1; width: 100%; }
+  .admin-loading-logo,
+  .admin-loading-bar span {
+    animation: none;
+    opacity: 1;
+    width: 100%;
+  }
 }
 
 @media (max-width: 1100px) {
-  .admin-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-kpi-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (max-width: 960px) {
   .admin-tools input,
-  .admin-tools select { min-width: 0; width: 100%; }
-  .admin-sheet { min-width: 42rem; }
+  .admin-tools select {
+    min-width: 0;
+    width: 100%;
+  }
+  .admin-sheet {
+    min-width: 42rem;
+  }
 }
 
 /* ── Editor drawer — a third grid column, live while a page portals an
@@ -1324,57 +1886,151 @@ body {
   margin: 0 0 1.2rem;
 }
 
-/* Campaign editor's live preview — same sticky dark-card treatment as the
-   menu dish preview, holding a real rendered-email iframe rather than a
-   hand-built DOM replica (so it never drifts from what actually sends). */
+/* Campaign editor's live preview — a direct DOM mockup of the actual email
+   (same shape as the reference build's own #mail-stage), not the raw
+   email-safe HTML. That inline-style HTML is what /campaigns/{id}/test and
+   the real send still use — this is only ever what staff look at on screen,
+   so it can use the site's own CSS instead of reinventing an email-client-
+   safe render just to display it in a browser. */
 .admin-mail-preview {
   position: sticky;
   top: 0.55rem;
   z-index: 3;
   border: 1px solid var(--gold-line);
   background: #050505;
+  padding: 1.5rem 1.2rem 1.3rem;
+  text-align: center;
   margin: 0 0 1.2rem;
-  overflow: hidden;
 }
-.admin-mail-preview iframe {
-  display: block;
-  width: 100%;
-  height: 70vh;
+.admin-mail-preview .admin-mark {
+  width: 7.2rem;
+  margin: 0 auto 0.85rem;
+  filter: drop-shadow(0 8px 28px rgba(0, 0, 0, 0.55));
+}
+.admin-mail-preview .admin-mark.is-s {
+  width: 4.6rem;
+}
+.admin-mail-preview .admin-mark.is-l {
+  width: 10.5rem;
+}
+.admin-mail-preview hr {
+  width: 2.2rem;
+  height: 1px;
+  margin: 0 auto 1rem;
   border: 0;
+  background: var(--gold);
+}
+.admin-mail-preview h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(1.45rem, 3vw, 2rem);
+  letter-spacing: -0.02em;
+  margin: 0 0 0.5rem;
+}
+.admin-mail-preview .admin-dek {
+  margin: 0 auto 0.9rem;
+  max-width: 28rem;
+}
+.admin-mail-preview .admin-still {
+  width: 100%;
+  max-height: 16rem;
+  object-fit: cover;
+  object-position: 50% 28%;
+  margin: 0.4rem 0 1rem;
+  border: 1px solid rgba(201, 162, 74, 0.28);
   background: #050505;
+  display: block;
+}
+.admin-mail-preview .admin-still.is-short {
+  max-height: 8.5rem;
+}
+.admin-mail-preview .admin-still.is-tall {
+  max-height: 24rem;
+}
+.admin-mail-preview .admin-mail-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0 0 0.2rem;
+}
+.admin-mail-preview .admin-mail-ctas .admin-book {
+  margin: 0;
+}
+.admin-mail-preview .admin-slogan {
+  margin: 0.9rem 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--ivory);
+}
+.admin-mail-preview .admin-foot {
+  margin: 1.15rem 0 0;
+  font-size: 0.72rem;
+  color: var(--ivory-dim);
+  line-height: 1.5;
+}
+.admin-mail-preview.is-left {
+  text-align: left;
+}
+.admin-mail-preview.is-left .admin-mark {
+  margin-left: 0;
 }
 
 /* Campaigns — the preview and the editor sit side by side in the main
    content area, always together, rather than the editor living in a
-   separate side drawer. */
+   separate side drawer. Editor is a fixed, capped width; the preview takes
+   whatever's left — it's the thing staff are actually there to look at. */
 .admin-camp-desk {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 26rem);
   gap: 1.5rem;
   align-items: start;
   margin: 1.5rem 0 0;
 }
 @container admin-stage (max-width: 960px) {
-  .admin-camp-desk { grid-template-columns: 1fr; }
+  .admin-camp-desk {
+    grid-template-columns: 1fr;
+  }
 }
-.admin-camp-desk .admin-mail-preview { position: sticky; top: 0.55rem; }
+.admin-camp-desk .admin-mail-preview {
+  position: sticky;
+  top: 0.55rem;
+}
 @container admin-stage (max-width: 960px) {
-  .admin-camp-desk .admin-mail-preview { position: relative; top: 0; }
+  .admin-camp-desk .admin-mail-preview {
+    position: relative;
+    top: 0;
+  }
+}
+.admin-camp-build {
+  border: 1px solid var(--gold-line);
+  background: #080808;
+  padding: 1rem 1rem 1.15rem;
+}
+.admin-camp-build > .admin-dek {
+  margin: 0 0 0.9rem;
 }
 .admin-camp-build h2 {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 1.5rem;
-  margin: 0 0 0.4rem;
+  font-size: 1.45rem;
+  margin: 0 0 0.35rem;
 }
-.admin-dish-preview .admin-kicker { margin: 0 0 0.65rem; }
+.admin-dish-preview .admin-kicker {
+  margin: 0 0 0.65rem;
+}
 .admin-dish-preview h2 {
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 1.45rem;
   margin: 0 0 0.35rem;
 }
-.admin-dish-preview .admin-price { margin: 0; color: var(--gold); letter-spacing: 0.06em; }
+.admin-dish-preview .admin-price {
+  margin: 0;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+}
 .admin-dish-stills {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1387,17 +2043,25 @@ body {
   object-fit: cover;
   border: 1px solid rgba(201, 162, 74, 0.28);
 }
-.admin-dish-stills .admin-dek { grid-column: 1 / -1; margin: 0; }
+.admin-dish-stills .admin-dek {
+  grid-column: 1 / -1;
+  margin: 0;
+}
 
 @media (max-width: 960px) {
-  .admin-shell:has(.admin-drawer-edit) { grid-template-columns: 1fr; }
+  .admin-shell:has(.admin-drawer-edit) {
+    grid-template-columns: 1fr;
+  }
   .admin-drawer-edit {
     position: relative;
     height: auto;
     border-left: 0;
     border-top: 1px solid rgba(201, 162, 74, 0.22);
   }
-  .admin-dish-preview { position: relative; top: 0; }
+  .admin-dish-preview {
+    position: relative;
+    top: 0;
+  }
 }
 
 @media print {
@@ -1438,7 +2102,6 @@ body {
     background: white !important;
   }
 
-
   section {
     break-inside: avoid;
     page-break-inside: avoid;
@@ -1467,8 +2130,14 @@ body {
   position: fixed;
   inset: 0;
   background:
-    linear-gradient(to top, rgba(5, 5, 5, 0.88) 0%, rgba(5, 5, 5, 0.42) 42%, rgba(5, 5, 5, 0.55) 100%),
-    url("/images/homepage-gallery/carousel/web/01-table.jpg") 50% 42% / cover no-repeat;
+    linear-gradient(
+      to top,
+      rgba(5, 5, 5, 0.88) 0%,
+      rgba(5, 5, 5, 0.42) 42%,
+      rgba(5, 5, 5, 0.55) 100%
+    ),
+    url("/images/homepage-gallery/carousel/web/01-table.jpg") 50% 42% / cover
+      no-repeat;
   filter: saturate(1.08);
 }
 /* Namespaced .gate-card (not the bare .gate class) — (site)/site.css
@@ -1510,7 +2179,11 @@ body {
   color: var(--gate-ivory);
   letter-spacing: -0.01em;
 }
-.gate-card form { display: grid; gap: 0.85rem; text-align: left; }
+.gate-card form {
+  display: grid;
+  gap: 0.85rem;
+  text-align: left;
+}
 .gate-card label {
   display: grid;
   gap: 0.35rem;
@@ -1554,7 +2227,10 @@ body {
   background: var(--gate-gold);
   color: #0e0e0e;
 }
-.gate-card .book:disabled { opacity: 0.6; cursor: not-allowed; }
+.gate-card .book:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 .gate-card .hint {
   margin: 1.15rem 0 0;
   font-size: 0.82rem;
@@ -1589,7 +2265,9 @@ body {
   margin: 0 0 1.75rem;
 }
 @container admin-stage (max-width: 900px) {
-  .admin-qr-desk { grid-template-columns: 1fr; }
+  .admin-qr-desk {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-handset {
@@ -1602,7 +2280,12 @@ body {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 @container admin-stage (max-width: 900px) {
-  .admin-handset { position: relative; top: 0; max-width: 20rem; margin: 0 auto 1rem; }
+  .admin-handset {
+    position: relative;
+    top: 0;
+    max-width: 20rem;
+    margin: 0 auto 1rem;
+  }
 }
 .admin-handset-bar {
   display: flex;
@@ -1612,7 +2295,10 @@ body {
   background: #0a0a0a;
   padding: 0.6rem 0.75rem;
 }
-.admin-handset-bar img { height: 1.428rem; width: auto; }
+.admin-handset-bar img {
+  height: 1.428rem;
+  width: auto;
+}
 .admin-handset-bar p {
   margin: 0;
   font-size: 0.68rem;
@@ -1646,7 +2332,9 @@ body {
   padding: 0 0 1rem;
   border-bottom: 1px solid var(--gold-line);
 }
-.admin-order-row:last-child { border-bottom: 0; }
+.admin-order-row:last-child {
+  border-bottom: 0;
+}
 .admin-order-row h2 {
   margin: 0 0 0.5rem;
   font-size: 0.85rem;
@@ -1667,16 +2355,27 @@ body {
   text-align: left;
   color: var(--ivory-dim);
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
-.admin-choice button strong { display: block; font-size: 0.85rem; color: inherit; }
-.admin-choice button span { font-size: 0.72rem; }
+.admin-choice button strong {
+  display: block;
+  font-size: 0.85rem;
+  color: inherit;
+}
+.admin-choice button span {
+  font-size: 0.72rem;
+}
 .admin-choice button.is-on {
   border-color: var(--gold);
   background: rgba(201, 162, 74, 0.1);
   color: var(--ivory);
 }
-.admin-choice button:disabled { opacity: 0.6; cursor: not-allowed; }
+.admin-choice button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .admin-tile-row {
   display: grid;
@@ -1693,11 +2392,21 @@ body {
   color: var(--ivory);
   transition: border-color 0.15s ease;
 }
-.admin-tile:hover { border-color: var(--gold); }
-.admin-tile strong { display: block; font-size: 0.82rem; }
-.admin-tile span { font-size: 0.7rem; color: var(--ivory-dim); }
+.admin-tile:hover {
+  border-color: var(--gold);
+}
+.admin-tile strong {
+  display: block;
+  font-size: 0.82rem;
+}
+.admin-tile span {
+  font-size: 0.7rem;
+  color: var(--ivory-dim);
+}
 
-.admin-qr-quiet { margin: 0 0 1.1rem; }
+.admin-qr-quiet {
+  margin: 0 0 1.1rem;
+}
 
 .admin-taste-desk {
   display: grid;
@@ -1705,7 +2414,9 @@ body {
   gap: 1.25rem;
 }
 @container admin-stage (max-width: 700px) {
-  .admin-taste-desk { grid-template-columns: 1fr; }
+  .admin-taste-desk {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-need-list {
@@ -1723,4 +2434,6 @@ body {
   font-size: 0.85rem;
   color: var(--ivory);
 }
-.admin-need-list li:last-child { border-bottom: 0; }
+.admin-need-list li:last-child {
+  border-bottom: 0;
+}

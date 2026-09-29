@@ -59,8 +59,7 @@ export default function TermsPage() {
 
         <p>
           The Site is provided by GlobalSolutions X Spectre Ltd as technology
-          processor. Website hosting is with Vercel, server hosting with Hetzner
-          Online GmbH, and database hosting with Supabase.
+          processor. GoDaddy provides the domain, DNS and website hosting.
         </p>
 
         <p>

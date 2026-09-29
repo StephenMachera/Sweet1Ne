@@ -36,6 +36,17 @@ export function CookieConsent() {
     }
   }, []);
 
+  useEffect(() => {
+    // The Privacy Notice's "Cookie Settings" link reopens this banner even
+    // after someone has already chosen, so they can change their mind later
+    // without clearing cookies by hand.
+    function reopen() {
+      setVisible(true);
+    }
+    window.addEventListener("sweet1ne:open-cookie-settings", reopen);
+    return () => window.removeEventListener("sweet1ne:open-cookie-settings", reopen);
+  }, []);
+
   function choose(choice: ConsentChoice) {
     window.localStorage.setItem(STORAGE_KEY, choice);
     setVisible(false);

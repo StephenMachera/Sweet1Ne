@@ -2,17 +2,13 @@
 
 import {
   heroImageOf,
-  imagesOf,
   CTA_PRESETS,
   type BannerPosition,
   type PromotionBlock,
   type PromotionBlockType,
   type PromotionCtaKind,
-  type LogoBlock,
   type NoteBlock,
 } from "@/lib/promotion-blocks";
-
-const LOGO_SRC = "/images/brand/logo.png";
 
 const BANNER_POSITION_COORDS: Record<BannerPosition, string> = {
   "top-left": "0% 0%",
@@ -25,7 +21,6 @@ const BANNER_POSITION_COORDS: Record<BannerPosition, string> = {
   bottom: "50% 100%",
   "bottom-right": "100% 100%",
 };
-const LOGO_WIDTH: Record<LogoBlock["size"], string> = { s: "4.6rem", m: "7.2rem", l: "10.5rem" };
 
 export type PromotionPreviewData = {
   kicker: string | null;
@@ -34,79 +29,115 @@ export type PromotionPreviewData = {
   layout: PromotionBlock[];
   cta: PromotionCtaKind;
   cta_label: string | null;
-  look: { still: string; align: string };
+  look: { still: string; tone: string; align: string };
+  kind: string;
+  code: string | null;
+  offer: string;
+  off: number | null;
 };
 
-/** The message content shared by every surface — a homepage card, the
-   ribbon, the table phone, a letter. Only the frame around it differs;
-   what it says is exactly the same, same as the reference's single
-   PROMO.paint() renderer reused across all look-frames. */
-function PreviewBody({ data }: { data: PromotionPreviewData }) {
-  const hasType = (t: PromotionBlockType) => data.layout.some((b) => b.type === t);
-  const logo = data.layout.find((b): b is LogoBlock => b.type === "logo");
-  const images = imagesOf(data.layout);
-  const hero = heroImageOf(data.layout);
-  const extras = images.filter((b) => b !== hero);
-  const notes = data.layout.filter((b): b is NoteBlock => b.type === "note" && Boolean(b.text));
-  const preset = CTA_PRESETS[data.cta];
-  const label = data.cta_label || preset.label;
-
-  return (
-    <>
-      {logo && <img src={LOGO_SRC} alt="Sweet1NE" style={{ width: LOGO_WIDTH[logo.size], marginBottom: "0.6rem" }} />}
-      {hasType("kicker") && <p className="admin-kicker">{data.kicker || "Now"}</p>}
-      {hasType("title") && <h2>{data.title || "Title sits here."}</h2>}
-      {hasType("dek") && data.dek && <p className="admin-dek">{data.dek}</p>}
-      {notes.map((n) => (
-        <p key={n.id} className="admin-preview-note">
-          {n.text}
-        </p>
-      ))}
-      {extras.length > 0 && (
-        <div className="admin-preview-extras">
-          {extras.map((b) => (
-            <img key={b.id} src={b.image_url} alt="" />
-          ))}
-        </div>
-      )}
-      {hasType("ctas") && (
-        <div className="admin-preview-ctas">
-          <a className="admin-book" href={preset.href}>
-            {label}
-          </a>
-        </div>
-      )}
-    </>
-  );
+function offerText(offer: string, off: number | null): string {
+  if (offer === "percent" && off) return `${off}% off the basket`;
+  if (offer === "pounds" && off) return `£${off.toFixed(2)} off the basket`;
+  return "";
 }
 
-/** Full frame — hero photo behind the copy (or plain, if look.still is
-   "none"). Reuses the events page's .admin-preview-next/-hero/-copy, which
-   already do exactly this composition. */
-export function PromotionPreview({ data }: { data: PromotionPreviewData }) {
-  const hero = heroImageOf(data.layout);
-  const showHero = data.look.still !== "none" && Boolean(hero);
-  const align = data.look.align === "center" ? "center" : "left";
+/** The three surfaces render genuinely different shapes — not one card
+   reused with different wrappers around it. "After they enter" is the real
+   homepage popup (photo + copy); the quiet line is a single-line bar with
+   no photo; the table phone is a compact stacked card with no photo and no
+   button. Matches the reference build's three separate templates
+   (htmlEnter/htmlRibbon/htmlPhone in promo.js) rather than its one shared
+   fillCopy() output. */
+export function PromotionPreview({
+  data,
+  surface,
+}: {
+  data: PromotionPreviewData;
+  surface: "enter" | "ribbon" | "phone";
+}) {
+  const hasType = (t: PromotionBlockType) =>
+    data.layout.some((b) => b.type === t);
+  const notes = data.layout.filter(
+    (b): b is NoteBlock => b.type === "note" && Boolean(b.text),
+  );
+  const preset = CTA_PRESETS[data.cta];
+  const label = data.cta_label || preset.label;
+  const kicker = hasType("kicker") ? data.kicker || "Now" : "";
+  const title = hasType("title") ? data.title || "Title sits here." : "";
+  const dek = hasType("dek") ? data.dek : null;
+  const code = data.kind === "code" ? data.code : null;
+  const off = offerText(data.offer, data.off);
 
-  if (!showHero) {
+  if (surface === "ribbon") {
     return (
-      <div className="admin-preview-copy" style={{ position: "static", maxWidth: "none", textAlign: align }}>
-        <PreviewBody data={data} />
+      <div className="admin-promo-ribbon">
+        {kicker && <p className="admin-promo-kicker">{kicker}</p>}
+        {title && <p className="admin-promo-title">{title}</p>}
+        {code && <p className="admin-promo-code">{code}</p>}
+        {hasType("ctas") && (
+          <a className="admin-promo-cta" href={preset.href}>
+            {label}
+          </a>
+        )}
       </div>
     );
   }
 
-  const objectPosition = BANNER_POSITION_COORDS[hero!.position ?? "center"];
-  const objectFit = hero!.fit === "fit" ? "contain" : "cover";
+  if (surface === "phone") {
+    return (
+      <div className="admin-promo-phone-card">
+        <div>
+          {kicker && <p className="admin-promo-kicker">{kicker}</p>}
+          {title && <p className="admin-promo-title">{title}</p>}
+          {dek && <p className="admin-promo-dek">{dek}</p>}
+          {off && <p className="admin-promo-off">{off}</p>}
+        </div>
+        {code && <p className="admin-promo-code">{code}</p>}
+      </div>
+    );
+  }
+
+  const hero = heroImageOf(data.layout);
+  const showStill = data.look.still !== "none" && Boolean(hero);
+  const objectPosition = hero
+    ? BANNER_POSITION_COORDS[hero.position ?? "center"]
+    : undefined;
+  const objectFit = hero?.fit === "fit" ? "contain" : "cover";
 
   return (
-    <div className="admin-preview-next">
-      <div className="admin-preview-hero">
-        <img src={hero!.image_url} alt="" style={{ objectFit, objectPosition }} />
+    <article
+      className="admin-promo-card"
+      data-still={showStill ? data.look.still : "none"}
+      data-tone={data.look.tone}
+      data-align={data.look.align}
+    >
+      <div className="admin-promo-card-still">
+        {showStill && hero && (
+          <img
+            src={hero.image_url}
+            alt=""
+            style={{ objectFit, objectPosition }}
+          />
+        )}
       </div>
-      <div className="admin-preview-copy" style={{ textAlign: align }}>
-        <PreviewBody data={data} />
+      <div className="admin-promo-card-copy">
+        {kicker && <p className="admin-promo-kicker">{kicker}</p>}
+        {title && <p className="admin-promo-title">{title}</p>}
+        {dek && <p className="admin-promo-dek">{dek}</p>}
+        {notes.map((n) => (
+          <p key={n.id} className="admin-promo-note">
+            {n.text}
+          </p>
+        ))}
+        {code && <p className="admin-promo-code">{code}</p>}
+        {off && <p className="admin-promo-off">{off}</p>}
+        {hasType("ctas") && (
+          <a className="admin-book admin-promo-cta" href={preset.href}>
+            {label}
+          </a>
+        )}
       </div>
-    </div>
+    </article>
   );
 }

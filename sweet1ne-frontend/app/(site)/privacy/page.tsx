@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LegalPage, List, Section, Table } from "@/components/site/legal-layout";
+import { CookieSettingsLink } from "@/components/site/cookie-settings-link";
 
 export const metadata: Metadata = {
   title: "Privacy Notice",
@@ -38,9 +39,8 @@ export default function PrivacyPage() {
 
         <p>
           The Site is provided by GlobalSolutions X Spectre Ltd as technology
-          processor for Ikoyi by Sweet1ne Ltd. Vercel provides website hosting,
-          Hetzner Online GmbH provides server hosting, and Supabase provides
-          database hosting.
+          processor for Ikoyi by Sweet1ne Ltd. GoDaddy provides the domain, DNS
+          and website hosting.
         </p>
       </Section>
 
@@ -255,8 +255,8 @@ export default function PrivacyPage() {
       <Section number={7} title="Cookies, pixels and reCAPTCHA">
         <p>
           A consent banner lets you accept or reject non-essential tools, with a
-          way to change your mind later. This is not "by using this site you
-          agree."
+          way to change your mind later (<CookieSettingsLink />). This is not "by
+          using this site you agree."
         </p>
 
         <p className="text-[var(--ivory)]">
@@ -287,6 +287,11 @@ export default function PrivacyPage() {
           Rejecting non-essential cookies will not stop you reading the menu or
           opening Reserve or Order.
         </p>
+
+        <p>
+          <CookieSettingsLink /> — reopen the banner at any time to change your
+          choice.
+        </p>
       </Section>
 
       <Section number={8} title="Who receives information">
@@ -304,19 +309,9 @@ export default function PrivacyPage() {
               "Build and configure the Site; leads, VIP, forms and support, on Sweet1ne's instructions. They do not decide marketing audiences.",
             ],
             [
-              "Vercel",
-              "Website hosting",
-              "Site traffic and hosting logs",
-            ],
-            [
-              "Hetzner Online GmbH",
-              "Server hosting (Germany)",
-              "The server our booking and ordering system runs on, and its logs",
-            ],
-            [
-              "Supabase",
-              "Database and account hosting",
-              "Bookings, orders, enquiries, mailing list and staff accounts",
+              "GoDaddy",
+              "Domain, DNS and website hosting",
+              "Site traffic, DNS records, hosting logs and related technical data",
             ],
             [
               "Resend (or then-current mailer)",
@@ -350,10 +345,10 @@ export default function PrivacyPage() {
 
       <Section number={9} title="International transfers">
         <p>
-          Vercel, Google, Meta, SevenRooms, Toast and email hosting may process
+          GoDaddy, Google, Meta, SevenRooms, Toast and email hosting may process
           information outside the UK. We rely on adequacy, or the UK Addendum and
           International Data Transfer Agreement, plus a transfer assessment where
-          required. Our server and database hosting are in the European Union.
+          required.
         </p>
 
         <p>
