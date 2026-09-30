@@ -36,6 +36,23 @@ _BANNER_POSITION_COORDS: dict[str, str] = {
 }
 
 
+# A draggable size in the editor now, not three fixed steps — old campaigns
+# saved before that change still carry one of these three strings, so they
+# still need to resolve to something rather than fall through to the default.
+_HEADING_SIZE_PRESETS: dict[str, int] = {"small": 20, "medium": 26, "large": 34}
+_HEADING_SIZE_MIN, _HEADING_SIZE_MAX = 16, 44
+
+
+def _heading_size_px(raw: Any) -> int:
+    if isinstance(raw, str):
+        return _HEADING_SIZE_PRESETS.get(raw, 26)
+    try:
+        size = int(raw)
+    except (TypeError, ValueError):
+        return 26
+    return max(_HEADING_SIZE_MIN, min(_HEADING_SIZE_MAX, size))
+
+
 def _heading(block: dict[str, Any]) -> str:
     text = escape(block.get("text", ""))
     if not text:
@@ -43,17 +60,17 @@ def _heading(block: dict[str, Any]) -> str:
 
     # Bodoni isn't a web-safe font, so Georgia stands in — the closest
     # high-contrast serif that renders everywhere without a download.
-    size, spacing = {
-        "large": ("34px", "-0.5px"),
-        "medium": ("26px", "-0.3px"),
-        "small": ("20px", "0"),
-    }.get(block.get("size", "medium"), ("26px", "-0.3px"))
+    size = _heading_size_px(block.get("size", 26))
+    # Tighter tracking as it gets bigger — the same taper the old three
+    # fixed steps had (20px/0, 26px/-0.3px, 34px/-0.5px), just continuous
+    # now instead of three points on it.
+    spacing = round(max(-0.6, min(0, (size - 20) * -0.0375)), 2)
 
     align = block.get("align", "left")
 
     return f"""
           <tr><td style="padding:10px 40px 18px;">
-            <h2 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:{size};font-weight:400;line-height:1.18;letter-spacing:{spacing};color:{IVORY};text-align:{align};">
+            <h2 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:{size}px;font-weight:400;line-height:1.18;letter-spacing:{spacing}px;color:{IVORY};text-align:{align};">
               {text}
             </h2>
           </td></tr>"""
