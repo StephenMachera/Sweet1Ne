@@ -39,6 +39,11 @@ export default function AdminMarketingPage() {
     if (!canManage) router.replace("/admin/dashboard");
   }, [me, loading, canManage, router]);
 
+  // Branch-scoped staff never see the Campaigns tab (below) — without this,
+  // they'd still land on that pane by default with no visible tab to explain
+  // why, since its own API calls are blocked for them anyway.
+  const effectiveView = isUnscoped ? view : "list";
+
   if (loading || !me || !canManage) {
     return <AdminLoading />;
   }
@@ -66,8 +71,8 @@ export default function AdminMarketingPage() {
 
       <h1>Marketing</h1>
       <p className="admin-dek">
-        Letters go to people who asked. First-party list only — no Meta leads. New names land on{" "}
-        <Link href="/admin/leads">Leads</Link>.
+        {stats?.subscribed ?? 0} on list. {stats?.from_website ?? 0} from website. {stats?.from_reservations ?? 0} bookings.{stats?.unsubscribed ?? 0} opted out. <br/> See all&ensp;
+           <Link href="/admin/leads">Leads</Link>.
       </p>
 
       <section className="admin-board admin-board-stats" aria-label="List">
@@ -93,18 +98,22 @@ export default function AdminMarketingPage() {
         {isUnscoped && (
           <button
             type="button"
-            className={view === "campaigns" ? "is-on" : undefined}
+            className={effectiveView === "campaigns" ? "is-on" : undefined}
             onClick={() => setView("campaigns")}
           >
             Campaigns
           </button>
         )}
-        <button type="button" className={view === "list" ? "is-on" : undefined} onClick={() => setView("list")}>
+        <button
+          type="button"
+          className={effectiveView === "list" ? "is-on" : undefined}
+          onClick={() => setView("list")}
+        >
           The list
         </button>
       </div>
 
-      {view === "list" ? (
+      {effectiveView === "list" ? (
         <SubscriberList tone="admin" canSendCampaigns={isUnscoped} hideHeader onChanged={loadStats} />
       ) : (
         <CampaignsPane />

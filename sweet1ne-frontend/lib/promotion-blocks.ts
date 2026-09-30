@@ -32,6 +32,21 @@ export const BANNER_POSITIONS: { key: BannerPosition; label: string }[] = [
   { key: "bottom-right", label: "Bottom right" },
 ];
 
+// The CSS object-position each anchor point maps to — shared by every
+// preview that renders a banner image (Promotions, Campaigns), so the grid
+// and the actual crop never drift apart from each other.
+export const BANNER_POSITION_COORDS: Record<BannerPosition, string> = {
+  "top-left": "0% 0%",
+  top: "50% 0%",
+  "top-right": "100% 0%",
+  left: "0% 50%",
+  center: "50% 50%",
+  right: "100% 50%",
+  "bottom-left": "0% 100%",
+  bottom: "50% 100%",
+  "bottom-right": "100% 100%",
+};
+
 export type ImageBlock = {
   id: string;
   type: "image";

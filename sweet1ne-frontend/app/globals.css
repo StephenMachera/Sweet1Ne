@@ -1598,7 +1598,7 @@ label.admin-chip:has(input:checked) span {
   text-transform: uppercase;
   color: var(--ivory-dim);
 }
-.admin-form input:not([type="checkbox"]):not([type="radio"]),
+.admin-form input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 .admin-form select,
 .admin-form textarea {
   appearance: none;
@@ -1620,6 +1620,19 @@ label.admin-chip:has(input:checked) span {
 }
 .admin-form select:disabled {
   opacity: 0.5;
+}
+/* The Title block's size control — a literal moving tab, not three fixed
+   steps, so the accent-color from the checkbox/radio fix does the same job
+   here: keep the native thumb but recolour it gold. */
+.admin-form input[type="range"] {
+  accent-color: var(--gold);
+  width: 100%;
+  height: 1.4rem;
+  cursor: pointer;
+}
+.admin-form input[type="range"]:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 .admin-form textarea {
   min-height: 5rem;

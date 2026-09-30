@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { apiFetch } from "@/lib/api";
 import { EmojiField } from "@/components/ui/emoji-field";
-import { useMediaLibrary } from "@/lib/use-media-library";
+import { useMediaLibrary, mediaThumb } from "@/lib/use-media-library";
 import {
   Dialog,
   DialogContent,
@@ -164,6 +164,11 @@ export function PromotionConsole({
   meEmail: string | null;
 }) {
   const { media } = useMediaLibrary();
+  // The tenant's own most recent upload — a real photo they actually own,
+  // never a stock placeholder — shown on the "After they enter" preview
+  // whenever no hero image has been picked yet, same convention as the
+  // Campaigns letter preview.
+  const defaultImage = media[0] ? mediaThumb(media[0]) : "";
 
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -587,6 +592,7 @@ export function PromotionConsole({
                 code={draft.code}
                 offer={draft.offer}
                 off={draft.off}
+                defaultImage={defaultImage}
               />
             </>
           ) : lookRow ? (
@@ -603,6 +609,7 @@ export function PromotionConsole({
                 code={lookRow.code}
                 offer={lookRow.offer}
                 off={lookRow.off}
+                defaultImage={defaultImage}
               />
             </>
           ) : (

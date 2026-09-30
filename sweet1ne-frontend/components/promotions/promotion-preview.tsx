@@ -3,24 +3,12 @@
 import {
   heroImageOf,
   CTA_PRESETS,
-  type BannerPosition,
+  BANNER_POSITION_COORDS,
   type PromotionBlock,
   type PromotionBlockType,
   type PromotionCtaKind,
   type NoteBlock,
 } from "@/lib/promotion-blocks";
-
-const BANNER_POSITION_COORDS: Record<BannerPosition, string> = {
-  "top-left": "0% 0%",
-  top: "50% 0%",
-  "top-right": "100% 0%",
-  left: "0% 50%",
-  center: "50% 50%",
-  right: "100% 50%",
-  "bottom-left": "0% 100%",
-  bottom: "50% 100%",
-  "bottom-right": "100% 100%",
-};
 
 export type PromotionPreviewData = {
   kicker: string | null;
@@ -52,9 +40,13 @@ function offerText(offer: string, off: number | null): string {
 export function PromotionPreview({
   data,
   surface,
+  defaultImage,
 }: {
   data: PromotionPreviewData;
   surface: "enter" | "ribbon" | "phone";
+  // Fallback for the "enter" surface when no hero image has been picked
+  // yet — the tenant's own most recent upload, not a stock photo.
+  defaultImage?: string;
 }) {
   const hasType = (t: PromotionBlockType) =>
     data.layout.some((b) => b.type === t);
@@ -99,10 +91,9 @@ export function PromotionPreview({
   }
 
   const hero = heroImageOf(data.layout);
-  const showStill = data.look.still !== "none" && Boolean(hero);
-  const objectPosition = hero
-    ? BANNER_POSITION_COORDS[hero.position ?? "center"]
-    : undefined;
+  const imageUrl = hero?.image_url || defaultImage || "";
+  const showStill = data.look.still !== "none" && Boolean(imageUrl);
+  const objectPosition = BANNER_POSITION_COORDS[hero?.position ?? "center"];
   const objectFit = hero?.fit === "fit" ? "contain" : "cover";
 
   return (
@@ -113,9 +104,9 @@ export function PromotionPreview({
       data-align={data.look.align}
     >
       <div className="admin-promo-card-still">
-        {showStill && hero && (
+        {showStill && (
           <img
-            src={hero.image_url}
+            src={imageUrl}
             alt=""
             style={{ objectFit, objectPosition }}
           />

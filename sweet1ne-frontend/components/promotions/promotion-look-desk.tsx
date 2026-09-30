@@ -83,6 +83,10 @@ type PromotionLookDeskProps = {
   code: string | null;
   offer: string;
   off: number | null;
+  // Shown on the "enter" surface only (the one photo surface) when no hero
+  // image has been picked yet — the tenant's own most recent upload, same
+  // convention as the Campaigns letter preview.
+  defaultImage?: string;
 };
 
 /** The Look desk — one frame per real surface a promotion can appear on
@@ -102,6 +106,7 @@ export function PromotionLookDesk({
   code,
   offer,
   off,
+  defaultImage,
 }: PromotionLookDeskProps) {
   const dockText =
     kind === "code" && code
@@ -121,7 +126,7 @@ export function PromotionLookDesk({
         onToggle={() => onToggleSurface?.("enter")}
       >
         <div className="admin-promo-film">
-          <PromotionPreview data={data} surface="enter" />
+          <PromotionPreview data={data} surface="enter" defaultImage={defaultImage} />
         </div>
       </Frame>
 

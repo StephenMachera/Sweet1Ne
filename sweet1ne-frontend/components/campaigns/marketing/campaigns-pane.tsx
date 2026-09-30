@@ -6,7 +6,11 @@ import { apiFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useMediaLibrary, mediaThumb } from "@/lib/use-media-library";
 import { EmojiField } from "@/components/ui/emoji-field";
-import { BANNER_POSITIONS } from "@/lib/promotion-blocks";
+import {
+  BANNER_POSITIONS,
+  BANNER_POSITION_COORDS,
+  type BannerPosition,
+} from "@/lib/promotion-blocks";
 import {
   Dialog,
   DialogContent,
@@ -64,12 +68,27 @@ const AUDIENCE_LABELS: Record<string, string> = {
   regular: "4+ visits",
 };
 
+// A draggable size instead of three fixed steps — old campaigns still carry
+// the three old preset strings, so this maps those to a starting point on
+// the new px scale rather than resetting them to the default.
+const HEADING_SIZE_MIN = 16;
+const HEADING_SIZE_MAX = 44;
+const HEADING_SIZE_PRESETS: Record<string, number> = {
+  small: 20,
+  medium: 26,
+  large: 34,
+};
+
+function headingSizePx(size: unknown): number {
+  if (typeof size === "number" && Number.isFinite(size)) return size;
+  return HEADING_SIZE_PRESETS[size as string] ?? 26;
+}
+
 type Block = Record<string, any> & { type: string };
 type CtaItem = { kind: string; label: string; href: string };
 type PreviewDraft = {
   name: string;
   subject: string;
-  preheader: string | null;
   blocks: Block[];
 };
 
@@ -100,7 +119,7 @@ function defaultCampaignBlocks(): Block[] {
   return [
     { type: "logo", size: "l", align: "center" },
     { type: "kicker", text: "Sweet1NE", align: "center" },
-    { type: "heading", text: "", size: "medium", align: "center" },
+    { type: "heading", text: "", size: 26, align: "center" },
     { type: "paragraph", text: "", align: "center" },
     {
       type: "image",
@@ -137,7 +156,7 @@ const BLOCK_KINDS: {
   {
     type: "heading",
     label: "Title",
-    make: () => ({ type: "heading", text: "", size: "medium", align: "left" }),
+    make: () => ({ type: "heading", text: "", size: 26, align: "left" }),
   },
   {
     type: "paragraph",
@@ -190,9 +209,11 @@ const BLOCK_KINDS: {
  * Campaigns tab of the unified /admin/marketing page. One table (every
  * campaign, regardless of status), and — right below it — the campaign
  * look: a live preview next to the editor, both always on screen together
- * rather than tucked into a side drawer. The preview is a real rendered-
- * email iframe from the same /campaigns/preview endpoint the actual send
- * uses, so it can never drift from what actually gets sent.
+ * rather than tucked into a side drawer. That editor-side preview is a
+ * plain client-side mockup for on-screen editing, not the real send-safe
+ * HTML — the Send dialog (in CampaignEditor, below) is what actually calls
+ * /campaigns/preview and shows the real rendered letter before anything
+ * goes out.
  */
 export function CampaignsPane() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -262,7 +283,6 @@ export function CampaignsPane() {
         body: JSON.stringify({
           name: "Untitled campaign",
           subject: "",
-          preheader: null,
           blocks: defaultCampaignBlocks(),
         }),
       });
@@ -507,15 +527,6 @@ function CampaignRow({
   );
 }
 
-/** Live preview replacing the table while a campaign is open for editing.
- *  Renders the SAME html the real send/test-send would produce, straight
- *  from the drawer's own in-memory draft (lifted up via onDraftChange) —
- *  a short debounce on the network call, not a fixed poll, so it reflects
- *  what's being typed right now rather than what was last saved. */
-// Hint copy so an unwritten draft still reads as a laid-out email — shown
-// only in this preview call, never saved and never in a real send. If the
-// draft is actually sent still blank, the real email just omits that block,
-// same as it always has; nothing here reaches a real subscriber's inbox.
 const LOGO_SRC = "/images/brand/logo.png";
 
 /** What the marketer actually sees on screen — a direct DOM mockup, not the
@@ -568,13 +579,28 @@ function MailStagePreview({ draft }: { draft: PreviewDraft | null }) {
                 {block.text || "Sweet1NE"}
               </p>
             );
-          case "heading":
+          case "heading": {
             return (
-              <h2 key={i}>{block.text || "Subject and title sit here."}</h2>
+              <h2
+                key={i}
+                style={{
+                  fontSize: `${headingSizePx(block.size)}px`,
+                  textAlign: (block.align ?? "left") as React.CSSProperties["textAlign"],
+                }}
+              >
+                {block.text || "Subject and title sit here."}
+              </h2>
             );
+          }
           case "paragraph":
             return (
-              <p key={i} className="admin-dek">
+              <p
+                key={i}
+                className="admin-dek"
+                style={{
+                  textAlign: (block.align ?? "left") as React.CSSProperties["textAlign"],
+                }}
+              >
                 {block.text || "Write the mail. The look stays the website."}
               </p>
             );
@@ -588,13 +614,16 @@ function MailStagePreview({ draft }: { draft: PreviewDraft | null }) {
             const url = block.url || defaultImage;
             if (!url) return null;
             const objectFit = block.fit === "fit" ? "contain" : "cover";
+            const objectPosition =
+              BANNER_POSITION_COORDS[block.position as BannerPosition] ??
+              BANNER_POSITION_COORDS.center;
             return (
               <img
                 key={i}
                 className="admin-still"
                 src={url}
                 alt=""
-                style={{ objectFit }}
+                style={{ objectFit, objectPosition }}
               />
             );
           }
@@ -651,7 +680,6 @@ function CampaignEditor({
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
-  const [preheader, setPreheader] = useState("");
   const [blocks, setBlocks] = useState<Block[]>([]);
   // Which layout row reads gold — purely a "you're looking at this one"
   // marker, same as the reference build's own selection concept. Every
@@ -668,8 +696,13 @@ function CampaignEditor({
   const [error, setError] = useState<string | null>(null);
 
   const [testEmail, setTestEmail] = useState("");
-  const [testDialogOpen, setTestDialogOpen] = useState(false);
-  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  // One panel does both jobs — reviewing the real letter and sending it —
+  // matching the reference build's single send-layer rather than two
+  // separate dialogs a marketer has to piece together in their head.
+  const [sendPanelOpen, setSendPanelOpen] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   const readOnly = campaign
     ? ["sent", "sending"].includes(campaign.status)
@@ -681,7 +714,6 @@ function CampaignEditor({
         setCampaign(c);
         setName(c.name);
         setSubject(c.subject);
-        setPreheader(c.preheader ?? "");
         setBlocks(c.blocks ?? []);
         setAudience(c.audience ?? "active");
         setChannels(c.channels ?? {});
@@ -698,8 +730,8 @@ function CampaignEditor({
   // Mirrors the live edit buffer up to the parent on every change, so the
   // preview beside it renders exactly what's on screen right now.
   useEffect(() => {
-    onDraftChange({ name, subject, preheader: preheader || null, blocks });
-  }, [name, subject, preheader, blocks, onDraftChange]);
+    onDraftChange({ name, subject, blocks });
+  }, [name, subject, blocks, onDraftChange]);
 
   function updateBlock(index: number, patch: Partial<Block>) {
     setBlocks((prev) =>
@@ -740,27 +772,36 @@ function CampaignEditor({
     });
   }
 
+  // The PATCH itself, shared by "Save draft" and by test/real sends — both
+  // of those read blocks back off the campaign row in the database, so
+  // whatever's on screen has to land there first or they'd go out with
+  // whatever was last saved (often just the seeded logo), not what the
+  // marketer is actually looking at.
+  async function persist(): Promise<Campaign> {
+    const updated = await apiFetch(`/campaigns/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        // There's no separate "internal name" field in this UI anymore —
+        // kept in step with the subject rather than left frozen at
+        // whatever it was called on creation.
+        name: subject || name,
+        subject,
+        blocks,
+        audience,
+        channels,
+        map_id: mapId || null,
+      }),
+    });
+    setCampaign(updated);
+    onSaved(updated);
+    return updated;
+  }
+
   async function save() {
     setSaving(true);
     setError(null);
     try {
-      const updated = await apiFetch(`/campaigns/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          // There's no separate "internal name" field in this UI anymore —
-          // kept in step with the subject rather than left frozen at
-          // whatever it was called on creation.
-          name: subject || name,
-          subject,
-          preheader: preheader || null,
-          blocks,
-          audience,
-          channels,
-          map_id: mapId || null,
-        }),
-      });
-      setCampaign(updated);
-      onSaved(updated);
+      await persist();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save that.");
     } finally {
@@ -773,11 +814,11 @@ function CampaignEditor({
     setSendingTest(true);
     setError(null);
     try {
+      await persist();
       await apiFetch(`/campaigns/${id}/test`, {
         method: "POST",
         body: JSON.stringify({ email: testEmail }),
       });
-      setTestDialogOpen(false);
       setTestEmail("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't send that test.");
@@ -790,17 +831,58 @@ function CampaignEditor({
     setSending(true);
     setError(null);
     try {
+      await persist();
       const updated = await apiFetch(`/campaigns/${id}/send`, {
         method: "POST",
       });
       setCampaign(updated);
       onSaved(updated);
-      setSendDialogOpen(false);
+      setSendPanelOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't send that.");
     } finally {
       setSending(false);
     }
+  }
+
+  // The real send-safe HTML — same renderer the actual send and test send
+  // use — so what's shown here is what goes out, not the editor's own
+  // on-screen mockup.
+  const loadPreviewHtml = useCallback(async () => {
+    setPreviewLoading(true);
+    setPreviewError(null);
+    try {
+      const { html } = await apiFetch("/campaigns/preview", {
+        method: "POST",
+        body: JSON.stringify({
+          name: subject || name,
+          subject,
+          blocks,
+          audience,
+          channels,
+          map_id: mapId || null,
+        }),
+      });
+      setPreviewHtml(html);
+    } catch (err) {
+      setPreviewError(
+        err instanceof Error ? err.message : "Couldn't render that letter.",
+      );
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, [subject, name, blocks, audience, channels, mapId]);
+
+  function copyLetterHtml() {
+    if (previewHtml) navigator.clipboard?.writeText(previewHtml);
+  }
+
+  function openLetter() {
+    if (!previewHtml) return;
+    const blob = new Blob([previewHtml], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener,noreferrer");
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
   const audienceCount = audienceCounts ? (audienceCounts[audience] ?? 0) : null;
@@ -817,7 +899,8 @@ function CampaignEditor({
           <p className="admin-dek">
             Tap a box — gold is the one you are on. Logo is first: size and
             alignment. Pictures take a banner position and fit or fill. Buttons
-            can be reordered.
+            can be reordered. Send posts this whole letter, not the subject
+            alone.
             {campaign.status === "sent" &&
               ` Sent to ${campaign.sent_count} ${campaign.sent_count === 1 ? "person" : "people"}${campaign.failed_count > 0 ? ` · ${campaign.failed_count} failed` : ""}.`}
           </p>
@@ -851,14 +934,6 @@ function CampaignEditor({
                 onChange={setSubject}
                 placeholder="What shows up in the inbox"
                 required
-              />
-            </label>
-            <label>
-              Preheader
-              <EmojiField
-                value={preheader}
-                onChange={setPreheader}
-                placeholder="Shown beside the subject in most inboxes"
               />
             </label>
 
@@ -967,19 +1042,15 @@ function CampaignEditor({
                     <button
                       type="button"
                       className="admin-book"
-                      onClick={() => setSendDialogOpen(true)}
+                      onClick={() => {
+                        setSendPanelOpen(true);
+                        loadPreviewHtml();
+                      }}
                       disabled={blocks.length === 0}
                     >
                       Send
                     </button>
                   )}
-                  <button
-                    type="button"
-                    className="admin-book"
-                    onClick={() => setTestDialogOpen(true)}
-                  >
-                    Send test
-                  </button>
                 </>
               )}
               <button type="button" className="admin-book" onClick={onClose}>
@@ -988,54 +1059,15 @@ function CampaignEditor({
             </p>
           </form>
 
-          {/* Send test */}
-          <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
-            <DialogContent className={DARK_DIALOG}>
+          {/* Send this letter — one panel for reviewing the real HTML and
+              sending it, matching the reference build's single send-layer
+              rather than a separate "send a test" dialog with no way to see
+              what it's actually testing. */}
+          <Dialog open={sendPanelOpen} onOpenChange={setSendPanelOpen}>
+            <DialogContent className={`${DARK_DIALOG} sm:max-w-xl`}>
               <DialogHeader>
                 <DialogTitle className="font-display text-xl text-[#e5e2e1]">
-                  Send a test
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="block text-[0.68rem] uppercase tracking-[0.14em] text-[rgba(229,226,225,0.68)]">
-                    Email address
-                  </label>
-                  <input
-                    type="email"
-                    value={testEmail}
-                    onChange={(e) => setTestEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className={`w-full rounded-[3px] border px-3 py-2.5 text-sm ${DIALOG_FIELD}`}
-                  />
-                </div>
-                <div className="flex justify-end gap-3">
-                  <button
-                    type="button"
-                    className={DIALOG_GHOST_BTN}
-                    onClick={() => setTestDialogOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className={DIALOG_BOOK_BTN}
-                    onClick={sendTest}
-                    disabled={sendingTest || !testEmail}
-                  >
-                    {sendingTest ? "Sending…" : "Send test"}
-                  </button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* Send to everyone */}
-          <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
-            <DialogContent className={DARK_DIALOG}>
-              <DialogHeader>
-                <DialogTitle className="font-display text-xl text-[#e5e2e1]">
-                  Send this campaign?
+                  Send this letter
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
@@ -1047,21 +1079,87 @@ function CampaignEditor({
                   right away, and can&rsquo;t be undone. Save any changes first
                   — sending locks the campaign.
                 </p>
-                <div className="flex justify-end gap-3">
+                <p className="text-sm text-[rgba(229,226,225,0.68)]">
+                  {audienceCount === null ? "—" : audienceCount}{" "}
+                  {audienceCount === 1 ? "address" : "addresses"} —{" "}
+                  {AUDIENCE_LABELS[audience]}.
+                </p>
+
+                <div className="overflow-hidden rounded-[3px] border border-[rgba(201,162,74,0.35)] bg-[#050505]">
+                  {previewLoading ? (
+                    <p className="p-8 text-center text-sm text-[rgba(229,226,225,0.5)]">
+                      Rendering…
+                    </p>
+                  ) : previewError ? (
+                    <p className="p-8 text-center text-sm text-[#e5a2a2]">
+                      {previewError}
+                    </p>
+                  ) : (
+                    <iframe
+                      title="Letter"
+                      srcDoc={previewHtml ?? ""}
+                      className="h-[420px] w-full bg-white"
+                    />
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-[0.68rem] uppercase tracking-[0.14em] text-[rgba(229,226,225,0.68)]">
+                    Test address
+                  </label>
+                  <input
+                    type="email"
+                    value={testEmail}
+                    onChange={(e) => setTestEmail(e.target.value)}
+                    placeholder="you@sweet1ne.com"
+                    autoComplete="email"
+                    className={`w-full rounded-[3px] border px-3 py-2.5 text-sm ${DIALOG_FIELD}`}
+                  />
+                  <p className="text-xs text-[rgba(229,226,225,0.5)]">
+                    Sends this HTML letter to one inbox. Does not mark the
+                    campaign sent. Opted-out addresses stay off the live send.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap justify-end gap-3">
                   <button
                     type="button"
                     className={DIALOG_GHOST_BTN}
-                    onClick={() => setSendDialogOpen(false)}
+                    onClick={() => setSendPanelOpen(false)}
                   >
-                    Not yet
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    className={DIALOG_GHOST_BTN}
+                    onClick={openLetter}
+                    disabled={!previewHtml}
+                  >
+                    Open letter
+                  </button>
+                  <button
+                    type="button"
+                    className={DIALOG_GHOST_BTN}
+                    onClick={copyLetterHtml}
+                    disabled={!previewHtml}
+                  >
+                    Copy HTML
+                  </button>
+                  <button
+                    type="button"
+                    className={DIALOG_BOOK_BTN}
+                    onClick={sendTest}
+                    disabled={sendingTest || !testEmail}
+                  >
+                    {sendingTest ? "Sending…" : "Send test"}
                   </button>
                   <button
                     type="button"
                     className={DIALOG_BOOK_BTN}
                     onClick={confirmSend}
-                    disabled={sending}
+                    disabled={sending || blocks.length === 0}
                   >
-                    {sending ? "Sending…" : "Send it"}
+                    {sending ? "Sending…" : "Send to the list"}
                   </button>
                 </div>
               </div>
@@ -1187,16 +1285,19 @@ function BlockCard({
               onChange={(text) => onChange({ text })}
               placeholder="Heading text"
             />
-            <div className="flex flex-wrap gap-3">
-              <select
-                value={block.size ?? "medium"}
+            <label className="!mb-0">
+              Size — {headingSizePx(block.size)}px
+              <input
+                type="range"
+                min={HEADING_SIZE_MIN}
+                max={HEADING_SIZE_MAX}
+                step={1}
+                value={headingSizePx(block.size)}
                 disabled={readOnly}
-                onChange={(e) => onChange({ size: e.target.value })}
-              >
-                <option value="small">Small</option>
-                <option value="medium">Medium</option>
-                <option value="large">Large</option>
-              </select>
+                onChange={(e) => onChange({ size: Number(e.target.value) })}
+              />
+            </label>
+            <div className="flex flex-wrap gap-3">
               <AlignSelect
                 value={block.align}
                 disabled={readOnly}
@@ -1570,28 +1671,26 @@ function ImageBlockFields({
           <option value="fill">Fill the frame</option>
         </select>
       </label>
-      {block.url && (
-        <div
-          className="admin-anchor-grid"
-          role="group"
-          aria-label="Banner position"
-        >
-          {BANNER_POSITIONS.map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              aria-label={label}
-              disabled={readOnly}
-              className={
-                (block.position ?? "center") === key ? "is-on" : undefined
-              }
-              onClick={() => onChange({ position: key })}
-            >
-              <span />
-            </button>
-          ))}
-        </div>
-      )}
+      <div
+        className="admin-anchor-grid"
+        role="group"
+        aria-label="Banner position"
+      >
+        {BANNER_POSITIONS.map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            aria-label={label}
+            disabled={readOnly}
+            className={
+              (block.position ?? "center") === key ? "is-on" : undefined
+            }
+            onClick={() => onChange({ position: key })}
+          >
+            <span />
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
