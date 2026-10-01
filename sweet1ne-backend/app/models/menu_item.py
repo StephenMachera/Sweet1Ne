@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, func
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,6 +24,10 @@ class MenuItem(Base):
 
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String)
+    # Menu order is editorial (most expensive to least, not alphabetical) —
+    # same convention as MainCategory.sort_order, just never had a column of
+    # its own until a real pack needed its exact order preserved.
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     picture: Mapped[str | None] = mapped_column(String)
     # Up to 5, from the media library. `picture` above always mirrors

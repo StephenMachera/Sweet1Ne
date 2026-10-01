@@ -83,7 +83,7 @@ def public_menu(db: Session = Depends(get_db)):
             SubCategory.is_active == True,
             MainCategory.is_active == True,
         )
-        .order_by(MainCategory.sort_order, SubCategory.sort_order, MenuItem.title)
+        .order_by(MainCategory.sort_order, SubCategory.sort_order, MenuItem.sort_order)
     ).all()
 
     # Tenant-wide promos only — a branch-specific discount can't be honoured

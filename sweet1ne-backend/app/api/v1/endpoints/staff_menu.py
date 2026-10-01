@@ -135,7 +135,7 @@ def list_sub_categories(
 ):
     statement = select(SubCategory).join(
         MainCategory, SubCategory.main_category_id == MainCategory.id
-    )
+    ).order_by(SubCategory.sort_order)
     statement = scope_to_branch(statement, staff.tenant_id, staff.branch_id)
 
     scope = resolve_menu_scope(staff, branch_id, shared_only)
@@ -171,6 +171,7 @@ def list_menu_items(
         select(MenuItem)
         .join(SubCategory, MenuItem.sub_category_id == SubCategory.id)
         .join(MainCategory, SubCategory.main_category_id == MainCategory.id)
+        .order_by(MenuItem.sort_order)
     )
     statement = scope_to_branch(statement, staff.tenant_id, staff.branch_id)
 

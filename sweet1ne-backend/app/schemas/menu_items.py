@@ -5,6 +5,7 @@ class MenuItemIn(BaseModel):
     sub_category_id: uuid.UUID
     title: str
     description: str | None = None
+    sort_order: int = 0
     price: float
     picture: str | None = None
     pictures: list[str] = []
@@ -19,6 +20,7 @@ class MenuItemOut(BaseModel):
     sub_category_id: uuid.UUID
     title: str
     description: str | None
+    sort_order: int
     price: float
     picture: str | None
     pictures: list[str] = []
@@ -32,6 +34,7 @@ class MenuItemUpdate(BaseModel):
     sub_category_id: uuid.UUID | None = None
     title: str | None = None
     description: str | None = None
+    sort_order: int | None = None
     price: float | None = None
     picture: str | None = None
     pictures: list[str] | None = None
