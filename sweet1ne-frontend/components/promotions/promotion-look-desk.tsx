@@ -69,7 +69,16 @@ function Frame({
         {label} <span className="admin-look-state">{on ? "On" : "Off"}</span>
       </p>
       {cap && <p className="admin-look-cap">{cap}</p>}
-      {children}
+      {on ? (
+        children
+      ) : (
+        // Off means this surface won't actually show the promotion, so
+        // there's nothing to keep live-updating here — showing it anyway
+        // as you type would suggest it's still on when it isn't.
+        <p className="admin-look-inactive">
+          This surface is off. Turn it on to preview it live.
+        </p>
+      )}
     </section>
   );
 }

@@ -17,7 +17,7 @@ export type PromotionPreviewData = {
   layout: PromotionBlock[];
   cta: PromotionCtaKind;
   cta_label: string | null;
-  look: { still: string; tone: string; align: string };
+  look: { still: string; tone: string; align: string; background_image: string | null };
   kind: string;
   code: string | null;
   offer: string;
@@ -95,6 +95,12 @@ export function PromotionPreview({
   const showStill = data.look.still !== "none" && Boolean(imageUrl);
   const objectPosition = BANNER_POSITION_COORDS[hero?.position ?? "center"];
   const objectFit = hero?.fit === "fit" ? "contain" : "cover";
+  // Independent of the hero still above — a full-bleed backdrop behind the
+  // whole card, dimmed so the words stay readable over any photo. Falls
+  // back to the same tenant default the hero still uses, but that's just a
+  // shared fallback source, not a shared value: picking one doesn't set
+  // the other.
+  const backgroundUrl = data.look.background_image || defaultImage || "";
 
   return (
     <article
@@ -103,6 +109,11 @@ export function PromotionPreview({
       data-tone={data.look.tone}
       data-align={data.look.align}
     >
+      {backgroundUrl && (
+        <div className="admin-promo-bg" aria-hidden>
+          <img src={backgroundUrl} alt="" />
+        </div>
+      )}
       <div className="admin-promo-card-still">
         {showStill && (
           <img

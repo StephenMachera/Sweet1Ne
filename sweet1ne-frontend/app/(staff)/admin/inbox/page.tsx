@@ -31,7 +31,12 @@ type Enquiry = {
   staff_message: string | null;
   branch_id: string;
   branch_name: string | null;
+  created_at: string;
 };
+
+// How often the inbox checks for anything new on its own, without staff
+// having to remember to refresh.
+const AUTO_REFRESH_MS = 3 * 60 * 1000;
 
 type StateFilter = "all" | "unread" | "open" | "replied" | "done";
 
@@ -62,7 +67,19 @@ export default function AdminInboxPage() {
 
   const load = useCallback(() => {
     apiFetch("/reservations")
-      .then((rows: Enquiry[]) => setEnquiries(rows.filter((r) => r.reservation_type === "enquiry")))
+      .then((rows: Enquiry[]) =>
+        setEnquiries(
+          rows
+            .filter((r) => r.reservation_type === "enquiry")
+            // Newest first — the backend's own order is soonest-booking-first,
+            // which means oldest-first for an enquiry (no real date of its
+            // own), the opposite of what's useful here.
+            .sort(
+              (a, b) =>
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+            ),
+        ),
+      )
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
@@ -83,6 +100,8 @@ export default function AdminInboxPage() {
       return;
     }
     load();
+    const id = setInterval(load, AUTO_REFRESH_MS);
+    return () => clearInterval(id);
   }, [meLoading, me, canManage, router, load]);
 
   useEffect(() => {

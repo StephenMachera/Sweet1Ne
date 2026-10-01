@@ -22,7 +22,7 @@ import {
   type PromotionBlockType,
   type PromotionCtaKind,
 } from "@/lib/promotion-blocks";
-import { HeroPicker, PromotionLayoutEditor } from "./promotion-blocks-editor";
+import { BackgroundPicker, HeroPicker, PromotionLayoutEditor } from "./promotion-blocks-editor";
 import { PromotionLookDesk, type SurfaceKey } from "./promotion-look-desk";
 import { AdminLoading } from "@/components/admin/admin-loading";
 
@@ -42,7 +42,7 @@ type Surfaces = {
   ribbon: boolean;
   phone: boolean;
 };
-type Look = { still: string; tone: string; align: string };
+type Look = { still: string; tone: string; align: string; background_image: string | null };
 
 type Promotion = {
   id: string;
@@ -117,7 +117,7 @@ function emptyDraft(branchId: string | null): Draft {
     regular_visits: 4,
     surfaces: { ...defs },
     layout: defaultPromotionLayout(),
-    look: { still: "left", tone: "glass", align: "left" },
+    look: { still: "left", tone: "glass", align: "left", background_image: null },
     map_id: null,
   };
 }
@@ -885,6 +885,20 @@ export function PromotionConsole({
                     </select>
                   </label>
                 </div>
+
+                <p className="admin-kicker">Background</p>
+                <p className="admin-dek">
+                  Sits behind the whole card, dimmed — separate from the
+                  picture above. Leave it blank to use your most recent
+                  upload automatically.
+                </p>
+                <BackgroundPicker
+                  media={media}
+                  value={draft.look.background_image}
+                  onChange={(background_image) =>
+                    patch({ look: { ...draft.look, background_image } })
+                  }
+                />
                 {hero && (
                   <>
                     <p className="admin-kicker">Banner position</p>

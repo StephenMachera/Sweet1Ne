@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/api";
 import { slugify } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CoursePictureDialog } from "./course-picture-dialog";
 import type { MainCategory, SubCategory } from "./menu-browser";
 
 const STATIONS = [
@@ -40,6 +41,7 @@ export function CategoryManager({
   const [draftName, setDraftName] = useState("");
   const [draftStation, setDraftStation] = useState("kitchen");
   const [draftParent, setDraftParent] = useState("");
+  const [pictureFor, setPictureFor] = useState<MainCategory | null>(null);
 
   const isMain = level === "main";
   const path = isMain ? "/staff/menu/main-categories" : "/staff/menu/sub-categories";
@@ -345,6 +347,20 @@ export function CategoryManager({
                 if (editing) {
                   return (
                     <tr key={row.id}>
+                      {isMain && (
+                        <td>
+                          <button
+                            type="button"
+                            className={`admin-menu-mark is-small${(row as MainCategory).picture ? "" : " is-empty"}`}
+                            aria-label={`Change ${row.name} picture`}
+                            onClick={() => setPictureFor(row as MainCategory)}
+                          >
+                            {(row as MainCategory).picture && (
+                              <img src={(row as MainCategory).picture!} alt="" />
+                            )}
+                          </button>
+                        </td>
+                      )}
                       <td>
                         <input
                           value={draftName}
@@ -391,6 +407,20 @@ export function CategoryManager({
 
                 return (
                   <tr key={row.id}>
+                    {isMain && (
+                      <td>
+                        <button
+                          type="button"
+                          className={`admin-menu-mark is-small${(row as MainCategory).picture ? "" : " is-empty"}`}
+                          aria-label={`Change ${row.name} picture`}
+                          onClick={() => setPictureFor(row as MainCategory)}
+                        >
+                          {(row as MainCategory).picture && (
+                            <img src={(row as MainCategory).picture!} alt="" />
+                          )}
+                        </button>
+                      </td>
+                    )}
                     <td className="admin-name">{row.name}</td>
                     <td className="admin-muted">
                       {isMain
@@ -415,6 +445,14 @@ export function CategoryManager({
           </table>
         )}
       </div>
+
+      {isMain && (
+        <CoursePictureDialog
+          category={pictureFor}
+          onClose={() => setPictureFor(null)}
+          onSaved={() => onChanged()}
+        />
+      )}
     </div>
   );
 }

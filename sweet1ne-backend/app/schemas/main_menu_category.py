@@ -5,6 +5,7 @@ class MainCategoryIn(BaseModel):
     name: str
     slug: str
     description: str | None = None
+    picture: str | None = None
     branch_id: uuid.UUID | None = None
     prep_station: str = "kitchen"
 
@@ -17,6 +18,7 @@ class MainCategoryOut(BaseModel):
     name: str
     slug: str
     description: str | None
+    picture: str | None
     sort_order: int
     is_active: bool
     prep_station: str
@@ -25,6 +27,7 @@ class MainCategoryUpdate(BaseModel):
     name: str | None = None
     slug: str | None = None
     description: str | None = None
+    picture: str | None = None
     sort_order: int | None = None
     is_active: bool | None = None
     prep_station: str | None = None

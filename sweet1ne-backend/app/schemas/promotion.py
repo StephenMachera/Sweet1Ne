@@ -16,6 +16,12 @@ class PromotionLook(BaseModel):
     still: str = "left"
     tone: str = "glass"
     align: str = "left"
+    # A full-bleed backdrop behind the whole "enter" surface card — distinct
+    # from the hero still in `layout` (that's a small photo beside/above the
+    # words; this sits behind everything, dimmed, same treatment as the
+    # Events page's own full-bleed preview). None falls back to the
+    # tenant's own most recent upload, same convention as everywhere else.
+    background_image: str | None = None
 
 
 class PromotionChannels(BaseModel):

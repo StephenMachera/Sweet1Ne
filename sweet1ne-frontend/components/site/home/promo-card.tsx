@@ -14,6 +14,10 @@ type Promotion = {
   dek: string | null;
   cta: PromotionCtaKind;
   cta_label: string | null;
+  // The hero still (beside/above the words) isn't wired up on this real
+  // card yet — a separate, pre-existing gap from before this background
+  // feature, left alone here rather than folded into this change.
+  look?: { background_image: string | null };
 };
 
 /** The homepage card after Enter Sweet1NE — a real, live "enter"-surface
@@ -42,8 +46,19 @@ export function PromoCard() {
 
   if (gated || !promotion) return null;
 
+  const backgroundImage = promotion.look?.background_image;
+
   return (
-    <section className="promo-card mx-auto max-w-3xl px-5 py-10 text-center sm:px-8">
+    <section className="promo-card relative mx-auto max-w-3xl overflow-hidden px-5 py-10 text-center sm:px-8">
+      {backgroundImage && (
+        <img
+          src={backgroundImage}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 -z-10 h-full w-full object-cover"
+          style={{ filter: "brightness(0.42) saturate(1.05)" }}
+        />
+      )}
       {promotion.kicker && (
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--gold)]">
           {promotion.kicker}

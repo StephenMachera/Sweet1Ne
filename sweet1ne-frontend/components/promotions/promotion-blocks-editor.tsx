@@ -15,6 +15,40 @@ import {
 } from "@/lib/promotion-blocks";
 import { useRef, useState } from "react";
 
+/** The whole-card backdrop for the "After they enter" surface — a single
+   picture, independent of the hero still below (HeroPicker): that one sits
+   beside/above the words, this one sits behind the entire card, dimmed. */
+export function BackgroundPicker({
+  media,
+  value,
+  onChange,
+}: {
+  media: MediaItem[];
+  value: string | null;
+  onChange: (next: string | null) => void;
+}) {
+  return (
+    <div className="admin-media-grid is-compact">
+      {media.map((item) => {
+        const thumb = mediaThumb(item);
+        const selected = Boolean(thumb) && value === thumb;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            className={`${item.kind === "video" ? "is-film " : ""}${selected ? "is-on" : ""}`.trim()}
+            aria-pressed={selected}
+            onClick={() => onChange(selected ? null : thumb)}
+          >
+            {thumb && <img src={thumb} alt="" />}
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /** The one "Picture" a promotion carries — tapping a tile sets or replaces
    it directly rather than piling up new picture blocks, same as the
    reference build's hero-pick. A second, independent picture can still be

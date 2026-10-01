@@ -30,6 +30,10 @@ class MainCategory(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     slug: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String)
+    # The course "medal" — decorative chrome shown on the category's filter
+    # pill and chapter header in the admin menu board, from the media
+    # library. Not required; items keep their own pictures regardless.
+    picture: Mapped[str | None] = mapped_column(String)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     prep_station: Mapped[str] = mapped_column(

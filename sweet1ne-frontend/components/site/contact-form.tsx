@@ -47,6 +47,7 @@ declare global {
         }
       ) => string;
       reset: (widgetId: string) => void;
+      remove: (widgetId: string) => void;
     };
   }
 }
@@ -107,7 +108,8 @@ export function ContactForm() {
     if (!turnstileReady || !turnstileContainerRef.current || !window.turnstile) return;
     if (!TURNSTILE_SITE_KEY) return;
 
-    turnstileWidgetIdRef.current = window.turnstile.render(turnstileContainerRef.current, {
+    const turnstile = window.turnstile;
+    const widgetId = turnstile.render(turnstileContainerRef.current, {
       sitekey: TURNSTILE_SITE_KEY,
       callback: setTurnstileToken,
       // A token left too long unused expires; clearing it here means
@@ -115,6 +117,19 @@ export function ContactForm() {
       // dead token to the backend.
       "expired-callback": () => setTurnstileToken(""),
     });
+    turnstileWidgetIdRef.current = widgetId;
+
+    // Without this, React's Strict Mode double-invoking the effect in dev
+    // (and any real remount) renders a second widget into the same
+    // container on top of the first — two overlapping checkboxes fighting
+    // for the same click, which is exactly what looked like a checkbox
+    // "clicking itself" or refusing to respond at all.
+    return () => {
+      turnstile.remove(widgetId);
+      if (turnstileWidgetIdRef.current === widgetId) {
+        turnstileWidgetIdRef.current = null;
+      }
+    };
   }, [turnstileReady]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -218,19 +233,21 @@ export function ContactForm() {
       )}
 
       {/* Honeypot — off-screen, never focusable or visible to a real
-          visitor, tabIndex -1 so keyboard/tab order skips it too. */}
+          visitor, tabIndex -1 so keyboard/tab order skips it too. No
+          visible "Website" label and a name that doesn't look like a real
+          field: browser/extension autofill matches on label text and
+          field name, not just CSS visibility — a field literally labelled
+          "Website" got silently filled in by visitors' own autofill,
+          tripping the honeypot for real enquiries, not bots. */}
       <div aria-hidden style={{ position: "absolute", left: "-9999px", top: "auto", width: 1, height: 1, overflow: "hidden" }}>
-        <label>
-          Website
-          <input
-            type="text"
-            name="website"
-            tabIndex={-1}
-            autoComplete="off"
-            value={website}
-            onChange={(e) => setWebsite(e.target.value)}
-          />
-        </label>
+        <input
+          type="text"
+          name="hp_contact_field"
+          tabIndex={-1}
+          autoComplete="off"
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
+        />
       </div>
 
       <label className="block">

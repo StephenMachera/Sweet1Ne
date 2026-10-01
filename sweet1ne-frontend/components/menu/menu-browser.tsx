@@ -12,6 +12,9 @@ export type MainCategory = {
   sort_order: number;
   branch_id: string | null;
   prep_station: string;
+  // The course "medal" — decorative chrome on the admin menu board's filter
+  // pill and chapter header. Never required.
+  picture: string | null;
 };
 
 export type SubCategory = {

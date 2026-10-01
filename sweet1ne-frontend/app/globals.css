@@ -709,6 +709,18 @@ body {
   text-transform: uppercase;
   color: var(--ivory-dim);
 }
+/* .admin-card .admin-act above only covers the dashboard's own cards —
+   this is the same gold "act" link on its own, e.g. the Website / Table
+   phone links in a tools row. */
+.admin-act {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.admin-act:hover {
+  color: var(--ivory);
+}
 
 .admin-cats {
   display: flex;
@@ -1247,6 +1259,15 @@ label.admin-chip:has(input:checked) span {
   font-size: 0.8rem;
   color: var(--ivory-dim);
 }
+.admin-look-inactive {
+  margin: 0.5rem 0 0;
+  padding: 1.6rem 1rem;
+  border: 1px dashed rgba(201, 162, 74, 0.22);
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--ivory-dim);
+  opacity: 0.6;
+}
 
 /* "After they enter" — a dark film behind the popup, echoing the moment
    right after Enter Sweet1NE on the real homepage. */
@@ -1353,14 +1374,35 @@ label.admin-chip:has(input:checked) span {
 /* "After they enter" — the real homepage popup: photo on one side, copy
    on the other. */
 .admin-promo-card {
+  position: relative;
   width: 100%;
   display: grid;
   grid-template-columns: 8.6rem minmax(0, 1fr);
+  overflow: hidden;
   border: 1px solid rgba(201, 162, 74, 0.48);
   background: rgba(5, 5, 5, 0.68);
   box-shadow:
     inset 0 0 0 4px #050505,
     inset 0 0 0 5px rgba(201, 162, 74, 0.16);
+}
+/* The whole-card backdrop — independent of, and sits behind, the hero
+   still beside the words. Dimmed so the copy stays readable over any
+   photo, same treatment as the Events page's own full-bleed preview. */
+.admin-promo-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.admin-promo-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.42) saturate(1.05);
+}
+.admin-promo-card-still,
+.admin-promo-card-copy {
+  position: relative;
+  z-index: 1;
 }
 .admin-promo-card[data-still="top"] {
   grid-template-columns: 1fr;
@@ -2059,6 +2101,236 @@ label.admin-chip:has(input:checked) span {
 .admin-dish-stills .admin-dek {
   grid-column: 1 / -1;
   margin: 0;
+}
+
+/* Editing an item shows both real surfaces side by side — the website card
+   and the table-phone card — so staff see exactly what each guest sees,
+   not one generic mockup standing in for both. */
+.admin-dish-preview.is-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.admin-phone-dish {
+  display: grid;
+  grid-template-columns: 3.1rem minmax(0, 1fr) auto;
+  gap: 0.55rem 0.65rem;
+  align-items: center;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid rgba(229, 226, 225, 0.08);
+}
+.admin-phone-dish img,
+.admin-phone-gap {
+  width: 3.1rem;
+  height: 3.1rem;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.38);
+}
+.admin-phone-gap {
+  display: block;
+  background: #141414;
+  box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.18);
+}
+.admin-phone-dish strong {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--ivory);
+}
+.admin-phone-dish p {
+  margin: 0.15rem 0 0;
+  color: var(--ivory-dim);
+  font-size: 0.78rem;
+}
+.admin-dish-preview.is-pair .admin-phone-dish,
+.admin-dish-preview .admin-menu-dish {
+  border-bottom: 0;
+  padding: 0;
+}
+.admin-dish-preview .admin-menu-dish {
+  grid-template-columns: 3.4rem minmax(0, 1fr) auto;
+}
+@media (max-width: 1100px) {
+  .admin-dish-preview.is-pair {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* The course filmstrip — one pill per category, each with its own small
+   picture disc when the category has one. Horizontal-scrolling, same as
+   the reference build's own course rail. */
+.admin-courses {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding: 0.2rem 0 0.55rem;
+  margin: 0 0 0.6rem;
+  scrollbar-width: none;
+}
+.admin-courses::-webkit-scrollbar {
+  display: none;
+}
+.admin-course {
+  flex: 0 0 auto;
+  width: 4.6rem;
+  text-align: center;
+  color: var(--ivory-dim);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.admin-course .admin-disc {
+  display: block;
+  width: 4.6rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 0 auto 0.4rem;
+  background: #111;
+  box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.38);
+}
+.admin-course .admin-disc img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.admin-course.is-on {
+  color: var(--gold);
+}
+.admin-course.is-on .admin-disc {
+  box-shadow: 0 0 0 2px var(--gold);
+}
+/* "All" has no course picture of its own to go gold when selected — it
+   stays gold always, so it still reads as a real option in the rail. */
+.admin-course.is-all {
+  color: var(--gold);
+}
+
+/* The menu board itself — one chapter per course, each with its own medal
+   picture and a list of dishes with circular thumbnails, replacing the
+   old flat table so the board actually reads like a menu. */
+.admin-menu-chapter {
+  margin: 0 0 1.8rem;
+}
+.admin-menu-chapter-head {
+  display: grid;
+  grid-template-columns: 5.4rem minmax(0, 1fr) auto;
+  gap: 0.9rem;
+  align-items: center;
+  margin: 0 0 0.7rem;
+}
+.admin-menu-mark {
+  width: 5.4rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: #111;
+  box-shadow: 0 0 0 2px var(--gold);
+  cursor: pointer;
+}
+.admin-menu-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.admin-menu-mark.is-empty {
+  box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.28);
+}
+/* Same medal, table-row scale — the Main categories list shows every
+   course's picture at a glance, not just the ones currently on the board. */
+.admin-menu-mark.is-small {
+  width: 2.4rem;
+}
+.admin-menu-chapter .admin-kicker {
+  margin: 0 0 0.2rem;
+}
+.admin-menu-list {
+  display: grid;
+}
+.admin-menu-dish {
+  display: grid;
+  grid-template-columns: auto 3.4rem minmax(0, 1fr) auto auto;
+  gap: 0.55rem 0.75rem;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(229, 226, 225, 0.08);
+  text-align: left;
+}
+.admin-menu-dish.is-off {
+  opacity: 0.45;
+}
+.admin-menu-dish img,
+.admin-menu-gap {
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.4);
+}
+.admin-menu-gap {
+  display: block;
+  background: #141414;
+  box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.18);
+}
+.admin-menu-dish h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.05rem;
+  margin: 0;
+}
+.admin-menu-dish .admin-muted {
+  margin: 0.2rem 0 0;
+}
+@media (max-width: 1100px) {
+  .admin-menu-chapter-head {
+    grid-template-columns: 1fr;
+  }
+  .admin-menu-dish {
+    grid-template-columns: auto 2.8rem minmax(0, 1fr) auto;
+  }
+}
+
+/* The JSON dropdown in the tools row — a plain <details>, no JS needed to
+   open or close it. */
+.admin-fold {
+  position: relative;
+}
+.admin-fold > summary {
+  list-style: none;
+  cursor: pointer;
+  color: var(--gold);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.45rem 0.2rem;
+}
+.admin-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.admin-fold-box {
+  position: absolute;
+  top: calc(100% + 0.2rem);
+  left: 0;
+  z-index: 8;
+  min-width: 11rem;
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.55rem;
+  background: #080808;
+  border: 1px solid var(--gold-line);
+}
+.admin-fold-box .admin-edit {
+  display: block;
+  width: 100%;
+  text-align: left;
 }
 
 @media (max-width: 960px) {
