@@ -11,14 +11,17 @@ import { Label } from "@/components/ui/label";
 import { EmojiField } from "@/components/ui/emoji-field";
 import {
   addBlock,
+  BANNER_POSITIONS,
   BLOCK_LABELS,
   CTA_PRESETS,
   defaultEventLayout,
   hasBlock,
   heroImageOf,
+  imagesOf,
   moveBlock,
   removeBlock,
   setHeroImage,
+  toggleImage,
   toLocalInput,
   updateBlock,
   type EventBlock,
@@ -371,11 +374,14 @@ function BranchEventForm({ event, branches, onSaved, onCancel }: BranchProps) {
 const ADDABLE: EventBlockType[] = ["logo", "kicker", "meta", "title", "dek", "image", "note", "ctas"];
 
 
-/** A quick-add picture strip, right under the add-blocks bar — tapping a
-   tile immediately adds a new picture block filled with that image,
-   without going through "+ Picture" first. Padded out to a full 3×3 grid
-   with empty placeholder tiles until the real /admin/media library has
-   enough in it to fill the shape. */
+/** A quick-pick picture grid, right under the add-blocks bar — tapping a
+   tile toggles a picture block for that image on or off, so the whole
+   gallery stays visible and controllable from one place instead of adding
+   blocks one at a time. Padded out to a full 4×4 grid with empty
+   placeholder tiles until the real /admin/media library has enough in it
+   to fill the shape. Selection reads as a highlighted tile (border + glow),
+   the same convention LayoutEditor's own per-block picker already uses —
+   not a checkbox, which read as a second, confusing control on the image. */
 function QuickGallery({
   media,
   layout,
@@ -385,10 +391,11 @@ function QuickGallery({
   layout: EventBlock[];
   onChange: (next: EventBlock[]) => void;
 }) {
-  const slots = Math.max(9, media.length);
+  const slots = Math.max(16, media.length);
+  const selectedUrls = new Set(imagesOf(layout).map((b) => b.image_url));
 
   return (
-    <div className="admin-media-grid is-quick">
+    <div className="admin-media-grid is-quick is-dense">
       {Array.from({ length: slots }, (_, i) => {
         const item = media[i];
         if (!item) {
@@ -399,12 +406,14 @@ function QuickGallery({
           );
         }
         const thumb = mediaThumb(item);
+        const selected = Boolean(thumb) && selectedUrls.has(thumb);
         return (
           <button
             key={item.id}
             type="button"
-            className={item.kind === "video" ? "is-film" : undefined}
-            onClick={() => onChange(addBlock(layout, "image", thumb))}
+            aria-pressed={selected}
+            className={`${item.kind === "video" ? "is-film " : ""}${selected ? "is-on" : ""}`.trim()}
+            onClick={() => thumb && onChange(toggleImage(layout, thumb))}
           >
             {thumb && <img src={thumb} alt="" />}
             <span>{item.label}</span>
@@ -585,6 +594,21 @@ function LayoutEditor({
                   );
                 })}
               </div>
+              {block.image_url && (
+                <div className="admin-anchor-grid" role="group" aria-label="Picture position">
+                  {BANNER_POSITIONS.map(({ key, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-label={label}
+                      className={(block.position ?? "center") === key ? "is-on" : undefined}
+                      onClick={() => onChange(updateBlock(layout, block.id, { position: key } as Partial<EventBlock>))}
+                    >
+                      <span />
+                    </button>
+                  ))}
+                </div>
+              )}
               <label>
                 <input
                   type="checkbox"

@@ -896,14 +896,12 @@ function CampaignEditor({
       ) : (
         <>
           <h2 id="camp-title">{isNew ? "New campaign" : "Edit campaign"}</h2>
-          <p className="admin-dek">
-            Tap a box — gold is the one you are on. Logo is first: size and
-            alignment. Pictures take a banner position and fit or fill. Buttons
-            can be reordered. Send posts this whole letter, not the subject
-            alone.
-            {campaign.status === "sent" &&
-              ` Sent to ${campaign.sent_count} ${campaign.sent_count === 1 ? "person" : "people"}${campaign.failed_count > 0 ? ` · ${campaign.failed_count} failed` : ""}.`}
-          </p>
+          {campaign.status === "sent" && (
+            <p className="admin-dek">
+              Sent to {campaign.sent_count} {campaign.sent_count === 1 ? "person" : "people"}
+              {campaign.failed_count > 0 ? ` · ${campaign.failed_count} failed` : ""}.
+            </p>
+          )}
 
           {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
 
@@ -1135,7 +1133,7 @@ function CampaignEditor({
                     onClick={openLetter}
                     disabled={!previewHtml}
                   >
-                    Open letter
+                    Preview
                   </button>
                   <button
                     type="button"

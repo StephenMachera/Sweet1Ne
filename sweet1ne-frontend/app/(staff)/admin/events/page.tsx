@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { EventForm, emptyAdminDraft, type AdminEventDraft, type Event } from "@/components/events/event-form";
 import {
+  BANNER_POSITION_COORDS,
   heroImageOf,
   type EventBlock,
   type EventBlockType,
@@ -77,7 +78,12 @@ function PreviewBody({ data }: { data: PreviewData }) {
       {extras.length > 0 && (
         <div className="admin-preview-extras">
           {extras.map((b) => (
-            <img key={b.id} src={b.image_url} alt="" />
+            <img
+              key={b.id}
+              src={b.image_url}
+              alt=""
+              style={{ objectPosition: BANNER_POSITION_COORDS[b.position ?? "center"] }}
+            />
           ))}
         </div>
       )}
@@ -264,13 +270,16 @@ export default function AdminEventsPage() {
           what's actually on the website. */}
       <section className="admin-preview-next" aria-label="On the website">
         <div className="admin-preview-hero">
-          <img
-            src={
-              (formOpen ? heroImageOf(draft.layout)?.image_url : heroImageOf(nextListed?.layout ?? [])?.image_url) ||
-              EMPTY_STILL
-            }
-            alt=""
-          />
+          {(() => {
+            const hero = formOpen ? heroImageOf(draft.layout) : heroImageOf(nextListed?.layout ?? []);
+            return (
+              <img
+                src={hero?.image_url || EMPTY_STILL}
+                alt=""
+                style={hero ? { objectPosition: BANNER_POSITION_COORDS[hero.position ?? "center"] } : undefined}
+              />
+            );
+          })()}
         </div>
         <div className="admin-preview-copy">
           {formOpen ? (

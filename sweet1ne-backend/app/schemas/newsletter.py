@@ -19,6 +19,7 @@ class SubscriberOut(BaseModel):
     is_subscribed: bool
     consented_at: datetime
     unsubscribed_at: datetime | None
+    is_read: bool = False
 
 
 class SubscriberStats(BaseModel):

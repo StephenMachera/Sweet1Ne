@@ -77,6 +77,9 @@ export type MenuItemDraft = {
   /** Up to 5, from the media library. The guest phone opens these as a
    *  carousel; `picture` (above) always mirrors pictures[0]. */
   pictures: string[];
+  /** "" means "same as category" (MainCategory.prep_station) — "kitchen"
+   *  or "bar" pins this one dish to that station regardless. */
+  stationOverride: "" | "kitchen" | "bar";
 };
 
 export const emptyDraft = (item?: MenuItem): MenuItemDraft => ({
@@ -85,6 +88,7 @@ export const emptyDraft = (item?: MenuItem): MenuItemDraft => ({
   price: item ? String(item.price) : "",
   picture: item?.picture ?? null,
   pictures: item?.pictures?.length ? item.pictures : item?.picture ? [item.picture] : [],
+  stationOverride: item?.prep_station_override === "bar" ? "bar" : item?.prep_station_override === "kitchen" ? "kitchen" : "",
 });
 
 export function MenuItemForm({
@@ -127,7 +131,7 @@ export function MenuItemForm({
   const draft = controlledDraft ?? internalDraft;
   const onDraftChange =
     controlledOnDraftChange ?? ((patch: Partial<MenuItemDraft>) => setInternalDraft((d) => ({ ...d, ...patch })));
-  const { title, description, price, pictures } = draft;
+  const { title, description, price, pictures, stationOverride } = draft;
 
   const availableSubs = subs.filter((s) => s.main_category_id === mainId);
 
@@ -205,6 +209,7 @@ export function MenuItemForm({
         pictures,
         dietary_tags: dietary,
         allergen_tags: allergens,
+        prep_station_override: stationOverride || null,
       };
 
       const saved = item
@@ -350,6 +355,20 @@ export function MenuItemForm({
               onChange={(e) => onDraftChange({ price: e.target.value })}
               className="border-slate-border"
             />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="item-station">Preparation</Label>
+            <select
+              id="item-station"
+              value={stationOverride}
+              onChange={(e) => onDraftChange({ stationOverride: e.target.value as MenuItemDraft["stationOverride"] })}
+              className="h-10 w-full rounded-lg border border-slate-border bg-white px-3 text-sm"
+            >
+              <option value="">Same as category</option>
+              <option value="kitchen">Kitchen</option>
+              <option value="bar">Bar</option>
+            </select>
           </div>
 
           <div className="space-y-2">
@@ -514,6 +533,18 @@ export function MenuItemForm({
             value={price}
             onChange={(e) => onDraftChange({ price: e.target.value })}
           />
+        </label>
+
+        <label>
+          Preparation
+          <select
+            value={stationOverride}
+            onChange={(e) => onDraftChange({ stationOverride: e.target.value as MenuItemDraft["stationOverride"] })}
+          >
+            <option value="">Same as category</option>
+            <option value="kitchen">Kitchen</option>
+            <option value="bar">Bar</option>
+          </select>
         </label>
 
         <label>Dietary</label>

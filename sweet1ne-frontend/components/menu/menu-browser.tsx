@@ -35,12 +35,30 @@ export type MenuItem = {
   is_available: boolean;
   dietary_tags: string[];
   allergen_tags: string[];
+  /** None means "use this dish's category station" (MainCategory.prep_station)
+   *  — set only when this specific dish fires at the other station. */
+  prep_station_override: string | null;
   /** Set when an active promotion applies — this is what will be charged. */
   promo_price: number | null;
   promo_titles: string[];
 };
 
 export type CartLine = { menu_item_id: string; quantity: number };
+
+/** A dish's own override wins when set; otherwise its category's station —
+ *  the same fallback the real Kitchen/Bar KDS routing uses server-side. */
+export function resolveStation(
+  item: MenuItem,
+  mains: MainCategory[],
+  subs: SubCategory[],
+): "kitchen" | "bar" {
+  if (item.prep_station_override === "kitchen" || item.prep_station_override === "bar") {
+    return item.prep_station_override;
+  }
+  const sub = subs.find((s) => s.id === item.sub_category_id);
+  const main = sub ? mains.find((m) => m.id === sub.main_category_id) : undefined;
+  return main?.prep_station === "bar" ? "bar" : "kitchen";
+}
 
 const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
 

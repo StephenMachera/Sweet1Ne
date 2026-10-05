@@ -33,7 +33,21 @@ type DishInsights = { looked_at_most: DishInsight[]; quiet: DishInsight[]; has_d
    re-reading order_mode from the server) whenever staff flips waiter/phone
    for this branch — otherwise the iframe would keep showing whatever mode
    was live when it first loaded. */
-function LivePhonePreview({ branch, table, reloadToken }: { branch: Branch; table: Table | null; reloadToken: number }) {
+function LivePhonePreview({
+  branch,
+  table,
+  reloadToken,
+  stage,
+}: {
+  branch: Branch;
+  table: Table | null;
+  reloadToken: number;
+  // "gate" forces the mandatory sign-in overlay to show (?preview=signin,
+  // the same param the guest page already reads); "menu" skips it
+  // (?preview=admin) so staff can see the list underneath without
+  // actually signing in.
+  stage: "gate" | "menu";
+}) {
   if (!table) {
     return (
       <div className="admin-handset-empty">
@@ -42,7 +56,8 @@ function LivePhonePreview({ branch, table, reloadToken }: { branch: Branch; tabl
     );
   }
 
-  const src = `/${branch.slug}/order?table=${table.qr_token}&_r=${reloadToken}`;
+  const previewParam = stage === "gate" ? "signin" : "admin";
+  const src = `/${branch.slug}/order?table=${table.qr_token}&preview=${previewParam}&_r=${reloadToken}`;
 
   return (
     <div className="admin-handset-viewport">
@@ -70,6 +85,10 @@ export default function AdminQrPage() {
   const [reloadToken, setReloadToken] = useState(0);
   const [phoneUrlDraft, setPhoneUrlDraft] = useState("");
   const [savingPhoneUrl, setSavingPhoneUrl] = useState(false);
+  // Which active table's QR session the mini phone previews — null means
+  // "the first active one for this branch", same default as before.
+  const [previewTableId, setPreviewTableId] = useState<string | null>(null);
+  const [scanStage, setScanStage] = useState<"gate" | "menu">("gate");
 
   const load = () => {
     apiFetch("/branches").then(setBranches).catch(() => setBranches([]));
@@ -188,10 +207,13 @@ export default function AdminQrPage() {
   // the first branch, same "default to the first real one" idea as the
   // reference build defaulting to Lewisham.
   const previewBranch = branches.find((b) => b.id === branchFilter) ?? branches[0] ?? null;
-  const previewTable = previewBranch
-    ? tables.find((t) => t.branch_id === previewBranch.id && t.is_active) ?? null
-    : null;
+  const branchActiveTables = previewBranch
+    ? tables.filter((t) => t.branch_id === previewBranch.id && t.is_active)
+    : [];
+  const previewTable =
+    branchActiveTables.find((t) => t.id === previewTableId) ?? branchActiveTables[0] ?? null;
   const guestUrl = previewBranch && previewTable ? `/${previewBranch.slug}/order?table=${previewTable.qr_token}` : null;
+  const previewMode = previewBranch?.settings?.order_mode === "app" ? "app" : "waiter";
 
   const visibleTables = tables
     .filter((t) => !branchFilter || t.branch_id === branchFilter)
@@ -242,8 +264,8 @@ export default function AdminQrPage() {
 
       <h1>QR Codes</h1>
       <p className="admin-dek">
-        One mini phone. Choose who takes the order — a waiter, or the phone. Looked at most fills
-        in after guests use it.
+        The phone is the scan. Email opens the list at the table. Gold is how they order. Looked at
+        most fills after guests use it.
       </p>
 
       {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
@@ -268,19 +290,74 @@ export default function AdminQrPage() {
       </div>
 
       <div className="admin-qr-desk">
-        <section className="admin-handset" aria-label="Table phone">
-          <div className="admin-handset-bar">
-            <img src={LOGO_SRC} alt="Sweet1NE" />
-            <p>
-              {previewBranch ? `${previewBranch.name} · Table ${previewTable ? previewTable.number : "—"}` : "No branch yet"}
-            </p>
-          </div>
-          {previewBranch ? (
-            <LivePhonePreview branch={previewBranch} table={previewTable} reloadToken={reloadToken} />
-          ) : (
-            <div className="admin-handset-empty">Add a restaurant to preview the phone.</div>
+        <div className="admin-qr-preview">
+          <section className="admin-handset" aria-label="Table phone">
+            <div className="admin-handset-bar">
+              <img src={LOGO_SRC} alt="Sweet1NE" />
+              <p>
+                {previewBranch ? `${previewBranch.name} · Table ${previewTable ? previewTable.number : "—"}` : "No branch yet"}
+              </p>
+            </div>
+            {previewBranch ? (
+              <LivePhonePreview branch={previewBranch} table={previewTable} reloadToken={reloadToken} stage={scanStage} />
+            ) : (
+              <div className="admin-handset-empty">Add a restaurant to preview the phone.</div>
+            )}
+          </section>
+
+          {previewBranch && (
+            <>
+              <p className="admin-handset-mode">
+                {previewMode === "app"
+                  ? "Order on the phone · hold before Toast"
+                  : "Ask a waiter · floor takes the order"}
+              </p>
+              {branchActiveTables.length > 0 && (
+                <label className="admin-handset-table">
+                  Preview table
+                  <select
+                    aria-label="Preview table"
+                    value={previewTable?.id ?? ""}
+                    onChange={(e) => setPreviewTableId(e.target.value)}
+                  >
+                    {branchActiveTables.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        Table {t.number}
+                        {t.qr_code_url ? "" : " · no code yet"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              <div className="admin-cats admin-scan-row" role="group" aria-label="On the phone">
+                <button
+                  type="button"
+                  className={scanStage === "gate" ? "is-on" : undefined}
+                  onClick={() => setScanStage("gate")}
+                >
+                  Scan
+                </button>
+                <button
+                  type="button"
+                  className={scanStage === "menu" ? "is-on" : undefined}
+                  onClick={() => setScanStage("menu")}
+                >
+                  Menu
+                </button>
+              </div>
+              <button type="button" className="admin-edit" onClick={() => setReloadToken((t) => t + 1)}>
+                Replay scan
+              </button>
+              {guestUrl && (
+                <p className="admin-handset-open">
+                  <a href={guestUrl} target="_blank" rel="noopener">
+                    Open full guest page
+                  </a>
+                </p>
+              )}
+            </>
           )}
-        </section>
+        </div>
 
         <div>
           <h2 className="admin-board-h">How they order</h2>
@@ -316,43 +393,6 @@ export default function AdminQrPage() {
               );
             })}
           </div>
-
-          <nav className="admin-tile-row" aria-label="Open">
-            <Link
-              className="admin-tile"
-              href={guestUrl ? `${guestUrl}&preview=signin` : "#"}
-              target={guestUrl ? "_blank" : undefined}
-              aria-disabled={!guestUrl}
-              onClick={(e) => !guestUrl && e.preventDefault()}
-              style={!guestUrl ? { opacity: 0.5, pointerEvents: "none" } : undefined}
-            >
-              <strong>Guest sign-in</strong>
-              <span>Email at the table</span>
-            </Link>
-            <Link
-              className="admin-tile"
-              href={guestUrl ?? "#"}
-              target={guestUrl ? "_blank" : undefined}
-              aria-disabled={!guestUrl}
-              onClick={(e) => !guestUrl && e.preventDefault()}
-              style={!guestUrl ? { opacity: 0.5, pointerEvents: "none" } : undefined}
-            >
-              <strong>Guest phone</strong>
-              <span>The live table app</span>
-            </Link>
-            <Link className="admin-tile" href="/admin/menu/manage">
-              <strong>Menu</strong>
-              <span>Dishes and photos</span>
-            </Link>
-            <Link className="admin-tile" href="/admin/promotions">
-              <strong>Promotions</strong>
-              <span>Codes on the basket</span>
-            </Link>
-            <Link className="admin-tile" href="/admin/leads">
-              <strong>Leads</strong>
-              <span>Who signed in</span>
-            </Link>
-          </nav>
 
           <div className="admin-qr-quiet">
             <p className="admin-kicker">Need a picture</p>
@@ -464,18 +504,16 @@ export default function AdminQrPage() {
 
       <h2 className="admin-board-h">Table codes</h2>
       <p className="admin-dek">
-        {loading
-          ? "Loading…"
-          : tables.length
-            ? `${tables.length} table${tables.length === 1 ? "" : "s"} · ${attached} with a code.`
-            : "Add table numbers on Tables. Attach the code here when it exists."}
+        {loading ? (
+          "Loading…"
+        ) : tables.length ? (
+          `${tables.length} tables · ${attached} with codes`
+        ) : (
+          <>
+            Add table numbers on Tables. Attach the code here when it exists. <Link href="/admin/tables">Tables</Link>
+          </>
+        )}
       </p>
-      <nav className="admin-tile-row" aria-label="Tables">
-        <Link className="admin-tile" href="/admin/tables">
-          <strong>Tables</strong>
-          <span>Add a number first</span>
-        </Link>
-      </nav>
 
       {visibleTables.length === 0 ? (
         <p className="admin-empty">No tables yet. Add a number on Tables, then come back to attach the code.</p>

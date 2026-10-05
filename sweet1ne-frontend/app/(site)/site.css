@@ -84,14 +84,14 @@ body.is-gated {
 }
 
 body.is-gated .site-header,
-body.is-gated .pause,
-body.is-gated .site-ribbon {
+body.is-gated .pause {
   opacity: 0;
   pointer-events: none;
 }
 
-/* Pushes the fixed header down to clear the promo ribbon above it. */
-body.has-ribbon .site-header { top: 2.25rem; }
+/* The gate stays clean — no promo surface shows until it's open. */
+body.is-gated .promo-stage { opacity: 0; }
+body.is-gated #promo-ribbon { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -1202,6 +1202,24 @@ body.has-ribbon .site-header { top: 2.25rem; }
   padding: 0.55rem 0 0.45rem;
   border-bottom: 1px solid rgba(201, 162, 74, 0.14);
   background: #050505;
+}
+
+/* Quiet line — sits fixed just under the header (never on top of it), and
+   nudges the two things that would otherwise sit right where it lands. */
+#promo-ribbon:not([hidden]) {
+  position: fixed;
+  top: 4.15rem;
+  left: 0;
+  right: 0;
+  z-index: 80;
+}
+@media (max-width: 720px) {
+  #promo-ribbon:not([hidden]) { top: 3.7rem; }
+}
+body:has(#promo-ribbon:not([hidden])) .courses-wrap { top: 7.3rem; }
+body:has(#promo-ribbon:not([hidden])) .cinema .pause { top: 7.7rem; }
+@media (max-width: 720px) {
+  body:has(#promo-ribbon:not([hidden])) .courses-wrap { top: 6.85rem; }
 }
 
 .menu-page .courses {

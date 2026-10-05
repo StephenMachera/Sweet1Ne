@@ -28,4 +28,11 @@ class NewsletterSubscriber(Base):
     is_subscribed: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     unsubscribed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # Seen by staff yet — drives the sidebar's "new leads" badge, same
+    # inbox-style concept as Reservation.is_read/Order.is_read. There's no
+    # per-row detail to "open" here (a subscriber is just an email, not a
+    # message), so this gets marked true for everyone at once the moment
+    # the Leads page is viewed, not per-row.
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

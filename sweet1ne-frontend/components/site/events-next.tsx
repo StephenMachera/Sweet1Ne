@@ -5,7 +5,14 @@ import Link from "next/link";
 import { SOCIAL_LINKS } from "@/lib/site-content";
 import { FacebookIcon, InstagramIcon, TikTokIcon } from "./social-icons";
 import { NewsletterForm } from "./newsletter-form";
-import { hasBlock, heroImageOf, imagesOf, type EventBlock, type EventCta } from "@/components/events/event-blocks";
+import {
+  BANNER_POSITION_COORDS,
+  hasBlock,
+  heroImageOf,
+  imagesOf,
+  type EventBlock,
+  type EventCta,
+} from "@/components/events/event-blocks";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 const POSTER = "/images/homepage-gallery/events/poster-events.jpg";
@@ -82,12 +89,18 @@ export function EventsNext() {
   }, [nights.length, index]);
 
   const night = nights[index] ?? null;
+  const hero = night ? heroImageOf(night.layout) : undefined;
 
   return (
     <>
       <section className="next" id="next" aria-label="What’s next">
         <div className="next-media">
-          <img className="next-still" src={night?.image_url || POSTER} alt="" />
+          <img
+            className="next-still"
+            src={hero?.image_url || night?.image_url || POSTER}
+            alt=""
+            style={hero ? { objectPosition: BANNER_POSITION_COORDS[hero.position ?? "center"] } : undefined}
+          />
         </div>
         <span className="next-veil" aria-hidden="true" />
 
@@ -109,13 +122,17 @@ export function EventsNext() {
                   </p>
                 ))}
               {(() => {
-                const hero = heroImageOf(night.layout);
                 const extras = imagesOf(night.layout).filter((b) => b !== hero);
                 if (!extras.length) return null;
                 return (
                   <div className="extra-stills">
                     {extras.map((b) => (
-                      <img key={b.id} src={b.image_url} alt="" />
+                      <img
+                        key={b.id}
+                        src={b.image_url}
+                        alt=""
+                        style={{ objectPosition: BANNER_POSITION_COORDS[b.position ?? "center"] }}
+                      />
                     ))}
                   </div>
                 );

@@ -5,7 +5,13 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarDays, Clock, MapPin } from "lucide-react";
 import { Heading } from "@/components/site/section";
 import { BookTableButton } from "@/components/site/booking-modal";
-import { heroImageOf, imagesOf, type EventBlock, type EventCta } from "@/components/events/event-blocks";
+import {
+  BANNER_POSITION_COORDS,
+  heroImageOf,
+  imagesOf,
+  type EventBlock,
+  type EventCta,
+} from "@/components/events/event-blocks";
 
 type Event = {
   id: string;
@@ -67,6 +73,7 @@ export default async function EventPage({
   if (!event) notFound();
 
   const when = new Date(event.starts_at);
+  const hero = heroImageOf(event.layout);
 
   return (
     <>
@@ -79,6 +86,7 @@ export default async function EventPage({
             priority
             sizes="100vw"
             className="object-cover"
+            style={{ objectPosition: BANNER_POSITION_COORDS[hero?.position ?? "center"] }}
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-[#201f1f] to-[#0e0e0e]" />
@@ -194,7 +202,6 @@ export default async function EventPage({
               ))}
 
             {(() => {
-              const hero = heroImageOf(event.layout);
               const extras = imagesOf(event.layout).filter((b) => b !== hero);
               if (!extras.length) return null;
               return (
@@ -205,7 +212,7 @@ export default async function EventPage({
                       src={b.image_url}
                       alt=""
                       className="aspect-[4/3] w-full object-cover"
-                      style={{ borderRadius: "4px" }}
+                      style={{ borderRadius: "4px", objectPosition: BANNER_POSITION_COORDS[b.position ?? "center"] }}
                     />
                   ))}
                 </div>

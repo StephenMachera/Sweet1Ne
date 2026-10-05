@@ -84,8 +84,12 @@ body {
   --color-guest-muted: var(--guest-muted);
   --color-guest-border: var(--guest-border);
   --color-guest-accent-soft: var(--guest-accent-soft);
-  --color-guest-accent: #ff8100;
-  --color-guest-accent-dark: #e06e00;
+  --color-guest-accent: var(--guest-accent);
+  --color-guest-accent-dark: var(--guest-accent-dark);
+  /* The colour accent text sits on top of — white on the light theme's
+     orange, near-black on the dark theme's gold (same convention as the
+     admin/site's own gold buttons, where white would barely read). */
+  --color-guest-accent-text: var(--guest-accent-text);
 }
 
 [data-guest-theme="light"] {
@@ -96,16 +100,25 @@ body {
   --guest-muted: #7a6e64;
   --guest-border: #efe6db;
   --guest-accent-soft: #fff1e3;
+  --guest-accent: #ff8100;
+  --guest-accent-dark: #e06e00;
+  --guest-accent-text: #ffffff;
 }
 
+/* Dark mode matches the admin dashboard / public site's own palette
+   exactly (app/globals.css .admin-shell, app/(site)/site.css) — same
+   near-black background and gold accent, not a separate guest palette. */
 [data-guest-theme="dark"] {
-  --guest-bg: #171310;
-  --guest-card: #211b16;
-  --guest-elevated: #2a221c;
-  --guest-text: #f5efe8;
-  --guest-muted: #a2968a;
-  --guest-border: #2e2620;
-  --guest-accent-soft: rgba(255, 129, 0, 0.14);
+  --guest-bg: #050505;
+  --guest-card: #0c0c0c;
+  --guest-elevated: #141414;
+  --guest-text: #e5e2e1;
+  --guest-muted: rgba(229, 226, 225, 0.68);
+  --guest-border: rgba(201, 162, 74, 0.28);
+  --guest-accent-soft: rgba(201, 162, 74, 0.12);
+  --guest-accent: #c9a24a;
+  --guest-accent-dark: #a88735;
+  --guest-accent-text: #0e0e0e;
 }
 
 @theme {
@@ -502,6 +515,23 @@ body {
   color: var(--ivory-dim);
 }
 
+.admin-secondary-link {
+  appearance: none;
+  border: 0;
+  padding: 0.2rem 0.25rem;
+  background: transparent;
+  color: var(--ivory-dim);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.admin-secondary-link:hover {
+  color: var(--gold);
+}
+
 .admin-clock {
   margin: 0;
   font-size: 0.78rem;
@@ -759,6 +789,14 @@ body {
   gap: 0.65rem;
   margin: 0 0 1rem;
 }
+.admin-kpi-strip.is-six {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+@container admin-stage (max-width: 820px) {
+  .admin-kpi-strip.is-six {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
 .admin-kpi-strip > div {
   padding: 0.75rem 0.85rem;
   border: 1px solid var(--gold-line);
@@ -992,10 +1030,26 @@ body {
   background: none;
 }
 
-/* The quick-add gallery under "Picture" — a 5x5 grid, padded with empty
-   tiles until a real media library exists to fill it. */
+/* The quick-pick gallery under "Picture" — a 4x4 grid, padded with empty
+   tiles until a real media library has enough in it to fill the shape
+   (more than 16 items wraps into further rows of 4). Selection is the same
+   highlighted-tile convention as every other picker here (.is-on), not a
+   checkbox. */
 .admin-media-grid.is-quick {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+/* Smaller tiles specifically for the quick-pick gallery — it shows more of
+   them at once than the per-block pickers below, so each one can afford to
+   be smaller. */
+.admin-media-grid.is-dense {
+  gap: 0.3rem;
+}
+.admin-media-grid.is-dense button {
+  aspect-ratio: 1 / 1;
+}
+.admin-media-grid.is-dense button span {
+  font-size: 0.48rem;
+  padding: 0.15rem 0.2rem;
 }
 /* The single-hero picker — same 5-column grid, tighter bottom margin. */
 .admin-media-grid.is-compact {
@@ -1236,6 +1290,12 @@ label.admin-chip:has(input:checked) span {
   border-color: var(--gold);
   box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.25);
 }
+.admin-look-frame.is-off {
+  border-color: rgba(201, 162, 74, 0.2);
+}
+.admin-look-content.is-off {
+  opacity: 0.48;
+}
 
 .admin-look-kicker {
   display: flex;
@@ -1269,45 +1329,175 @@ label.admin-chip:has(input:checked) span {
   opacity: 0.6;
 }
 
-/* "After they enter" — a dark film behind the popup, echoing the moment
-   right after Enter Sweet1NE on the real homepage. */
+/* The real site, shown small — an iframe of the actual live page, scaled
+   down with pure CSS (no JS measuring needed): the iframe is sized at 4x
+   its container's current width/height, then scaled to 0.25, so whatever
+   width the container ends up at (the grid is responsive), the iframe
+   always exactly fills it showing a true, proportionally correct slice of
+   the real page — not a hand-drawn stand-in for it. Never interactive
+   (pointer-events: none) and never a tab stop — it's a picture of the
+   site, not a second copy of it to accidentally navigate inside. */
+.admin-look-site-frame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.admin-look-site-frame iframe {
+  display: block;
+  width: 400%;
+  height: 400%;
+  border: 0;
+  transform: scale(0.25);
+  transform-origin: 0 0;
+}
+/* Dims the real page underneath so the overlaid promo stays readable over
+   whatever photo/video happens to be live there. */
+.admin-look-site-veil {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 5, 5, 0.3);
+}
+
+/* "Opening page" — the real homepage behind the promo card, cropped to
+   roughly where the card actually sits once guests enter. The card is
+   positioned to clear the real header (~84px tall, so ~21px at this 0.25
+   scale) rather than sitting flush at the very top of the frame. */
 .admin-promo-film {
-  background: radial-gradient(circle at 50% 15%, #1a1a1a 0%, #050505 75%);
-  padding: 1.2rem 0.7rem;
+  position: relative;
+  min-height: 26rem;
+  overflow: hidden;
+  background: #050505;
+}
+.admin-promo-film > .promo,
+.admin-promo-film > .promo-phone {
+  position: absolute;
+  left: 0.7rem;
+  right: 0.7rem;
+  top: 1.3rem;
+  z-index: 1;
+  /* The real stage centres the card with flex; .promo's own capped width
+     needs this instead, now that it no longer stretches edge to edge. */
+  margin: 0 auto;
 }
 
-/* "Quiet line" — a mock site header so the ribbon reads as sitting under
-   real navigation, not floating on its own. */
-.admin-look-header {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  padding: 0.5rem 0.7rem;
+/* "Quiet line" — the same real-homepage background as "Opening page",
+   just cropped to the header's own height (plus the ribbon's own height)
+   so the ribbon reads as sitting right under it, not floating on its own
+   crop of empty page. */
+.admin-look-ribbon-stage {
+  position: relative;
+  /* Header clearance (1.3rem) + the real ribbon's own min-height
+     (3.15rem) + a little breathing room, so it doesn't clip. */
+  height: 4.9rem;
+  overflow: hidden;
   border: 1px solid rgba(229, 226, 225, 0.14);
-  background: #0a0a0a;
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  color: var(--ivory-dim);
 }
-.admin-look-header img {
-  height: 1.6rem;
-  width: auto;
+.admin-look-ribbon-stage .promo-ribbon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 1.3rem;
+  z-index: 1;
 }
 
-/* "Table phone" — a small handset mockup: a bar naming the table, the
-   promo itself, and a dock standing in for the guest's basket total. */
+/* "Quiet line" — placeholder page content under the ribbon, so it reads as
+   sitting on top of the real site rather than floating alone. */
+.admin-look-ribbon-rest {
+  margin: 0.6rem 0 0;
+  font-size: 0.72rem;
+  color: var(--ivory-dim);
+  opacity: 0.6;
+}
+
+/* "QR app" — an actual phone silhouette (bezel + notch + home indicator),
+   not just a bordered box, so it reads as a handset rather than a card.
+   Fixed width (not 100%): the real guest page behind it needs to render
+   at a genuine mobile viewport width to pick up its own mobile layout,
+   which only works with a fixed, known scale factor — see
+   .admin-look-handset-frame below. */
 .admin-look-handset {
-  border: 1px solid rgba(229, 226, 225, 0.16);
+  width: 15.5rem;
+  margin: 0 auto;
+  position: relative;
+  border: 2px solid rgba(229, 226, 225, 0.22);
+  border-radius: 1.3rem;
   background: #050505;
   overflow: hidden;
+  padding-top: 1.1rem;
+}
+.admin-look-handset::before {
+  content: "";
+  position: absolute;
+  top: 0.35rem;
+  left: 50%;
+  width: 2.6rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: rgba(229, 226, 225, 0.22);
+  transform: translateX(-50%);
+}
+.admin-look-handset::after {
+  content: "";
+  display: block;
+  margin: 0.2rem auto 0.5rem;
+  width: 2.4rem;
+  height: 0.2rem;
+  border-radius: 999px;
+  background: rgba(229, 226, 225, 0.18);
 }
 .admin-look-handset-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.45rem 0.7rem;
   font-size: 0.68rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ivory-dim);
   border-bottom: 1px solid rgba(229, 226, 225, 0.12);
+}
+.admin-look-handset-bar img {
+  height: 1.1rem;
+  width: auto;
+}
+/* The real guest menu behind the promo and dock — this table phone's own
+   actual destination, not a stand-in for it. Unlike the enter/ribbon
+   frames (which stay responsive via a percentage-based scale, since they
+   always want the real site's desktop layout regardless of frame width),
+   this one needs a FIXED scale: the iframe is held at a genuine mobile
+   viewport width (390px) so the real page picks up its own mobile layout,
+   then scaled down by exactly how much .admin-look-handset's own fixed
+   14rem (224px) width shrinks that — 224/390 ≈ 0.574. */
+.admin-look-handset-stage {
+  position: relative;
+  height: 18rem;
+  overflow: hidden;
+  background: #050505;
+}
+.admin-look-handset-frame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.admin-look-handset-frame iframe {
+  display: block;
+  width: 390px;
+  height: 700px;
+  border: 0;
+  transform: scale(0.636);
+  transform-origin: 0 0;
+}
+/* The real phone surface sits in normal flow, right under the table name —
+   so here it clears the header only (~64px real, ~2.55rem at this 0.636
+   scale), not the search bar/categories below it. */
+.admin-look-handset-stage > .promo-phone {
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  top: 2.55rem;
+  z-index: 1;
 }
 .admin-look-handset-dock {
   padding: 0.55rem 0.7rem;
@@ -1317,12 +1507,80 @@ label.admin-chip:has(input:checked) span {
   background: #0a0a0a;
 }
 
-/* ── The promo card itself — three genuinely different shapes, one per
-   surface, matching what a guest actually sees in each place. Not one
-   card reused with different wrappers: "After they enter" is a two-column
-   card with a photo, the quiet line is a single-line bar with no photo,
-   and the table phone is a compact stacked card with no photo or button. */
-.admin-promo-kicker {
+/* ── The promo card — ported from the original template's promo.css,
+   verbatim, so the admin preview and every real guest surface (homepage
+   popup, header ribbon, table phone) render from the exact same rules.
+   var(--display)/var(--body) there are var(--font-display)/var(--font-body)
+   here — this file's own token names — everything else is unchanged. ── */
+.promo-stage {
+  position: absolute;
+  z-index: 10;
+  top: auto;
+  bottom: 10.5rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  padding: 0 1.25rem;
+  max-width: none;
+  pointer-events: none;
+}
+#promo-stage .promo {
+  width: min(26.5rem, 100%);
+}
+.promo-stage[hidden] { display: none; }
+.promo-stage.is-ready .promo {
+  animation: promoIn 0.75s ease 0.28s both;
+}
+@keyframes promoIn {
+  from { opacity: 0; transform: translateY(-0.55rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .promo-stage.is-ready .promo { animation: none; }
+}
+
+.promo {
+  pointer-events: auto;
+  position: relative;
+  width: min(38.5rem, 100%);
+  display: grid;
+  grid-template-columns: 8.6rem minmax(0, 1fr);
+  border: 1px solid rgba(201, 162, 74, 0.48);
+  background: rgba(5, 5, 5, 0.68);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow:
+    inset 0 0 0 5px #050505,
+    inset 0 0 0 6px rgba(201, 162, 74, 0.16),
+    0 18px 48px rgba(0, 0, 0, 0.45);
+}
+.promo[data-size="s"] { grid-template-columns: 6.2rem minmax(0, 1fr); }
+.promo[data-size="l"] { grid-template-columns: 11rem minmax(0, 1fr); }
+.promo-still {
+  position: relative;
+  min-height: 100%;
+  overflow: hidden;
+  background: #080808;
+}
+.promo-still img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: 50% 42%;
+  display: block;
+}
+.promo-copy {
+  padding: 1.05rem 2.4rem 1.1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+.promo-kicker {
   margin: 0 0 0.35rem;
   font-size: 0.62rem;
   letter-spacing: 0.24em;
@@ -1330,197 +1588,273 @@ label.admin-chip:has(input:checked) span {
   color: var(--gold);
   font-weight: 600;
 }
-.admin-promo-title {
+.promo-title {
   margin: 0 0 0.35rem;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: clamp(1.15rem, 3vw, 1.5rem);
+  font-size: clamp(1.25rem, 3vw, 1.7rem);
   letter-spacing: -0.02em;
   color: var(--ivory);
-  line-height: 1.18;
+  line-height: 1.15;
 }
-.admin-promo-dek {
+.promo-dek {
   margin: 0 0 0.75rem;
   color: var(--ivory-dim);
-  font-size: 0.86rem;
+  font-size: 0.88rem;
   line-height: 1.45;
 }
-.admin-promo-note {
-  margin: 0 0 0.6rem;
+.promo-note {
+  margin: 0 0 0.65rem;
   color: var(--ivory-dim);
-  font-size: 0.8rem;
-  font-style: italic;
+  font-size: 0.82rem;
 }
-.admin-promo-code {
-  margin: 0 0 0.6rem;
-  font-size: 0.9rem;
-  letter-spacing: 0.16em;
+.promo-note[hidden] { display: none; }
+.promo-off {
+  margin: 0 0 0.65rem;
+  color: var(--gold);
+  font-size: 0.82rem;
+}
+.promo-off[hidden] { display: none; }
+.promo-code {
+  margin: 0 0 0.7rem;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--gold);
 }
-.admin-promo-off {
-  margin: 0 0 0.6rem;
-  color: var(--gold);
-  font-size: 0.8rem;
-}
-.admin-promo-cta {
+.promo-code[hidden] { display: none; }
+.promo-cta {
   align-self: flex-start;
-  display: inline-block;
   margin: 0;
   padding: 0.48rem 0.85rem;
-  font-size: 0.66rem;
+  font-size: 0.68rem;
 }
-
-/* "After they enter" — the real homepage popup: photo on one side, copy
-   on the other. */
-.admin-promo-card {
-  position: relative;
-  width: 100%;
-  display: grid;
-  grid-template-columns: 8.6rem minmax(0, 1fr);
-  overflow: hidden;
-  border: 1px solid rgba(201, 162, 74, 0.48);
-  background: rgba(5, 5, 5, 0.68);
-  box-shadow:
-    inset 0 0 0 4px #050505,
-    inset 0 0 0 5px rgba(201, 162, 74, 0.16);
-}
-/* The whole-card backdrop — independent of, and sits behind, the hero
-   still beside the words. Dimmed so the copy stays readable over any
-   photo, same treatment as the Events page's own full-bleed preview. */
-.admin-promo-bg {
+.promo-close {
   position: absolute;
-  inset: 0;
-  z-index: 0;
+  top: 0.45rem;
+  right: 0.5rem;
+  width: 1.7rem;
+  height: 1.7rem;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--gold);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
 }
-.admin-promo-bg img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: brightness(0.42) saturate(1.05);
+.promo-close:hover { color: var(--ivory); }
+.promo-dots {
+  position: absolute;
+  left: 8.6rem;
+  right: 0;
+  bottom: 0.35rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
 }
-.admin-promo-card-still,
-.admin-promo-card-copy {
-  position: relative;
-  z-index: 1;
+.promo-dots[hidden] { display: none; }
+.promo-dots button {
+  width: 0.38rem;
+  height: 0.38rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(201, 162, 74, 0.35);
+  cursor: pointer;
 }
-.admin-promo-card[data-still="top"] {
-  grid-template-columns: 1fr;
-}
-.admin-promo-card[data-still="top"] .admin-promo-card-still {
-  height: 8.6rem;
-  min-height: 8.6rem;
-}
-.admin-promo-card[data-still="none"] {
-  grid-template-columns: 1fr;
-}
-.admin-promo-card[data-still="none"] .admin-promo-card-still {
-  display: none;
-}
-.admin-promo-card[data-tone="solid"] {
+.promo-dots button.is-on { background: var(--gold); }
+
+.promo[data-still="top"] { grid-template-columns: 1fr; }
+.promo[data-still="top"] .promo-still { height: 8.6rem; min-height: 8.6rem; }
+.promo[data-still="top"][data-size="s"] .promo-still { height: 6.2rem; min-height: 6.2rem; }
+.promo[data-still="top"][data-size="l"] .promo-still { height: 11rem; min-height: 11rem; }
+.promo[data-still="none"] { grid-template-columns: 1fr; }
+.promo[data-still="none"] .promo-still,
+.promo-still[hidden] { display: none; }
+.promo[data-tone="solid"] {
   background: #080808;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
-.admin-promo-card[data-align="center"] .admin-promo-card-copy {
+.promo[data-align="center"] .promo-copy {
   text-align: center;
   align-items: center;
 }
-.admin-promo-card-still {
-  position: relative;
-  min-height: 100%;
-  overflow: hidden;
-  background: #080808;
-}
-.admin-promo-card-still img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.admin-promo-card-copy {
-  padding: 0.9rem 1.1rem;
+
+/* On the real homepage (inside #promo-stage, above the hero words) and in
+   the admin "Opening page" preview, the card becomes centred with a
+   circular still — a different shape, not just a resize. */
+#promo-stage .promo,
+.admin-look-frame.is-enter .promo {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  min-width: 0;
+  align-items: center;
+  width: min(29rem, 100%);
+  padding: 2.1rem 2.3rem 2.2rem;
+  text-align: center;
+  background: rgba(5, 5, 5, 0.52);
+  border: 1px solid rgba(201, 162, 74, 0.45);
+  box-shadow:
+    inset 0 0 0 5px #050505,
+    inset 0 0 0 6px rgba(201, 162, 74, 0.32),
+    0 22px 56px rgba(0, 0, 0, 0.42);
 }
+#promo-stage .promo-still,
+.admin-look-frame.is-enter .promo-still {
+  width: 6.8rem;
+  height: 6.8rem;
+  min-height: 6.8rem;
+  max-height: 6.8rem;
+  margin: 0.1rem 0 1.15rem;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: 0 0 auto;
+  box-shadow: 0 0 0 2px var(--gold);
+  background: #080808;
+}
+#promo-stage .promo[data-size="s"] .promo-still,
+.admin-look-frame.is-enter .promo[data-size="s"] .promo-still {
+  width: 3.7rem; height: 3.7rem; min-height: 3.7rem; max-height: 3.7rem;
+}
+#promo-stage .promo[data-size="l"] .promo-still,
+.admin-look-frame.is-enter .promo[data-size="l"] .promo-still {
+  width: 5.8rem; height: 5.8rem; min-height: 5.8rem; max-height: 5.8rem;
+}
+#promo-stage .promo-copy,
+.admin-look-frame.is-enter .promo-copy {
+  padding: 0;
+  align-items: center;
+  text-align: center;
+}
+#promo-stage .promo-title,
+.admin-look-frame.is-enter .promo-title {
+  font-size: 1.75rem;
+  margin: 0 0 0.6rem;
+}
+#promo-stage .promo-dek,
+.admin-look-frame.is-enter .promo-dek {
+  display: block;
+  max-width: 22rem;
+  margin: 0 0 1.15rem;
+  font-size: 0.94rem;
+}
+#promo-stage .promo-cta,
+.admin-look-frame.is-enter .promo-cta { align-self: center; }
+#promo-stage .promo-dots,
+.admin-look-frame.is-enter .promo-dots { left: 0; }
+
 @media (max-width: 720px) {
-  .admin-promo-card {
-    grid-template-columns: 1fr;
-  }
-  .admin-promo-card-still {
-    height: 5.4rem;
-    min-height: 5.4rem;
-  }
+  .promo-stage { bottom: 7.4rem; padding: 0 0.85rem; justify-content: center; }
+  .promo { grid-template-columns: 1fr; width: min(21rem, 100%); }
+  #promo-stage .promo,
+  .admin-look-frame.is-enter .promo { width: min(20.5rem, 100%); padding: 1.05rem 1.15rem 1.15rem; }
+  .promo-still { height: 4.1rem; min-height: 4.1rem; }
+  #promo-stage .promo-still,
+  .admin-look-frame.is-enter .promo-still { width: 4.3rem; height: 4.3rem; min-height: 4.3rem; max-height: 4.3rem; margin: 0.05rem 0 0.7rem; border-radius: 50%; }
+  .promo .promo-copy { padding: 0.7rem 1.7rem 0.8rem; text-align: center; align-items: center; }
+  #promo-stage .promo-copy,
+  .admin-look-frame.is-enter .promo-copy { padding: 0; }
+  .promo .promo-cta { align-self: center; }
+  .promo-title { font-size: 1.15rem; }
+  #promo-stage .promo-title { font-size: 1.28rem; }
+  .promo-dek { display: none; }
+  #promo-stage .promo-dek { display: block; font-size: 0.78rem; margin-bottom: 0.7rem; }
+  .promo-dots { left: 0; }
+  .promo-close { width: 2rem; height: 2rem; top: 0.3rem; right: 0.3rem; }
 }
 
-/* "Quiet line" — a single-line bar, no photo, title clipped to one line. */
-.admin-promo-ribbon {
-  display: flex;
+/* "Quiet line" — the header ribbon, a left-to-right strip: still, kicker +
+   title, an optional code, a CTA, and a close button. */
+.promo-ribbon {
+  display: grid;
+  grid-template-columns: 3.15rem minmax(0, 1fr) auto auto auto;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.7rem;
   width: 100%;
-  padding: 0.55rem 0.85rem;
+  min-height: 3.15rem;
+  padding: 0;
+  padding-right: 0.7rem;
   border-bottom: 1px solid rgba(201, 162, 74, 0.28);
   background: rgba(5, 5, 5, 0.92);
+  box-shadow: inset 2px 0 0 var(--gold);
+  pointer-events: auto;
 }
-.admin-promo-ribbon .admin-promo-kicker {
+.promo-ribbon[data-size="s"] { grid-template-columns: 2.4rem minmax(0, 1fr) auto auto auto; min-height: 2.4rem; }
+.promo-ribbon[data-size="l"] { grid-template-columns: 4.2rem minmax(0, 1fr) auto auto auto; min-height: 4.2rem; }
+.promo-ribbon .promo-still { width: 3.15rem; height: 3.15rem; min-height: 3.15rem; }
+.promo-ribbon[data-size="s"] .promo-still { width: 2.4rem; height: 2.4rem; min-height: 2.4rem; }
+.promo-ribbon[data-size="l"] .promo-still { width: 4.2rem; height: 4.2rem; min-height: 4.2rem; }
+.promo-ribbon .promo-copy { padding: 0.35rem 0; min-width: 0; }
+.promo-ribbon .promo-kicker { margin: 0 0 0.12rem; }
+.promo-ribbon .promo-title {
   margin: 0;
-  flex: 0 0 auto;
-}
-.admin-promo-ribbon .admin-promo-title {
-  margin: 0;
-  flex: 1;
-  min-width: 0;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
+  font-family: var(--font-display);
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.admin-promo-ribbon .admin-promo-code {
-  margin: 0;
-  flex: 0 0 auto;
-  font-size: 0.72rem;
-}
-.admin-promo-ribbon .admin-promo-cta {
-  flex: 0 0 auto;
-  padding: 0;
-  background: none;
-  border: 0;
+.promo-ribbon .promo-cta {
   color: var(--gold);
   font-size: 0.62rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
+.promo-ribbon .promo-close { position: static; width: auto; height: auto; font-size: 1.1rem; }
+.promo-ribbon[data-still="none"],
+.promo-ribbon[data-still="top"] { grid-template-columns: minmax(0, 1fr) auto auto auto; padding-left: 0.85rem; }
+.promo-ribbon[data-still="none"] .promo-still,
+.promo-ribbon[data-still="top"] .promo-still,
+.promo-ribbon .promo-still[hidden] { display: none; }
 
-/* "Table phone" — a compact stacked card, no photo, no button. */
-.admin-promo-phone-card {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.6rem;
-  padding: 0.7rem 0.75rem;
-  border: 1px solid rgba(201, 162, 74, 0.35);
-  background: rgba(8, 8, 8, 0.9);
+/* "Table phone" (QR app) — in normal flow, right under the table name, no
+   close button and no CTA (the guest is already in the ordering app). */
+.promo-phone {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4.4rem minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0;
+  margin: 0.45rem 0 0.2rem;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid rgba(201, 162, 74, 0.4);
+  background: rgba(8, 8, 8, 0.92);
+  box-shadow: inset 2px 0 0 var(--gold);
 }
-.admin-promo-phone-card .admin-promo-kicker {
-  margin: 0 0 0.2rem;
+.promo-phone[data-size="s"] { grid-template-columns: 3.4rem minmax(0, 1fr); }
+.promo-phone[data-size="l"] { grid-template-columns: 5.6rem minmax(0, 1fr); }
+.promo-phone .promo-still {
+  position: relative;
+  width: 4.4rem;
+  height: 4.4rem;
+  min-height: 4.4rem;
+  max-height: 4.4rem;
+  overflow: hidden;
 }
-.admin-promo-phone-card .admin-promo-title {
+.promo-phone[data-size="s"] .promo-still { width: 3.4rem; height: 3.4rem; min-height: 3.4rem; max-height: 3.4rem; }
+.promo-phone[data-size="l"] .promo-still { width: 5.6rem; height: 5.6rem; min-height: 5.6rem; max-height: 5.6rem; }
+.promo-phone .promo-still img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.promo-phone .promo-copy { padding: 0.55rem 0.7rem 0.6rem; min-width: 0; }
+.promo-phone .promo-kicker { margin: 0 0 0.2rem; }
+.promo-phone .promo-title {
   margin: 0;
-  font-size: 1rem;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.05rem;
 }
-.admin-promo-phone-card .admin-promo-dek {
-  margin: 0.25rem 0 0;
-  font-size: 0.78rem;
-}
-.admin-promo-phone-card .admin-promo-off {
-  margin: 0.25rem 0 0;
-}
-.admin-promo-phone-card .admin-promo-code {
-  margin: 0;
-  align-self: center;
-}
+.promo-phone .promo-dek { display: block; margin: 0.25rem 0 0; font-size: 0.78rem; }
+.promo-phone .promo-off { margin: 0.4rem 0 0; }
+.promo-phone .promo-code { margin: 0.4rem 0 0; }
+.promo-phone[data-still="none"],
+.promo-phone[data-still="top"] { grid-template-columns: 1fr; }
+.promo-phone[data-still="none"] .promo-still,
+.promo-phone[data-still="top"] .promo-still,
+.promo-phone .promo-still[hidden] { display: none; }
 
 /* ── Event composer — the block stack, its per-block rows, and the CTA
    list, all inside the .admin-drawer-edit / .admin-form editor. ───────── */
@@ -2161,6 +2495,16 @@ label.admin-chip:has(input:checked) span {
 /* The course filmstrip — one pill per category, each with its own small
    picture disc when the category has one. Horizontal-scrolling, same as
    the reference build's own course rail. */
+/* A horizontally-scrolling row with the scrollbar itself hidden — the
+   scroll still works (swipe/drag), there's just no visible track/thumb
+   cluttering the row. Used by the guest order page's category pills. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .admin-courses {
   display: flex;
   gap: 0.75rem;
@@ -2257,7 +2601,7 @@ label.admin-chip:has(input:checked) span {
 }
 .admin-menu-dish {
   display: grid;
-  grid-template-columns: auto 3.4rem minmax(0, 1fr) auto auto;
+  grid-template-columns: auto 3.4rem minmax(0, 1fr) auto auto auto;
   gap: 0.55rem 0.75rem;
   align-items: center;
   padding: 0.75rem 0;
@@ -2295,6 +2639,97 @@ label.admin-chip:has(input:checked) span {
   }
   .admin-menu-dish {
     grid-template-columns: auto 2.8rem minmax(0, 1fr) auto;
+    row-gap: 0.4rem;
+  }
+  .admin-menu-dish .admin-station-pair {
+    grid-column: 2 / -1;
+  }
+}
+
+.admin-station-pair {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+.admin-station-pair button {
+  appearance: none;
+  background: transparent;
+  border: 1px solid rgba(201, 162, 74, 0.28);
+  color: var(--ivory-dim);
+  border-radius: 3px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.admin-station-pair button.is-on {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* Preparation Deck — the alternate view to the normal course-by-course
+   list: every dish sorted into whichever station (Kitchen/Bar) actually
+   fires it, independent of which course it's filed under on the menu. */
+.admin-prep-deck .admin-dek {
+  margin: 0 0 1.1rem;
+}
+.admin-prep-piles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+@container admin-stage (max-width: 820px) {
+  .admin-prep-piles {
+    grid-template-columns: 1fr;
+  }
+}
+.admin-prep-pile {
+  border: 1px solid var(--gold-line);
+  background: var(--panel);
+  padding: 1rem 1.1rem 1.2rem;
+}
+.admin-prep-pile header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 0.9rem;
+}
+.admin-prep-pile header h2 {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+}
+.admin-prep-list {
+  display: grid;
+  gap: 0.1rem;
+}
+.admin-prep-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(229, 226, 225, 0.08);
+}
+.admin-prep-row:last-child {
+  border-bottom: 0;
+}
+.admin-prep-row.is-off {
+  opacity: 0.45;
+}
+.admin-prep-row strong {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ivory);
+}
+.admin-prep-row .admin-muted {
+  margin: 0.15rem 0 0;
+}
+@media (max-width: 720px) {
+  .admin-prep-row {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2610,6 +3045,58 @@ label.admin-chip:has(input:checked) span {
   text-align: center;
   font-size: 0.85rem;
   color: var(--ivory-dim);
+}
+
+/* The handset itself plus the controls underneath it (mode line, table
+   picker, scan/menu toggle, replay, open-guest-page) — stacked, narrow,
+   matching the handset's own width. */
+.admin-qr-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+.admin-qr-preview .admin-handset {
+  width: 100%;
+}
+.admin-handset-mode {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--ivory-dim);
+  text-align: center;
+}
+.admin-handset-table {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+}
+.admin-handset-table select {
+  width: 100%;
+  font-size: 0.82rem;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ivory);
+  background: var(--panel);
+  border: 1px solid var(--gold-line);
+  border-radius: 3px;
+  padding: 0.5rem 0.6rem;
+}
+.admin-scan-row {
+  margin: 0;
+  justify-content: center;
+}
+.admin-handset-open {
+  margin: 0;
+  text-align: center;
+  font-size: 0.78rem;
+}
+.admin-handset-open a {
+  color: var(--gold);
 }
 
 .admin-order-row {

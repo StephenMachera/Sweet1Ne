@@ -21,7 +21,7 @@ from app.models.table import Table
 from app.models.staff import Staff
 
 # ---schemas---
-from app.schemas.orders import OrderItemIn, OrderOut, StaffOrderCreate, OrderUpdate, OrderItemsAdd
+from app.schemas.orders import OrderItemIn, OrderOut, OrderReadIn, StaffOrderCreate, OrderUpdate, OrderItemsAdd
 
 #---services---
 from app.services.promos import price_for, category_map, active_promos
@@ -194,6 +194,33 @@ def create_order_for_customer(
     db.commit()
     db.refresh(order)
     return order
+
+@router.patch("/{order_id}/read", response_model=OrderOut)
+def mark_order_read(
+    order_id: uuid.UUID,
+    payload: OrderReadIn,
+    staff: CurrentStaff = Depends(require_permission("view_orders")),
+    db: Session = Depends(get_db),
+):
+    """Separate from editing an order — this only drives the sidebar's
+    "new orders" badge, same as Reservation.is_read does for Inbox. Doesn't
+    touch status or anything fulfilment-related."""
+    order = db.get(Order, order_id)
+    if order is None:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    table = db.get(Table, order.table_id)
+    branch = db.get(Branch, table.branch_id)
+    if str(branch.tenant_id) != staff.tenant_id:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if staff.branch_id is not None and str(table.branch_id) != staff.branch_id:
+        raise HTTPException(status_code=403, detail="Not allowed to change this order")
+
+    order.is_read = payload.is_read
+    db.commit()
+    db.refresh(order)
+    return order
+
 
 @router.patch("/{order_id}", response_model=OrderOut)
 def update_order_items(

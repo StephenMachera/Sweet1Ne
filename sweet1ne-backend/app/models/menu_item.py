@@ -44,6 +44,10 @@ class MenuItem(Base):
     
     dietary_tags: Mapped[list[str]] = mapped_column(JSONB, default=list, server_default="[]")
     allergen_tags: Mapped[list[str]] = mapped_column(JSONB, default=list, server_default="[]")
+    # None means "use the category's own MainCategory.prep_station" — set
+    # only when this specific dish needs to fire at the other station
+    # (e.g. a kitchen-made garnish on an otherwise Bar drink).
+    prep_station_override: Mapped[str | None] = mapped_column(String)
 
     sub_category: Mapped["SubCategory"] = relationship(back_populates="menu_items")
     order_items: Mapped[list["OrderItem"]] = relationship(back_populates="menu_item")

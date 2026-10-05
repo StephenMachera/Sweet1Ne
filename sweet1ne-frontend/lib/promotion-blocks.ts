@@ -158,3 +158,35 @@ export function heroImageOf(layout: PromotionBlock[]): ImageBlock | undefined {
   const images = imagesOf(layout);
   return images.find((b) => b.hero) ?? images[0];
 }
+
+// "10% off the basket" / "£5.00 off the basket" — the .promo-off line,
+// shown separately from the code itself (.promo-code).
+export function offerText(offer: string, off: number | null): string {
+  if (offer === "percent" && off) return `${off}% off the basket`;
+  if (offer === "pounds" && off) return `£${off.toFixed(2)} off the basket`;
+  return "";
+}
+
+// What a guest's device is allowed to see — mirrors the backend's
+// PublicPromotionOut exactly (app/schemas/promotion.py). Shared by every
+// real guest-facing surface (enter/ribbon/phone) so they don't each redefine
+// their own partial slice of the same shape.
+export type PublicPromotion = {
+  id: string;
+  kind: string;
+  title: string;
+  kicker: string | null;
+  dek: string | null;
+  cta: PromotionCtaKind;
+  cta_label: string | null;
+  code: string | null;
+  offer: string;
+  off: number | null;
+  layout: PromotionBlock[];
+  look: {
+    still: "left" | "top" | "none";
+    tone: "glass" | "solid";
+    align: "left" | "center";
+    background_image: string | null;
+  };
+};

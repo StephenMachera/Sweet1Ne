@@ -30,6 +30,7 @@ type Subscriber = {
   is_subscribed: boolean;
   consented_at: string;
   unsubscribed_at: string | null;
+  is_read: boolean;
 };
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -135,6 +136,10 @@ export default function AdminLeadsPage() {
       return;
     }
     load();
+    // No per-row "open" here (a subscriber is just an email, not a
+    // message) — viewing the list itself is what clears the sidebar's
+    // "new leads" badge.
+    apiFetch("/newsletter/subscribers/mark-read", { method: "POST" }).catch(() => {});
   }, [meLoading, me, canManage, router, load]);
 
   useEffect(() => {

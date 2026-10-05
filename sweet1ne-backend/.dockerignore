@@ -11,6 +11,11 @@ __pycache__/
 .git/
 .gitignore
 
+# Let's Encrypt data for the nginx/certbot containers — mounted as volumes,
+# never needed inside the api image, and some files are root-owned so
+# including them can break the build for a non-root deploy user.
+certbot/
+
 .env
 .env.*
 !.env.example

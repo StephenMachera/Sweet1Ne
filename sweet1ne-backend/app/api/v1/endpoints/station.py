@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime, time, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.security import CurrentStaff, require_permission
@@ -65,7 +65,12 @@ def list_station_orders(
         .outerjoin(Staff, Order.placed_by_staff_id == Staff.id)
         .where(
             Branch.tenant_id == staff.tenant_id,
-            MainCategory.prep_station == station,
+            # A dish's own override wins when set; otherwise fall back to
+            # its category's station.
+            or_(
+                MenuItem.prep_station_override == station,
+                and_(MenuItem.prep_station_override.is_(None), MainCategory.prep_station == station),
+            ),
             Order.status != OrderStatus.cancelled,
             Order.created_at >= today_start,
         )
@@ -124,8 +129,9 @@ def update_item_status(
     staff: CurrentStaff = Depends(require_permission("update_order_status")),
     db: Session = Depends(get_db),
 ):
-    """Advance a single item. The station is derived from the item's category
-    rather than passed in, so a caller can't claim to work somewhere they don't."""
+    """Advance a single item. The station is derived from the item itself
+    rather than passed in, so a caller can't claim to work somewhere they
+    don't — the item's own override wins when set, else its category's."""
     item = db.get(OrderItem, item_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -143,12 +149,13 @@ def update_item_status(
 
     # Work out which station this item belongs to, then check the caller
     # actually works there.
-    station = db.execute(
-        select(MainCategory.prep_station)
+    station_row = db.execute(
+        select(MenuItem.prep_station_override, MainCategory.prep_station)
         .join(SubCategory, SubCategory.main_category_id == MainCategory.id)
         .join(MenuItem, MenuItem.sub_category_id == SubCategory.id)
         .where(MenuItem.id == item.menu_item_id)
-    ).scalar_one_or_none()
+    ).first()
+    station = (station_row[0] or station_row[1]) if station_row else None
 
     required = STATION_PERMISSIONS.get(station)
     if required is not None and not (staff.is_super_admin or required in staff.permissions):
@@ -222,7 +229,13 @@ def advance_whole_order_at_station(
         .join(MenuItem, OrderItem.menu_item_id == MenuItem.id)
         .join(SubCategory, MenuItem.sub_category_id == SubCategory.id)
         .join(MainCategory, SubCategory.main_category_id == MainCategory.id)
-        .where(OrderItem.order_id == order.id, MainCategory.prep_station == station)
+        .where(
+            OrderItem.order_id == order.id,
+            or_(
+                MenuItem.prep_station_override == station,
+                and_(MenuItem.prep_station_override.is_(None), MainCategory.prep_station == station),
+            ),
+        )
     )
 
     updated: list[StationItemOut] = []

@@ -44,6 +44,10 @@ class Order(Base):
         nullable=False,
     )
     special_request: Mapped[str | None] = mapped_column(String)
+    # Seen by staff yet — same inbox-style concept as Reservation.is_read,
+    # independent of status; it just drives the sidebar's "new orders"
+    # badge, not the kitchen/fulfilment workflow.
+    is_read: Mapped[bool] = mapped_column(default=False, server_default="false")
     total_amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     # The live "code" promotion's code that discounted this order, if any —
     # stored so a later edit (adding items, changing the order) can

@@ -9,9 +9,10 @@ import { slugify } from "@/lib/utils";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { CategoryManager } from "@/components/menu/category-manager";
 import { MenuBoard } from "@/components/menu/menu-board";
+import { MenuPrepDeck } from "@/components/menu/menu-prep-deck";
 import { MenuItemForm, emptyDraft, type MenuItemDraft } from "@/components/menu/menu-item-form";
 import { BranchScopePicker, type Branch, type Scope } from "@/components/menu/branch-scope-picker";
-import type { MainCategory, MenuItem, SubCategory } from "@/components/menu/menu-browser";
+import { resolveStation, type MainCategory, type MenuItem, type SubCategory } from "@/components/menu/menu-browser";
 import { AdminLoading } from "@/components/admin/admin-loading";
 
 type MenuJsonPack = {
@@ -27,6 +28,7 @@ type MenuJsonPack = {
     pictures?: string[];
     dietary_tags?: string[];
     allergen_tags?: string[];
+    prep_station_override?: string | null;
   }[];
 };
 
@@ -43,7 +45,15 @@ const LEGACY_CATEGORY_ALIASES: Record<string, string> = { Bar: "Drinks" };
 type LegacyMenuPack = {
   courses?: { cat: string; mediaId?: string }[];
   media?: { id: string; file: string }[];
-  items?: { cat: string; sub?: string; name: string; desc?: string; price?: string; mediaIds?: string[] }[];
+  items?: {
+    cat: string;
+    sub?: string;
+    name: string;
+    desc?: string;
+    price?: string;
+    mediaIds?: string[];
+    station?: string;
+  }[];
 };
 
 function legacyMainName(cat: string): string {
@@ -106,7 +116,15 @@ function transformLegacyMenuPack(legacy: LegacyMenuPack): {
       .map((id) => mediaFile.get(id))
       .filter((url): url is string => Boolean(url));
 
-    items.push({ title: item.name, description: item.desc || null, price, main, sub, pictures });
+    items.push({
+      title: item.name,
+      description: item.desc || null,
+      price,
+      main,
+      sub,
+      pictures,
+      prep_station_override: item.station === "bar" ? "bar" : item.station === "kitchen" ? "kitchen" : null,
+    });
   }
 
   return { pack: { mains, subs, items }, warnings };
@@ -117,6 +135,7 @@ export default function AdminMenuManagePage() {
   const { me, loading: meLoading } = useMe();
 
   const [tab, setTab] = useState<Tab>("items");
+  const [view, setView] = useState<"list" | "deck">("list");
   const [branches, setBranches] = useState<Branch[]>([]);
   const [scope, setScope] = useState<Scope>({ branchId: null, sharedOnly: false });
   const [mains, setMains] = useState<MainCategory[]>([]);
@@ -150,9 +169,9 @@ export default function AdminMenuManagePage() {
     setDrawerSlot(document.getElementById("admin-drawer-slot"));
   }, []);
 
-  function openAdd() {
+  function openAdd(station?: "kitchen" | "bar") {
     setEditing(undefined);
-    setDraft(emptyDraft());
+    setDraft({ ...emptyDraft(), stationOverride: station ?? "" });
     setFormOpen(true);
   }
 
@@ -247,6 +266,20 @@ export default function AdminMenuManagePage() {
     }
   }
 
+  async function setItemStation(item: MenuItem, station: "kitchen" | "bar") {
+    setError(null);
+    try {
+      const updated = await apiFetch(`/staff/menu/menu-items/${item.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ prep_station_override: station }),
+      });
+      setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+      setCategoryItems((prev) => prev && prev.map((i) => (i.id === updated.id ? updated : i)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't change that.");
+    }
+  }
+
   if (meLoading || !me || !canEdit) {
     return <AdminLoading />;
   }
@@ -282,6 +315,7 @@ export default function AdminMenuManagePage() {
           pictures: item.pictures,
           dietary_tags: item.dietary_tags,
           allergen_tags: item.allergen_tags,
+          prep_station_override: item.prep_station_override,
         };
       }),
     };
@@ -360,6 +394,7 @@ export default function AdminMenuManagePage() {
             pictures: it.pictures ?? (it.picture ? [it.picture] : []),
             dietary_tags: it.dietary_tags ?? [],
             allergen_tags: it.allergen_tags ?? [],
+            prep_station_override: it.prep_station_override ?? null,
           }),
         });
       } catch (err) {
@@ -431,6 +466,8 @@ export default function AdminMenuManagePage() {
   const on = items.filter((i) => i.is_available).length;
   const withPic = items.filter((i) => i.picture).length;
   const needPic = items.filter((i) => i.is_available && !i.picture).length;
+  const kitchenN = items.filter((i) => resolveStation(i, mains, subs) === "kitchen").length;
+  const barN = items.filter((i) => resolveStation(i, mains, subs) === "bar").length;
 
   const TABS: { key: Tab; label: string; count: number }[] = [
     { key: "items", label: "Items", count: items.length },
@@ -452,7 +489,8 @@ export default function AdminMenuManagePage() {
 
       <h1>Menu</h1>
       <p className="admin-dek">
-        {items.length} item{items.length === 1 ? "" : "s"} · {scopeLabel}
+        {on} on · {items.length - on} off · expensive first · same list as the website and the
+        table phone · {scopeLabel}
       </p>
 
       {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
@@ -481,7 +519,7 @@ export default function AdminMenuManagePage() {
 
       {tab === "items" && (
         <>
-          <div className="admin-kpi-strip" aria-label="Summary">
+          <div className="admin-kpi-strip is-six" aria-label="Summary">
             <div>
               <span className="admin-kpi-n">{on}</span>
               <span className="admin-kpi-l">On menu</span>
@@ -489,6 +527,14 @@ export default function AdminMenuManagePage() {
             <div>
               <span className="admin-kpi-n">{items.length - on}</span>
               <span className="admin-kpi-l">Off</span>
+            </div>
+            <div>
+              <span className="admin-kpi-n">{kitchenN}</span>
+              <span className="admin-kpi-l">Kitchen</span>
+            </div>
+            <div>
+              <span className="admin-kpi-n">{barN}</span>
+              <span className="admin-kpi-l">Bar</span>
             </div>
             <div>
               <span className="admin-kpi-n">{withPic}</span>
@@ -500,6 +546,15 @@ export default function AdminMenuManagePage() {
             </div>
           </div>
 
+          <div className="admin-cats" role="group" aria-label="Menu view">
+            <button type="button" className={view === "list" ? "is-on" : undefined} onClick={() => setView("list")}>
+              List
+            </button>
+            <button type="button" className={view === "deck" ? "is-on" : undefined} onClick={() => setView("deck")}>
+              Preparation Deck
+            </button>
+          </div>
+
           <div className="admin-tools">
             <input
               type="search"
@@ -507,7 +562,7 @@ export default function AdminMenuManagePage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <button type="button" className="admin-book" onClick={openAdd}>
+            <button type="button" className="admin-book" onClick={() => openAdd()}>
               Add item
             </button>
             <details className="admin-fold">
@@ -618,6 +673,15 @@ export default function AdminMenuManagePage() {
             <p className="admin-hold px-5 py-10 text-center text-sm">
               Nothing on this menu yet. Start by adding a main category.
             </p>
+          ) : view === "deck" ? (
+            <MenuPrepDeck
+              mains={mains}
+              subs={subs}
+              items={visibleItems}
+              onEditItem={openEdit}
+              onStationChange={setItemStation}
+              onAddToStation={(station) => openAdd(station)}
+            />
           ) : (
             <MenuBoard
               mains={mains}
@@ -625,6 +689,7 @@ export default function AdminMenuManagePage() {
               items={visibleItems}
               onEditItem={openEdit}
               onToggleItem={toggleAvailability}
+              onStationChange={setItemStation}
               onCategoryChanged={(updated) =>
                 setMains((prev) => prev.map((m) => (m.id === updated.id ? updated : m)))
               }

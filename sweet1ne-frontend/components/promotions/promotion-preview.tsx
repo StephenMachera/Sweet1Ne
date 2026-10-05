@@ -4,6 +4,7 @@ import {
   heroImageOf,
   CTA_PRESETS,
   BANNER_POSITION_COORDS,
+  offerText,
   type PromotionBlock,
   type PromotionBlockType,
   type PromotionCtaKind,
@@ -23,12 +24,6 @@ export type PromotionPreviewData = {
   offer: string;
   off: number | null;
 };
-
-function offerText(offer: string, off: number | null): string {
-  if (offer === "percent" && off) return `${off}% off the basket`;
-  if (offer === "pounds" && off) return `£${off.toFixed(2)} off the basket`;
-  return "";
-}
 
 /** The three surfaces render genuinely different shapes — not one card
    reused with different wrappers around it. "After they enter" is the real
@@ -60,15 +55,32 @@ export function PromotionPreview({
   const dek = hasType("dek") ? data.dek : null;
   const code = data.kind === "code" ? data.code : null;
   const off = offerText(data.offer, data.off);
+  // A code promotion applies itself at the table phone — no CTA needed on
+  // the surfaces that show the code (matches the template's fillCopy():
+  // `link.hidden = !cta.label || (row.kind === "code" && row.code)`).
+  const showCta = hasType("ctas") && !(data.kind === "code" && code);
+  const hero = heroImageOf(data.layout);
+  const imageUrl = hero?.image_url || defaultImage || "";
+  const objectPosition = BANNER_POSITION_COORDS[hero?.position ?? "center"];
+  const objectFit = hero?.fit === "fit" ? "contain" : "cover";
+
+  const showStill = data.look.still !== "none" && Boolean(imageUrl);
 
   if (surface === "ribbon") {
     return (
-      <div className="admin-promo-ribbon">
-        {kicker && <p className="admin-promo-kicker">{kicker}</p>}
-        {title && <p className="admin-promo-title">{title}</p>}
-        {code && <p className="admin-promo-code">{code}</p>}
-        {hasType("ctas") && (
-          <a className="admin-promo-cta" href={preset.href}>
+      <div className="promo-ribbon" data-still={data.look.still} data-tone={data.look.tone}>
+        {showStill && (
+          <div className="promo-still">
+            <img src={imageUrl} alt="" style={{ objectFit, objectPosition }} />
+          </div>
+        )}
+        <div className="promo-copy">
+          {kicker && <p className="promo-kicker">{kicker}</p>}
+          {title && <p className="promo-title">{title}</p>}
+        </div>
+        {code && <p className="promo-code">{code}</p>}
+        {showCta && (
+          <a className="promo-cta" href={preset.href} onClick={(e) => e.stopPropagation()}>
             {label}
           </a>
         )}
@@ -78,68 +90,63 @@ export function PromotionPreview({
 
   if (surface === "phone") {
     return (
-      <div className="admin-promo-phone-card">
-        <div>
-          {kicker && <p className="admin-promo-kicker">{kicker}</p>}
-          {title && <p className="admin-promo-title">{title}</p>}
-          {dek && <p className="admin-promo-dek">{dek}</p>}
-          {off && <p className="admin-promo-off">{off}</p>}
+      <div className="promo-phone" data-still={data.look.still} data-tone={data.look.tone}>
+        {showStill && (
+          <div className="promo-still">
+            <img src={imageUrl} alt="" style={{ objectFit, objectPosition }} />
+          </div>
+        )}
+        <div className="promo-copy">
+          {kicker && <p className="promo-kicker">{kicker}</p>}
+          {title && <p className="promo-title">{title}</p>}
+          {dek && <p className="promo-dek">{dek}</p>}
+          {off && <p className="promo-off">{off}</p>}
+          {code && <p className="promo-code">{code}</p>}
         </div>
-        {code && <p className="admin-promo-code">{code}</p>}
       </div>
     );
   }
 
-  const hero = heroImageOf(data.layout);
-  const imageUrl = hero?.image_url || defaultImage || "";
-  const showStill = data.look.still !== "none" && Boolean(imageUrl);
-  const objectPosition = BANNER_POSITION_COORDS[hero?.position ?? "center"];
-  const objectFit = hero?.fit === "fit" ? "contain" : "cover";
-  // Independent of the hero still above — a full-bleed backdrop behind the
-  // whole card, dimmed so the words stay readable over any photo. Falls
-  // back to the same tenant default the hero still uses, but that's just a
-  // shared fallback source, not a shared value: picking one doesn't set
-  // the other.
-  const backgroundUrl = data.look.background_image || defaultImage || "";
-
   return (
     <article
-      className="admin-promo-card"
-      data-still={showStill ? data.look.still : "none"}
+      className="promo"
+      data-kind={data.kind}
+      data-still={data.look.still}
       data-tone={data.look.tone}
       data-align={data.look.align}
     >
-      {backgroundUrl && (
-        <div className="admin-promo-bg" aria-hidden>
-          <img src={backgroundUrl} alt="" />
+      {showStill && (
+        <div className="promo-still">
+          <img src={imageUrl} alt="" style={{ objectFit, objectPosition }} />
         </div>
       )}
-      <div className="admin-promo-card-still">
-        {showStill && (
-          <img
-            src={imageUrl}
-            alt=""
-            style={{ objectFit, objectPosition }}
-          />
-        )}
-      </div>
-      <div className="admin-promo-card-copy">
-        {kicker && <p className="admin-promo-kicker">{kicker}</p>}
-        {title && <p className="admin-promo-title">{title}</p>}
-        {dek && <p className="admin-promo-dek">{dek}</p>}
+      <div className="promo-copy">
+        {kicker && <p className="promo-kicker">{kicker}</p>}
+        {title && <p className="promo-title">{title}</p>}
+        {dek && <p className="promo-dek">{dek}</p>}
         {notes.map((n) => (
-          <p key={n.id} className="admin-promo-note">
+          <p key={n.id} className="promo-note">
             {n.text}
           </p>
         ))}
-        {code && <p className="admin-promo-code">{code}</p>}
-        {off && <p className="admin-promo-off">{off}</p>}
-        {hasType("ctas") && (
-          <a className="admin-book admin-promo-cta" href={preset.href}>
+        {code && <p className="promo-code">{code}</p>}
+        {off && <p className="promo-off">{off}</p>}
+        {showCta && (
+          <a
+            className="admin-book promo-cta"
+            href={preset.href}
+            onClick={(e) => e.stopPropagation()}
+          >
             {label}
           </a>
         )}
       </div>
+      {/* Decorative here — the Frame around this preview is itself the
+         surface's on/off toggle, so this just mirrors the real close
+         button's look rather than wiring its own dismiss state. */}
+      <span className="promo-close" aria-hidden>
+        ×
+      </span>
     </article>
   );
 }

@@ -3,7 +3,6 @@ import { Bodoni_Moda, Hanken_Grotesk } from "next/font/google";
 import { SiteHeader } from "@/components/site/site-header";
 import { PromoRibbon } from "@/components/site/promo-ribbon";
 import { BookingModal } from "@/components/site/booking-modal";
-import { EventPopup } from "@/components/site/event-popup";
 import { Analytics } from "@/components/site/analytics";
 import { CookieConsent } from "@/components/site/cookie-consent";
 import { SmoothScroll } from "@/components/site/motion/smooth-scroll";
@@ -60,7 +59,6 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       </SmoothScroll>
 
       <BookingModal />
-      <EventPopup />
       <CookieConsent />
       <Analytics />
     </div>

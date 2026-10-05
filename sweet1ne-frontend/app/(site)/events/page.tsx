@@ -3,6 +3,7 @@ import { EventsHero } from "@/components/site/event-hero";
 import { EventsPaths } from "@/components/site/event-paths";
 import { EventsNext } from "@/components/site/events-next";
 import { SiteFooter } from "@/components/site/site-footer";
+import { EventPopup } from "@/components/site/event-popup";
 
 export const metadata: Metadata = {
   title: "Events",
@@ -17,6 +18,7 @@ export default function EventsPage() {
       <EventsPaths />
       <EventsNext />
       <SiteFooter />
+      <EventPopup />
     </div>
   );
 }

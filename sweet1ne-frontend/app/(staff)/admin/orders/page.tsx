@@ -33,7 +33,10 @@ type Order = {
   placed_by_staff_id: string | null;
   placed_by_name: string | null;
   order_items: OrderItem[];
+  is_read: boolean;
 };
+
+const AUTO_REFRESH_MS = 3 * 60 * 1000;
 
 type Branch = { id: string; name: string; settings?: { toast?: string } };
 
@@ -120,7 +123,25 @@ export default function AdminOrdersPage() {
       return;
     }
     load();
+    // Same cadence as Inbox — new orders should show up on their own, not
+    // only when a filter is touched.
+    const id = setInterval(load, AUTO_REFRESH_MS);
+    return () => clearInterval(id);
   }, [meLoading, me, canView, router, load]);
+
+  async function setRead(order: Order, isRead: boolean) {
+    try {
+      const updated: Order = await apiFetch(`/staff/orders/${order.id}/read`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_read: isRead }),
+      });
+      setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+      if (lookupResult?.id === updated.id) setLookupResult(updated);
+    } catch {
+      // Not worth surfacing an error banner for a read receipt — worst case
+      // it's re-sent next time the row is opened.
+    }
+  }
 
   async function lookup(e: React.FormEvent) {
     e.preventDefault();
@@ -135,6 +156,7 @@ export default function AdminOrdersPage() {
       }
       setLookupResult(found[0]);
       setExpandedId(found[0].id);
+      if (!found[0].is_read) setRead(found[0], true);
     } catch {
       setError("Couldn't find that order.");
     }
@@ -161,6 +183,7 @@ export default function AdminOrdersPage() {
 
   const visible = lookupResult ? [lookupResult] : orders;
   const liveCount = orders.filter((o) => o.status === "pending" || o.status === "in_progress" || o.status === "ready").length;
+  const unreadCount = orders.filter((o) => !o.is_read).length;
 
   function ordersTable(list: Order[]) {
     return (
@@ -186,15 +209,35 @@ export default function AdminOrdersPage() {
   function renderOrder(order: Order) {
     const expanded = expandedId === order.id;
     const closed = order.status === "completed" || order.status === "cancelled";
+    const unread = !order.is_read;
+
+    function toggleExpand() {
+      const next = expanded ? null : order.id;
+      setExpandedId(next);
+      if (next && unread) setRead(order, true);
+    }
 
     return (
       <Fragment key={order.id}>
-        <tr>
+        <tr className={unread ? "is-unread" : undefined}>
           <td className="admin-muted">{timeOf(order.created_at)}</td>
           <td className="admin-muted">{order.branch_name ?? "—"}</td>
           <td className="admin-muted">Table</td>
           <td>
-            <span className="admin-name">
+            <span className="admin-name" style={unread ? { fontWeight: 700 } : undefined}>
+              {unread && (
+                <span
+                  aria-hidden
+                  style={{
+                    display: "inline-block",
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    background: "#c9a24a",
+                    marginRight: 7,
+                  }}
+                />
+              )}
               {order.table_number ? `Table ${order.table_number}` : "Table"}
             </span>
             <div className="admin-muted">
@@ -216,7 +259,7 @@ export default function AdminOrdersPage() {
               type="button"
               className="admin-edit"
               aria-label={expanded ? "Hide details" : "See more"}
-              onClick={() => setExpandedId(expanded ? null : order.id)}
+              onClick={toggleExpand}
             >
               <ChevronDown size={16} className={`inline transition-transform ${expanded ? "rotate-180" : ""}`} />
             </button>
@@ -286,6 +329,7 @@ export default function AdminOrdersPage() {
 
       <h1>Orders</h1>
       <p className="admin-dek">
+        {unreadCount > 0 ? `${unreadCount} new · ` : ""}
         {visible.length} ticket{visible.length === 1 ? "" : "s"}
         {visible.length === 200 && " (showing the most recent 200)"}
       </p>

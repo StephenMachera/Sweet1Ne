@@ -59,18 +59,29 @@ def footer(*, unsubscribe_email: str | None = None) -> str:
 
 
 def wrap(*, title: str, body: str, preheader: str | None = None,
-         unsubscribe_email: str | None = None, show_header: bool = True) -> str:
+         unsubscribe_email: str | None = None, show_header: bool = True,
+         footer_override: str | None = None,
+         background: str = BACKGROUND, surface: str = SURFACE, hairline: str = HAIRLINE) -> str:
     """Puts a body between the header and footer.
 
     show_header=False for campaigns — they carry their own "logo" block
     (with real size/position control) as the first thing in body, so the
     fixed, uncustomisable chrome logo would just be a second one stacked
-    above it."""
+    above it.
+
+    footer_override/background/surface/hairline let a caller swap the
+    chrome colours and footer row without touching what every other email
+    (reservations, the newsletter welcome, enquiry replies) still gets by
+    default — campaigns use this to match the admin editor's own preview
+    palette exactly, nothing else does."""
     preheader_block = ""
     if preheader:
         # Hidden text that inboxes show beside the subject line.
         preheader_block = f"""
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;">{preheader}</div>"""
+
+    footer_html = footer_override if footer_override is not None else footer(unsubscribe_email=unsubscribe_email)
+    border_style = f"border:1px solid {hairline};" if hairline else ""
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -79,14 +90,14 @@ def wrap(*, title: str, body: str, preheader: str | None = None,
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
   </head>
-  <body style="margin:0;padding:0;background-color:{BACKGROUND};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+  <body style="margin:0;padding:0;background-color:{background};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
     {preheader_block}
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:{BACKGROUND};padding:36px 16px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:{background};padding:36px 16px;">
       <tr><td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background-color:{SURFACE};border:1px solid {HAIRLINE};">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background-color:{surface};{border_style}">
 {header() if show_header else ""}
 {body}
-{footer(unsubscribe_email=unsubscribe_email)}
+{footer_html}
         </table>
       </td></tr>
     </table>

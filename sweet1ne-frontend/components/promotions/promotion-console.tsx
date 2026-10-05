@@ -33,7 +33,8 @@ const DIALOG_BOOK_BTN =
 const DIALOG_GHOST_BTN =
   "inline-block rounded-[3px] border border-[rgba(229,226,225,0.25)] bg-transparent px-[1.15rem] py-[0.7rem] text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-[#e5e2e1] hover:bg-[rgba(229,226,225,0.08)]";
 
-type Branch = { id: string; name: string };
+type Branch = { id: string; name: string; slug: string };
+type Table = { id: string; branch_id: string; qr_token: string };
 type Kind = "notice" | "invite" | "code";
 type Offer = "none" | "percent" | "pounds";
 type Who = "all" | "quiet" | "regular";
@@ -70,7 +71,7 @@ type Promotion = {
   updated_at: string;
 };
 
-type Draft = Omit<Promotion, "id" | "created_at" | "updated_at" | "is_on">;
+type Draft = Omit<Promotion, "id" | "created_at" | "updated_at">;
 
 const KINDS: { id: Kind; label: string; hint: string; surfaces: Surfaces }[] = [
   {
@@ -112,6 +113,7 @@ function emptyDraft(branchId: string | null): Draft {
     off: null,
     starts_at: todayISO(),
     ends_at: null,
+    is_on: false,
     who: "all",
     quiet_days: 50,
     regular_visits: 4,
@@ -156,16 +158,75 @@ function kindLabel(kind: Kind): string {
   return KINDS.find((k) => k.id === kind)?.label ?? "A notice";
 }
 
+type DraftStatus = "draft" | "live" | "ended";
+
+// The 3-way Status picker on top of a model that only ever stores is_on +
+// dates (no separate status string) — "scheduled" collapses into "draft"
+// here, same as the reference's own form. Reselecting "Ended" backdates
+// ends_at so the computed status (below, and Board's statusOf) actually
+// reads as ended once saved, not silently fall back to draft.
+function draftStatus(d: Pick<Draft, "is_on" | "ends_at" | "starts_at">): DraftStatus {
+  if (!d.is_on) return "draft";
+  const today = todayISO();
+  if (d.ends_at && d.ends_at < today) return "ended";
+  if (d.starts_at > today) return "draft";
+  return "live";
+}
+
+function applyDraftStatus(status: DraftStatus): Partial<Draft> {
+  if (status === "live") return { is_on: true };
+  if (status === "ended") {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return { is_on: true, ends_at: yesterday.toISOString().slice(0, 10) };
+  }
+  return { is_on: false };
+}
+
+// The reference's dynamic status-note sentence above the three preview
+// frames — title, kind, kicker, which surfaces it's on, its button, and
+// (for a code promo) the literal code. "Gold means a seat is on." is only
+// appended while actively editing, not while just browsing.
+function statusNote(p: {
+  title: string;
+  kind: Kind;
+  kicker: string | null;
+  cta: PromotionCtaKind;
+  cta_label: string | null;
+  code: string | null;
+  surfaces: Surfaces;
+}, editing: boolean): string {
+  const seats: string[] = [];
+  if (p.surfaces.enter) seats.push("opening page");
+  if (p.surfaces.ribbon) seats.push("quiet line");
+  if (p.surfaces.phone) seats.push("QR app");
+
+  const ctaLabel =
+    p.cta_label || (p.cta === "book" ? CTA_PRESETS.book.label : "");
+
+  let note = `${p.title || "Untitled"} — ${kindLabel(p.kind)}`;
+  if (p.kicker) note += ` · ${p.kicker}`;
+  note += seats.length ? `. Shows on ${seats.join(", ")}` : ". No seats on";
+  if (ctaLabel) note += `. Button: ${ctaLabel}`;
+  if (p.kind === "code" && p.code) note += `. Code ${p.code}`;
+  note += editing ? " Gold means a seat is on." : ".";
+  return note;
+}
+
 export function PromotionConsole({
   branches,
+  tables,
   meEmail,
+  onShowDiscounts,
 }: {
   branches: Branch[];
+  tables: Table[];
   meEmail: string | null;
+  onShowDiscounts: () => void;
 }) {
   const { media } = useMediaLibrary();
   // The tenant's own most recent upload — a real photo they actually own,
-  // never a stock placeholder — shown on the "After they enter" preview
+  // never a stock placeholder — shown on the "Opening page" preview
   // whenever no hero image has been picked yet, same convention as the
   // Campaigns letter preview.
   const defaultImage = media[0] ? mediaThumb(media[0]) : "";
@@ -174,7 +235,7 @@ export function PromotionConsole({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [view, setView] = useState<"board" | "look">("board");
+  const [view, setView] = useState<"board" | "look">("look");
   const [placeFilter, setPlaceFilter] = useState("");
   const [stateFilter, setStateFilter] = useState<
     "all" | "live" | "draft" | "ended"
@@ -238,6 +299,7 @@ export function PromotionConsole({
       off: p.off,
       starts_at: p.starts_at,
       ends_at: p.ends_at,
+      is_on: p.is_on,
       who: p.who,
       quiet_days: p.quiet_days,
       regular_visits: p.regular_visits,
@@ -358,6 +420,22 @@ export function PromotionConsole({
   const campaignTag = `utm_campaign=${slugify(draft.map_id || draft.title) || "your-id"}`;
   const hero = heroImageOf(draft.layout);
 
+  // A real branch + table — only so the "QR app" preview can show the
+  // actual guest menu behind the promo, not a stand-in for it. Favours
+  // whichever branch is filtered; falls back to the first one with a
+  // table at all.
+  const previewBranch =
+    branches.find((b) => b.id === (draft.branch_id || placeFilter)) ||
+    branches.find((b) => tables.some((t) => t.branch_id === b.id)) ||
+    branches[0];
+  const previewTable = previewBranch
+    ? tables.find((t) => t.branch_id === previewBranch.id)
+    : undefined;
+  const phoneSrc =
+    previewBranch && previewTable
+      ? `/${previewBranch.slug}/order?table=${previewTable.qr_token}&preview=admin`
+      : null;
+
   if (loading) return <AdminLoading />;
 
   return (
@@ -382,14 +460,20 @@ export function PromotionConsole({
             </button>
           ))}
         </div>
-        <p className="admin-who">{meEmail ?? "—"}</p>
+        <p className="admin-who">{meEmail || "info@sweet1ne.com"}</p>
+        <button
+          type="button"
+          className="admin-secondary-link"
+          onClick={onShowDiscounts}
+        >
+          Item discounts
+        </button>
       </div>
 
       <h1>Promotions</h1>
       <p className="admin-dek">
-        Board is the list. Look is how it sits after they enter, on the quiet
-        line, and on the table phone. Gold means it shows there. Tap a frame to
-        turn it on. A typed code can come off the basket.
+        One offer: a purpose, the words, a still, and the seats it may sit
+        on. Look is how a guest sees it.
       </p>
 
       {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
@@ -403,13 +487,13 @@ export function PromotionConsole({
           <span className="admin-kpi-n">
             {live.filter((p) => p.surfaces.enter).length}
           </span>
-          <span className="admin-kpi-l">After they enter</span>
+          <span className="admin-kpi-l">Opening page</span>
         </div>
         <div>
           <span className="admin-kpi-n">
             {live.filter((p) => p.surfaces.phone).length}
           </span>
-          <span className="admin-kpi-l">On the phone</span>
+          <span className="admin-kpi-l">QR app</span>
         </div>
         <div>
           <span className="admin-kpi-n">
@@ -422,17 +506,17 @@ export function PromotionConsole({
       <div className="admin-cats" role="group" aria-label="View">
         <button
           type="button"
-          className={view === "board" ? "is-on" : undefined}
-          onClick={() => setView("board")}
-        >
-          Board
-        </button>
-        <button
-          type="button"
           className={view === "look" ? "is-on" : undefined}
           onClick={() => setView("look")}
         >
           Look
+        </button>
+        <button
+          type="button"
+          className={view === "board" ? "is-on" : undefined}
+          onClick={() => setView("board")}
+        >
+          Board
         </button>
       </div>
 
@@ -571,11 +655,16 @@ export function PromotionConsole({
             </button>
           </div>
 
+          <p className="admin-dek">
+            Same offer, three seats — each in its own place. Opening page:
+            full card, centred above the room words. Quiet line: short line
+            under the header. QR app: the same words on the table phone.
+            Gold means that seat is on.
+          </p>
+
           {formOpen ? (
             <>
-              <p className="admin-dek">
-                Gold means it shows there. Tap a frame to turn it on.
-              </p>
+              <p className="admin-dek">{statusNote(draft, true)}</p>
               <PromotionLookDesk
                 data={draft}
                 surfaces={draft.surfaces}
@@ -593,14 +682,12 @@ export function PromotionConsole({
                 offer={draft.offer}
                 off={draft.off}
                 defaultImage={defaultImage}
+                phoneSrc={phoneSrc}
               />
             </>
           ) : lookRow ? (
             <>
-              <p className="admin-dek">
-                Guest view of {lookRow.title || "this promotion"}. Gold means it
-                is on.
-              </p>
+              <p className="admin-dek">{statusNote(lookRow, false)}</p>
               <PromotionLookDesk
                 data={lookRow}
                 surfaces={lookRow.surfaces}
@@ -610,6 +697,7 @@ export function PromotionConsole({
                 offer={lookRow.offer}
                 off={lookRow.off}
                 defaultImage={defaultImage}
+                phoneSrc={phoneSrc}
               />
             </>
           ) : (
@@ -711,7 +799,7 @@ export function PromotionConsole({
                     <input
                       value={draft.cta_label ?? ""}
                       onChange={(e) => patch({ cta_label: e.target.value })}
-                      placeholder={CTA_PRESETS[draft.cta].label}
+                      placeholder="Book a table"
                     />
                   </label>
                 </div>
@@ -767,9 +855,9 @@ export function PromotionConsole({
                 >
                   {(
                     [
-                      ["enter", "After they enter"],
+                      ["enter", "Opening page"],
                       ["ribbon", "Quiet line"],
-                      ["phone", "Table phone"],
+                      ["phone", "QR app"],
                     ] as [SurfaceKey, string][]
                   ).map(([key, label]) => (
                     <label key={key} className="admin-chip">
@@ -836,7 +924,41 @@ export function PromotionConsole({
                   </div>
                 </div>
 
-                <p className="admin-kicker">Picture</p>
+                <label>
+                  Status
+                  <select
+                    value={draftStatus(draft)}
+                    onChange={(e) =>
+                      patch(applyDraftStatus(e.target.value as DraftStatus))
+                    }
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="live">Live</option>
+                    <option value="ended">Ended</option>
+                  </select>
+                </label>
+                <label>
+                  Restaurant
+                  <select
+                    value={draft.branch_id ?? ""}
+                    onChange={(e) =>
+                      patch({ branch_id: e.target.value || null })
+                    }
+                  >
+                    <option value="">Both</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.slug === "lewisham"
+                          ? "Lewisham"
+                          : b.slug === "chingford"
+                            ? "Chingford"
+                            : b.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <p className="admin-kicker">Banner</p>
                 <HeroPicker
                   media={media}
                   layout={draft.layout}
@@ -853,8 +975,8 @@ export function PromotionConsole({
                         })
                       }
                     >
-                      <option value="left">Beside the words</option>
-                      <option value="top">Above the words</option>
+                      <option value="left">Beside the words — default on all three</option>
+                      <option value="top">Above the words — opening page only</option>
                       <option value="none">Words only</option>
                     </select>
                   </label>
@@ -997,7 +1119,7 @@ export function PromotionConsole({
                 </details>
 
                 <details className="admin-drawer-fold">
-                  <summary>When and tags</summary>
+                  <summary>When</summary>
                   <div className="admin-row">
                     <label>
                       From
@@ -1021,22 +1143,6 @@ export function PromotionConsole({
                       />
                     </label>
                   </div>
-                  <label>
-                    Restaurant
-                    <select
-                      value={draft.branch_id ?? ""}
-                      onChange={(e) =>
-                        patch({ branch_id: e.target.value || null })
-                      }
-                    >
-                      <option value="">Both</option>
-                      {branches.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
                   <label>
                     Campaign ID
                     <input

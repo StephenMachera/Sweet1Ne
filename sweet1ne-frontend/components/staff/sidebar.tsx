@@ -39,6 +39,68 @@ function useUnreadInboxCount(me: Me | null): number | null {
   return count;
 }
 
+const ORDERS_POLL_MS = 30 * 1000;
+
+/** Polls, unlike Inbox's nav-triggered refetch — staff watching the floor
+ * care about a new order arriving while they're already sitting on a
+ * page, not only after navigating elsewhere and back. */
+function useUnreadOrdersCount(me: Me | null): number | null {
+  const pathname = usePathname();
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!me || !hasPermission(me, "view_orders")) return;
+    let cancelled = false;
+    function check() {
+      apiFetch("/staff/orders?period=daily")
+        .then((rows: { is_read: boolean }[]) => {
+          if (cancelled) return;
+          setCount(rows.filter((r) => !r.is_read).length);
+        })
+        .catch(() => {});
+    }
+    check();
+    const id = setInterval(check, ORDERS_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [me, pathname]);
+
+  return count;
+}
+
+const LEADS_POLL_MS = 30 * 1000;
+
+/** Polls, same reasoning as Orders — a new subscriber can sign up at any
+ * moment (QR, website, contact form) while staff are already sitting on
+ * another page. */
+function useUnreadLeadsCount(me: Me | null): number | null {
+  const pathname = usePathname();
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!me || !hasPermission(me, "manage_marketing")) return;
+    let cancelled = false;
+    function check() {
+      apiFetch("/newsletter/subscribers?subscribed_only=false")
+        .then((rows: { is_read: boolean }[]) => {
+          if (cancelled) return;
+          setCount(rows.filter((r) => !r.is_read).length);
+        })
+        .catch(() => {});
+    }
+    check();
+    const id = setInterval(check, LEADS_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [me, pathname]);
+
+  return count;
+}
+
 function NavBadge({ count }: { count: number }) {
   return (
     <span
@@ -79,6 +141,8 @@ function AdminRail({ basePath }: { basePath: string }) {
   const supabase = createClient();
   const [open, setOpen] = useState(false);
   const unreadInboxCount = useUnreadInboxCount(me);
+  const unreadOrdersCount = useUnreadOrdersCount(me);
+  const unreadLeadsCount = useUnreadLeadsCount(me);
 
   const visibleGroups = NAV_GROUPS.map((group) => ({
     ...group,
@@ -156,6 +220,12 @@ function AdminRail({ basePath }: { basePath: string }) {
                   {item.href === "/inbox" && !!unreadInboxCount && (
                     <NavBadge count={unreadInboxCount} />
                   )}
+                  {item.href === "/orders" && !!unreadOrdersCount && (
+                    <NavBadge count={unreadOrdersCount} />
+                  )}
+                  {item.href === "/leads" && !!unreadLeadsCount && (
+                    <NavBadge count={unreadLeadsCount} />
+                  )}
                 </Link>
               );
             })}
@@ -197,6 +267,8 @@ function SidebarBody({
   const router = useRouter();
   const supabase = createClient();
   const unreadInboxCount = useUnreadInboxCount(me);
+  const unreadOrdersCount = useUnreadOrdersCount(me);
+  const unreadLeadsCount = useUnreadLeadsCount(me);
 
   const isBranch = variant === "branch";
 
@@ -295,6 +367,12 @@ function SidebarBody({
                   {!collapsed && <span>{item.label}</span>}
                   {!collapsed && item.href === "/inbox" && !!unreadInboxCount && (
                     <NavBadge count={unreadInboxCount} />
+                  )}
+                  {!collapsed && item.href === "/orders" && !!unreadOrdersCount && (
+                    <NavBadge count={unreadOrdersCount} />
+                  )}
+                  {!collapsed && item.href === "/leads" && !!unreadLeadsCount && (
+                    <NavBadge count={unreadLeadsCount} />
                   )}
                 </Link>
               );

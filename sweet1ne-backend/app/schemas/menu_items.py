@@ -11,6 +11,7 @@ class MenuItemIn(BaseModel):
     pictures: list[str] = []
     dietary_tags: list[str] = []
     allergen_tags: list[str] = []
+    prep_station_override: str | None = None
 
 
 class MenuItemOut(BaseModel):
@@ -27,6 +28,7 @@ class MenuItemOut(BaseModel):
     is_available: bool
     dietary_tags: list[str]
     allergen_tags: list[str]
+    prep_station_override: str | None = None
     promo_price: float | None = None
     promo_titles: list[str] = []
 
@@ -41,5 +43,6 @@ class MenuItemUpdate(BaseModel):
     is_available: bool | None = None
     dietary_tags: list[str] | None = None
     allergen_tags: list[str] | None = None
+    prep_station_override: str | None = None
 
     

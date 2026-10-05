@@ -2,6 +2,9 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
+class OrderReadIn(BaseModel):
+    is_read: bool = True
+
 class OrderItemIn(BaseModel):
     menu_item_id: uuid.UUID
     quantity: int = 1
@@ -46,6 +49,7 @@ class OrderOut(BaseModel):
     branch_id: uuid.UUID | None = None
     branch_name: str | None = None
     table_number: int | None = None
+    is_read: bool = False
 
 class OrderUpdate(BaseModel):
     seat_number: int | None = None

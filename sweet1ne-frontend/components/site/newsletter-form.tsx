@@ -39,12 +39,19 @@ export function NewsletterForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, consented: true, source }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        // A deliverability/format rejection comes back as a plain string
+        // detail — a malformed-email 422 from Pydantic comes back as a
+        // list of error objects instead, so only trust the string shape.
+        const body = await res.json().catch(() => null);
+        const detail = body?.detail;
+        throw new Error(typeof detail === "string" ? detail : "Please enter a valid email address.");
+      }
       setStatus("done");
       if (onSubscribed) setTimeout(onSubscribed, 1400);
-    } catch {
+    } catch (err) {
       setStatus("idle");
-      setError("Something went wrong. Try again in a moment.");
+      setError(err instanceof Error && err.message ? err.message : "Something went wrong. Try again in a moment.");
     }
   }
 
@@ -95,7 +102,7 @@ export function NewsletterForm({
         <button
           type="submit"
           disabled={status === "sending"}
-          className="h-12 rounded-full bg-guest-accent text-sm font-medium text-white transition-opacity disabled:opacity-60"
+          className="h-12 rounded-full bg-guest-accent text-sm font-medium text-guest-accent-text transition-opacity disabled:opacity-60"
         >
           {status === "sending" ? "Joining…" : "Continue"}
         </button>

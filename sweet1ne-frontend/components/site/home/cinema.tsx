@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BEATS } from "@/lib/home-content";
 import { useStage } from "./stage-provider";
+import { PromoCard } from "./promo-card";
 
 type FilmsApi = {
   armFilm?: (v: HTMLVideoElement) => void;
@@ -212,6 +213,8 @@ export default function Cinema() {
         <p className="kicker">Elevated Afro-Caribbean fusion</p>
         <h1>A culinary adventure for all the senses.</h1>
       </div>
+
+      <PromoCard />
 
       <button
         type="button"

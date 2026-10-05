@@ -3,29 +3,33 @@
 import { useEffect, useState } from "react";
 import { useStage } from "./stage-provider";
 import { getGuestId } from "@/lib/guest-id";
-import { CTA_PRESETS, type PromotionCtaKind } from "@/lib/promotion-blocks";
+import {
+  heroImageOf,
+  BANNER_POSITION_COORDS,
+  CTA_PRESETS,
+  offerText,
+  type NoteBlock,
+  type PublicPromotion,
+} from "@/lib/promotion-blocks";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+// Same dismissal convention as the header ribbon (components/site/promo-ribbon.tsx)
+// — stored against the promotion's own id, just its own prefix since this
+// is a different surface with its own independent on/off state.
+const DISMISS_PREFIX = "sweet1ne_promo_card_dismissed_";
 
-type Promotion = {
-  id: string;
-  title: string;
-  kicker: string | null;
-  dek: string | null;
-  cta: PromotionCtaKind;
-  cta_label: string | null;
-  // The hero still (beside/above the words) isn't wired up on this real
-  // card yet — a separate, pre-existing gap from before this background
-  // feature, left alone here rather than folded into this change.
-  look?: { background_image: string | null };
-};
-
-/** The homepage card after Enter Sweet1NE — a real, live "enter"-surface
-   promotion, or nothing. Never shown on the film itself: it only renders
-   once the gate has actually opened. */
+/** The "After they enter" surface — centred on the film, above the room
+   words. Classes (.promo-stage, .promo, .promo-still, .promo-copy, ...)
+   and the #promo-stage id match the template's own promo.css/promo.js
+   exactly, including the circular-still/centred-copy treatment that
+   `#promo-stage .promo` applies on top of the base card shape. Rendered
+   inside Cinema itself (components/site/home/cinema.tsx), not as a
+   separate section below it — the stage is absolutely positioned over the
+   hero film. */
 export function PromoCard() {
   const { gated } = useStage();
-  const [promotion, setPromotion] = useState<Promotion | null>(null);
+  const [promotion, setPromotion] = useState<PublicPromotion | null>(null);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     if (gated) return;
@@ -34,8 +38,10 @@ export function PromoCard() {
 
     fetch(`${API_URL}/public/site/promotions?surface=enter${guestId ? `&guest_id=${guestId}` : ""}`)
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: Promotion | null) => {
-        if (!cancelled) setPromotion(data);
+      .then((data: PublicPromotion | null) => {
+        if (cancelled || !data) return;
+        setDismissed(Boolean(window.localStorage.getItem(`${DISMISS_PREFIX}${data.id}`)));
+        setPromotion(data);
       })
       .catch(() => {});
 
@@ -44,34 +50,62 @@ export function PromoCard() {
     };
   }, [gated]);
 
-  if (gated || !promotion) return null;
+  if (gated || !promotion || dismissed) return null;
 
-  const backgroundImage = promotion.look?.background_image;
+  const hero = heroImageOf(promotion.layout);
+  const imageUrl = hero?.image_url || "";
+  const objectPosition = BANNER_POSITION_COORDS[hero?.position ?? "center"];
+  const objectFit = hero?.fit === "fit" ? "contain" : "cover";
+  const showStill = promotion.look.still !== "none" && Boolean(imageUrl);
+  const off = offerText(promotion.offer, promotion.off);
+  const note = promotion.layout.find(
+    (b): b is NoteBlock => b.type === "note" && Boolean(b.text),
+  )?.text;
+  const preset = CTA_PRESETS[promotion.cta];
 
   return (
-    <section className="promo-card relative mx-auto max-w-3xl overflow-hidden px-5 py-10 text-center sm:px-8">
-      {backgroundImage && (
-        <img
-          src={backgroundImage}
-          alt=""
-          aria-hidden
-          className="absolute inset-0 -z-10 h-full w-full object-cover"
-          style={{ filter: "brightness(0.42) saturate(1.05)" }}
-        />
-      )}
-      {promotion.kicker && (
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--gold)]">
-          {promotion.kicker}
-        </p>
-      )}
-      <h2 className="mt-2 font-display text-2xl text-[#e5e2e1] sm:text-3xl">{promotion.title}</h2>
-      {promotion.dek && <p className="mt-3 text-[#a8a4a2]">{promotion.dek}</p>}
-      <a
-        href={CTA_PRESETS[promotion.cta].href}
-        className="mt-5 inline-block border border-[rgba(201,162,74,.9)] px-6 py-3 text-sm font-semibold text-[var(--gold)] transition-colors hover:bg-[var(--gold)] hover:text-[#0e0e0e]"
+    <div
+      id="promo-stage"
+      className="promo-stage is-ready"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <article
+        className="promo"
+        data-kind={promotion.kind}
+        data-still={promotion.look.still}
+        data-tone={promotion.look.tone}
+        data-align={promotion.look.align}
       >
-        {promotion.cta_label || CTA_PRESETS[promotion.cta].label}
-      </a>
-    </section>
+        {showStill && (
+          <div className="promo-still">
+            <img src={imageUrl} alt="" style={{ objectFit, objectPosition }} />
+          </div>
+        )}
+        <div className="promo-copy">
+          {promotion.kicker && <p className="promo-kicker">{promotion.kicker}</p>}
+          <h2 className="promo-title">{promotion.title}</h2>
+          {promotion.dek && <p className="promo-dek">{promotion.dek}</p>}
+          {note && <p className="promo-note">{note}</p>}
+          {promotion.code && <p className="promo-code">{promotion.code}</p>}
+          {off && <p className="promo-off">{off}</p>}
+          {!(promotion.kind === "code" && promotion.code) && (
+            <a className="book promo-cta" href={preset.href}>
+              {promotion.cta_label || preset.label}
+            </a>
+          )}
+        </div>
+        <button
+          type="button"
+          className="promo-close"
+          aria-label="Close"
+          onClick={() => {
+            window.localStorage.setItem(`${DISMISS_PREFIX}${promotion.id}`, "1");
+            setDismissed(true);
+          }}
+        >
+          ×
+        </button>
+      </article>
+    </div>
   );
 }

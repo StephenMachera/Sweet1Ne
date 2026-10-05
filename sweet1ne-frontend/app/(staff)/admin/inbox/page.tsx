@@ -40,6 +40,15 @@ const AUTO_REFRESH_MS = 3 * 60 * 1000;
 
 type StateFilter = "all" | "unread" | "open" | "replied" | "done";
 
+function receivedAt(iso: string) {
+  return new Date(iso).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function statusOf(row: Enquiry): { key: "open" | "replied" | "done"; text: string; cls: string } {
   if (row.status !== "pending") return { key: "done", text: "Done", cls: "admin-status" };
   if (row.staff_message) return { key: "replied", text: "Replied", cls: "admin-status is-ok" };
@@ -64,6 +73,9 @@ export default function AdminInboxPage() {
   const [replyText, setReplyText] = useState("");
   const [drawerSlot, setDrawerSlot] = useState<Element | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Enquiry | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const load = useCallback(() => {
     apiFetch("/reservations")
@@ -166,9 +178,49 @@ export default function AdminInboxPage() {
     try {
       await apiFetch(`/reservations/${row.id}`, { method: "DELETE" });
       setEnquiries((prev) => prev.filter((r) => r.id !== row.id));
+      setSelected((prev) => {
+        if (!prev.has(row.id)) return prev;
+        const next = new Set(prev);
+        next.delete(row.id);
+        return next;
+      });
       if (editing?.id === row.id) setEditing(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't remove that.");
+    }
+  }
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function removeSelected() {
+    setConfirmBulkDelete(false);
+    setError(null);
+    setBulkDeleting(true);
+    const ids = Array.from(selected);
+    const failed: string[] = [];
+
+    for (const id of ids) {
+      try {
+        await apiFetch(`/reservations/${id}`, { method: "DELETE" });
+      } catch {
+        failed.push(id);
+      }
+    }
+
+    const removedIds = new Set(ids.filter((id) => !failed.includes(id)));
+    setEnquiries((prev) => prev.filter((r) => !removedIds.has(r.id)));
+    if (editing && removedIds.has(editing.id)) setEditing(null);
+    setSelected(new Set(failed));
+    setBulkDeleting(false);
+    if (failed.length > 0) {
+      setError(`Removed ${removedIds.size} of ${ids.length} — ${failed.length} didn't go through.`);
     }
   }
 
@@ -282,6 +334,16 @@ export default function AdminInboxPage() {
       </div>
       <div className="admin-tools">
         <input type="search" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
+        {selected.size > 0 && (
+          <button
+            type="button"
+            className="admin-book"
+            disabled={bulkDeleting}
+            onClick={() => setConfirmBulkDelete(true)}
+          >
+            {bulkDeleting ? "Removing…" : `Remove ${selected.size} selected`}
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -293,9 +355,20 @@ export default function AdminInboxPage() {
           <table className="admin-sheet">
             <thead>
               <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    aria-label="Select all"
+                    checked={visible.length > 0 && visible.every((r) => selected.has(r.id))}
+                    onChange={(e) =>
+                      setSelected(e.target.checked ? new Set(visible.map((r) => r.id)) : new Set())
+                    }
+                  />
+                </th>
                 <th>From</th>
                 <th>Subject</th>
                 <th>Restaurant</th>
+                <th>Received</th>
                 <th>Status</th>
                 <th></th>
               </tr>
@@ -316,6 +389,14 @@ export default function AdminInboxPage() {
                     style={{ cursor: "pointer" }}
                     className={unread ? "is-unread" : undefined}
                   >
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${row.name}`}
+                        checked={selected.has(row.id)}
+                        onChange={() => toggleSelected(row.id)}
+                      />
+                    </td>
                     <td>
                       <span className="admin-name" style={unread ? { fontWeight: 700 } : undefined}>
                         {unread && (
@@ -339,6 +420,7 @@ export default function AdminInboxPage() {
                       <div className="admin-muted">{row.email}</div>
                     </td>
                     <td className="admin-muted">{row.branch_name ?? "—"}</td>
+                    <td className="admin-muted">{receivedAt(row.created_at)}</td>
                     <td>
                       <span className={st.cls}>{st.text}</span>
                     </td>
@@ -405,7 +487,9 @@ export default function AdminInboxPage() {
                 )}
               </p>
               <p className="text-[var(--ivory-dim)]">
-                {[editing.occasion, editing.branch_name].filter(Boolean).join(" · ")}
+                {[editing.occasion, editing.branch_name, receivedAt(editing.created_at)]
+                  .filter(Boolean)
+                  .join(" · ")}
               </p>
               <p>{editing.notes}</p>
               {editing.staff_message && (
@@ -438,6 +522,13 @@ export default function AdminInboxPage() {
                   <button type="button" className="admin-book" onClick={markDone}>
                     Mark done
                   </button>
+                  <button
+                    type="button"
+                    className="admin-book"
+                    onClick={() => editing && setRead(editing, false)}
+                  >
+                    Mark unread
+                  </button>
                   <button type="button" className="admin-book" onClick={() => setEditing(null)}>
                     Close
                   </button>
@@ -469,6 +560,28 @@ export default function AdminInboxPage() {
               Cancel
             </button>
             <button type="button" className={DIALOG_BOOK_BTN} onClick={() => confirmDelete && remove(confirmDelete)}>
+              Remove
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
+        <DialogContent className={DARK_DIALOG}>
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl text-[#e5e2e1]">
+              Remove {selected.size} {selected.size === 1 ? "enquiry" : "enquiries"}?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-[#a8a4a2]">
+            This removes them for good, not just marks them done. Use this for spam, not real
+            enquiries you just don&apos;t want to answer yet.
+          </p>
+          <div className="mt-4 flex justify-end gap-2">
+            <button type="button" className={DIALOG_GHOST_BTN} onClick={() => setConfirmBulkDelete(false)}>
+              Cancel
+            </button>
+            <button type="button" className={DIALOG_BOOK_BTN} onClick={removeSelected}>
               Remove
             </button>
           </div>

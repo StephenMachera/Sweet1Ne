@@ -11,6 +11,10 @@
  * carry their own content and can repeat (image, note) or not (logo).
  */
 
+import type { BannerPosition } from "@/lib/promotion-blocks";
+export type { BannerPosition };
+export { BANNER_POSITIONS, BANNER_POSITION_COORDS } from "@/lib/promotion-blocks";
+
 export type EventBlockType = "logo" | "kicker" | "meta" | "title" | "dek" | "image" | "note" | "ctas";
 
 export type LogoBlock = { id: string; type: "logo"; size: "s" | "m" | "l" };
@@ -18,7 +22,16 @@ export type KickerBlock = { id: string; type: "kicker" };
 export type MetaBlock = { id: string; type: "meta" };
 export type TitleBlock = { id: string; type: "title" };
 export type DekBlock = { id: string; type: "dek" };
-export type ImageBlock = { id: string; type: "image"; image_url: string; hero: boolean };
+
+export type ImageBlock = {
+  id: string;
+  type: "image";
+  image_url: string;
+  hero: boolean;
+  // Focal point for cropping — same 9-point anchor grid as Promotions/
+  // Campaigns (lib/promotion-blocks.ts), reused rather than redefined.
+  position: BannerPosition;
+};
 export type NoteBlock = { id: string; type: "note"; text: string };
 export type CtasBlock = { id: string; type: "ctas" };
 
@@ -82,7 +95,10 @@ export function addBlock(layout: EventBlock[], type: EventBlockType, imageUrl?: 
   const id = newBlockId();
   if (type === "logo") return [...layout, { id, type: "logo", size: "m" }];
   if (type === "image") {
-    return [...layout, { id, type: "image", image_url: imageUrl ?? "", hero: !hasBlock(layout, "image") }];
+    return [
+      ...layout,
+      { id, type: "image", image_url: imageUrl ?? "", hero: !hasBlock(layout, "image"), position: "center" },
+    ];
   }
   if (type === "note") return [...layout, { id, type: "note", text: "" }];
   return [...layout, { id, type } as EventBlock];
@@ -111,6 +127,16 @@ export function setHeroImage(layout: EventBlock[], id: string): EventBlock[] {
 
 export function imagesOf(layout: EventBlock[]): ImageBlock[] {
   return layout.filter((b): b is ImageBlock => b.type === "image" && Boolean(b.image_url));
+}
+
+/** Checkbox semantics for the quick-pick gallery: ticking a picture adds an
+   image block for it, unticking removes that block. Hero reassignment needs
+   no extra handling — heroImageOf() already falls back to images[0]. */
+export function toggleImage(layout: EventBlock[], imageUrl: string): EventBlock[] {
+  if (imagesOf(layout).some((b) => b.image_url === imageUrl)) {
+    return layout.filter((b) => !(b.type === "image" && b.image_url === imageUrl));
+  }
+  return addBlock(layout, "image", imageUrl);
 }
 
 export function heroImageOf(layout: EventBlock[]): ImageBlock | undefined {

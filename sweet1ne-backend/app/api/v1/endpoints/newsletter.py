@@ -3,9 +3,10 @@ import io
 import uuid
 from datetime import datetime, timezone
 
+from email_validator import EmailNotValidError, validate_email
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -39,6 +40,7 @@ def _subscriber_out(r: NewsletterSubscriber) -> SubscriberOut:
         is_subscribed=r.is_subscribed,
         consented_at=r.consented_at,
         unsubscribed_at=r.unsubscribed_at,
+        is_read=r.is_read,
     )
 
 
@@ -56,6 +58,19 @@ async def subscribe(
 ):
     if not payload.consented:
         raise HTTPException(status_code=400, detail="Consent is required.")
+
+    # SubscribeIn.email (EmailStr) only checks the format — Pydantic
+    # explicitly disables the deliverability check email_validator would
+    # otherwise do. Running it ourselves catches a domain that can't
+    # actually receive mail (typo'd, made-up, or long dead) before it ever
+    # reaches the subscriber list.
+    try:
+        validate_email(payload.email, check_deliverability=True)
+    except EmailNotValidError:
+        raise HTTPException(
+            status_code=400,
+            detail="That email address doesn't look like it can receive mail — mind double-checking it?",
+        )
 
     tenant = db.execute(select(Tenant)).scalars().first()
     if tenant is None:
@@ -124,6 +139,23 @@ def list_subscribers(
     ).scalars().all()
 
     return [_subscriber_out(r) for r in rows]
+
+
+@router.post("/newsletter/subscribers/mark-read", status_code=204)
+def mark_subscribers_read(
+    staff: CurrentStaff = Depends(require_permission("manage_marketing")),
+    db: Session = Depends(get_db),
+):
+    """Drives the sidebar's "new leads" badge. There's no per-row detail to
+    open here (unlike Inbox/Orders), so viewing the Leads list is itself
+    what marks everything on it as seen — called once when that page
+    loads."""
+    db.execute(
+        update(NewsletterSubscriber)
+        .where(NewsletterSubscriber.tenant_id == staff.tenant_id, NewsletterSubscriber.is_read == False)
+        .values(is_read=True)
+    )
+    db.commit()
 
 
 @router.post("/newsletter/subscribers", response_model=SubscriberCreateOut)

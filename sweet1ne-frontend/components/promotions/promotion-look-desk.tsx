@@ -15,18 +15,18 @@ const SURFACE_COPY: Record<
   { label: string; cap: string; frameClass: string }
 > = {
   enter: {
-    label: "After they enter",
-    cap: "Homepage, after Enter Sweet1NE. Not on the film.",
+    label: "Opening page",
+    cap: "Centred on the film, above the room words. Quiet line stays under the header. Not on the gate.",
     frameClass: "is-enter",
   },
   ribbon: {
     label: "Quiet line",
-    cap: "Under the header until they close it.",
+    cap: "Short line under the header: still, kicker, title, and Book a table. They can close it. The longer copy stays on the opening page and the QR app.",
     frameClass: "is-ribbon",
   },
   phone: {
-    label: "Table phone",
-    cap: "After email. A live code comes off the basket.",
+    label: "QR app",
+    cap: "After email, under the table name: still, kicker, title, and copy. A code shows here and comes off the basket. Basket stays at the bottom.",
     frameClass: "is-phone",
   },
 };
@@ -50,7 +50,7 @@ function Frame({
 }) {
   return (
     <section
-      className={`admin-look-frame ${frameClass}${on ? " is-on" : ""}${interactive ? " is-interactive" : ""}`}
+      className={`admin-look-frame ${frameClass}${on ? " is-on" : " is-off"}${interactive ? " is-interactive" : ""}`}
       onClick={interactive ? onToggle : undefined}
       role={interactive ? "button" : undefined}
       tabIndex={interactive ? 0 : undefined}
@@ -69,16 +69,9 @@ function Frame({
         {label} <span className="admin-look-state">{on ? "On" : "Off"}</span>
       </p>
       {cap && <p className="admin-look-cap">{cap}</p>}
-      {on ? (
-        children
-      ) : (
-        // Off means this surface won't actually show the promotion, so
-        // there's nothing to keep live-updating here — showing it anyway
-        // as you type would suggest it's still on when it isn't.
-        <p className="admin-look-inactive">
-          This surface is off. Turn it on to preview it live.
-        </p>
-      )}
+      <div className={`admin-look-content${on ? "" : " is-off"}`}>
+        {children}
+      </div>
     </section>
   );
 }
@@ -96,6 +89,10 @@ type PromotionLookDeskProps = {
   // image has been picked yet — the tenant's own most recent upload, same
   // convention as the Campaigns letter preview.
   defaultImage?: string;
+  // A real guest order page URL (branch slug + a real table's QR token) —
+  // the "QR app" frame's actual destination. Null until a branch/table is
+  // known yet, in which case it falls back to the public /menu page.
+  phoneSrc?: string | null;
 };
 
 /** The Look desk — one frame per real surface a promotion can appear on
@@ -116,6 +113,7 @@ export function PromotionLookDesk({
   offer,
   off,
   defaultImage,
+  phoneSrc,
 }: PromotionLookDeskProps) {
   const dockText =
     kind === "code" && code
@@ -135,6 +133,12 @@ export function PromotionLookDesk({
         onToggle={() => onToggleSurface?.("enter")}
       >
         <div className="admin-promo-film">
+          <div className="admin-look-site-frame" aria-hidden>
+            {/* No veil here — the real homepage already dims its own hero
+               for text legibility, so layering another one on top just
+               muddies it instead of looking like the real page. */}
+            <iframe src="/" scrolling="no" tabIndex={-1} loading="lazy" title="" />
+          </div>
           <PromotionPreview data={data} surface="enter" defaultImage={defaultImage} />
         </div>
       </Frame>
@@ -147,11 +151,15 @@ export function PromotionLookDesk({
         interactive={interactive}
         onToggle={() => onToggleSurface?.("ribbon")}
       >
-        <div className="admin-look-header">
-          <img src={LOGO_SRC} alt="Sweet1NE" />
-          <span>The List · Find Us · Events</span>
+        <div className="admin-look-ribbon-stage">
+          <div className="admin-look-site-frame" aria-hidden>
+            <iframe src="/" scrolling="no" tabIndex={-1} loading="lazy" title="" />
+          </div>
+          <PromotionPreview data={data} surface="ribbon" />
         </div>
-        <PromotionPreview data={data} surface="ribbon" />
+        <p className="admin-look-ribbon-rest">
+          The rooms, the menu, What&rsquo;s next — the line stays under the header.
+        </p>
       </Frame>
 
       <Frame
@@ -163,8 +171,17 @@ export function PromotionLookDesk({
         onToggle={() => onToggleSurface?.("phone")}
       >
         <div className="admin-look-handset">
-          <div className="admin-look-handset-bar">Lewisham · Table 12</div>
-          <PromotionPreview data={data} surface="phone" />
+          <div className="admin-look-handset-bar">
+            <img src={LOGO_SRC} alt="" />
+            <span>Lewisham · Table 12</span>
+          </div>
+          <div className="admin-look-handset-stage">
+            <div className="admin-look-handset-frame" aria-hidden>
+              <iframe src={phoneSrc || "/menu"} scrolling="no" tabIndex={-1} loading="lazy" title="" />
+            </div>
+            <div className="admin-look-site-veil" aria-hidden />
+            <PromotionPreview data={data} surface="phone" />
+          </div>
           <div className="admin-look-handset-dock">{dockText}</div>
         </div>
       </Frame>

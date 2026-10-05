@@ -149,18 +149,6 @@ export default function DashboardPage() {
               })}`
             : "—"}
         </p>
-        <div className="admin-places" role="group" aria-label="Restaurant">
-          {(["both", "lewisham", "chingford"] as Place[]).map((p) => (
-            <button
-              key={p}
-              type="button"
-              className={place === p ? "is-on" : undefined}
-              onClick={() => setPlace(p)}
-            >
-              {p === "both" ? "Both" : p === "lewisham" ? "Lewisham" : "Chingford"}
-            </button>
-          ))}
-        </div>
         <p className="admin-who">{me?.email ?? "—"}</p>
       </div>
 

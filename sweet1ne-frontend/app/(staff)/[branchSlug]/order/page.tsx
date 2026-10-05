@@ -24,7 +24,12 @@ import { useGuestTheme, ThemeToggle } from "@/components/guest/guest-theme";
 import { GuestSignInOverlay } from "@/components/site/guest-signin-overlay";
 import { effectivePrice } from "@/lib/pricing";
 import { getGuestId } from "@/lib/guest-id";
-import { CTA_PRESETS, type PromotionCtaKind } from "@/lib/promotion-blocks";
+import {
+  BANNER_POSITION_COORDS,
+  heroImageOf,
+  offerText,
+  type PublicPromotion,
+} from "@/lib/promotion-blocks";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -49,18 +54,7 @@ type TableContext = {
   /** A real, live promotion targeting the table phone right now — resolved
    *  server-side. Only a "code" kind one affects the total, automatically;
    *  the guest never types anything. */
-  promotion: {
-    id: string;
-    kind: string;
-    title: string;
-    kicker: string | null;
-    dek: string | null;
-    cta: PromotionCtaKind;
-    cta_label: string | null;
-    code: string | null;
-    offer: "none" | "percent" | "pounds";
-    off: number | null;
-  } | null;
+  promotion: PublicPromotion | null;
 };
 
 type MainCategory = { id: string; name: string; sort_order: number };
@@ -144,6 +138,11 @@ export default function GuestOrderPage({
   // Staff previewing this from /admin/qr — always shows the sign-in step,
   // regardless of what this browser has already seen.
   const forceSignInPreview = searchParams.get("preview") === "signin";
+  // Staff previewing this from /admin/promotions — the opposite: this
+  // iframe is read-only (pointer-events disabled on it), so a mandatory
+  // gate the admin can't actually click through would just block the
+  // preview forever. Skip it regardless of this browser's own history.
+  const skipSignInPreview = searchParams.get("preview") === "admin";
   const { theme, toggle, ready } = useGuestTheme();
 
   const [context, setContext] = useState<TableContext | null>(null);
@@ -207,13 +206,13 @@ export default function GuestOrderPage({
         // Asked once per device, ever — not once per table, so the same
         // guest isn't asked again at a different table another time.
         const alreadyAsked = window.localStorage.getItem("sweet1ne_signin_seen") === "1";
-        if (forceSignInPreview || !alreadyAsked) setShowSignIn(true);
+        if (!skipSignInPreview && (forceSignInPreview || !alreadyAsked)) setShowSignIn(true);
       })
       .catch(() =>
         setError("We couldn't load this menu. Please scan the code again or ask a member of staff.")
       )
       .finally(() => setLoading(false));
-  }, [qrToken, forceSignInPreview]);
+  }, [qrToken, forceSignInPreview, skipSignInPreview]);
 
   useEffect(() => {
     if (!qrToken) return;
@@ -293,10 +292,13 @@ export default function GuestOrderPage({
     : 0;
   const payableTotal = Math.max(0, cartTotal - codeDiscount);
 
-  const canOrder = context?.order_mode !== "waiter";
+  // "waiter" tables still build a cart like any other — they just can't
+  // check out themselves. The bottom action becomes "Ask for waiter"
+  // (shows the same cart preview a self-checkout guest would see, for the
+  // guest to show a member of staff) instead of sending the order.
+  const canSelfCheckout = context?.order_mode !== "waiter";
 
   function change(itemId: string, delta: number) {
-    if (!canOrder) return;
     const wasEmpty = !(cart[itemId] > 0);
     setCart((prev) => ({ ...prev, [itemId]: Math.max(0, (prev[itemId] ?? 0) + delta) }));
     if (delta > 0 && wasEmpty) {
@@ -318,8 +320,9 @@ export default function GuestOrderPage({
 
   function openCheckout() {
     // Adding to an existing order skips the details step — seat and any
-    // request belong to the original order.
-    setSheetStep(addingMore ? "review" : "details");
+    // request belong to the original order. A "waiter" table skips it too
+    // — there's nothing to collect, it jumps straight to the cart preview.
+    setSheetStep(addingMore || !canSelfCheckout ? "review" : "details");
   }
 
   async function placeOrder() {
@@ -398,7 +401,7 @@ export default function GuestOrderPage({
           {context?.logo_url ? (
             <img src={context.logo_url} alt="" className="h-[2.295rem] w-[2.295rem] rounded-full object-cover" />
           ) : (
-            <span className="flex h-[2.295rem] w-[2.295rem] items-center justify-center rounded-full bg-guest-accent text-sm font-semibold text-white">
+            <span className="flex h-[2.295rem] w-[2.295rem] items-center justify-center rounded-full bg-guest-accent text-sm font-semibold text-guest-accent-text">
               {(context?.tenant_name ?? "S").charAt(0)}
             </span>
           )}
@@ -408,7 +411,7 @@ export default function GuestOrderPage({
               {context?.tenant_name ?? "Menu"}
             </p>
             {context && (
-              <p className="truncate text-xs font-medium text-[#c9a24a]">
+              <p className="truncate text-xs font-medium text-guest-accent">
                 Table {context.table_number}
                 {context.region && ` · ${context.region}`} · {context.branch_name}
               </p>
@@ -429,35 +432,45 @@ export default function GuestOrderPage({
           </div>
         )}
 
-        {context?.promotion && (
-          <div className="mb-5 rounded-2xl border border-guest-accent/40 bg-guest-accent-soft px-4 py-3">
-            {context.promotion.kicker && (
-              <p className="text-xs font-semibold uppercase tracking-wide text-guest-accent">
-                {context.promotion.kicker}
-              </p>
-            )}
-            <p className="font-display text-base">{context.promotion.title}</p>
-            {context.promotion.dek && (
-              <p className="mt-1 text-sm text-guest-muted">{context.promotion.dek}</p>
-            )}
-            {context.promotion.kind === "code" && context.promotion.code ? (
-              <p className="mt-2 text-sm font-medium text-guest-accent">
-                Code {context.promotion.code} — applied automatically to your basket
-              </p>
-            ) : (
-              <a
-                href={CTA_PRESETS[context.promotion.cta].href}
-                className="mt-2 inline-block text-sm font-medium text-guest-accent underline underline-offset-4"
-              >
-                {context.promotion.cta_label || CTA_PRESETS[context.promotion.cta].label}
-              </a>
-            )}
-          </div>
-        )}
+        {context?.promotion && (() => {
+          const promo = context.promotion;
+          const hero = heroImageOf(promo.layout);
+          const imageUrl = hero?.image_url || "";
+          const objectPosition = BANNER_POSITION_COORDS[hero?.position ?? "center"];
+          const objectFit = hero?.fit === "fit" ? "contain" : "cover";
+          const showStill = promo.look.still !== "none" && Boolean(imageUrl);
+          const off = offerText(promo.offer, promo.off);
+
+          // Matches the template's htmlPhone() exactly — still, kicker,
+          // title, dek, off, code, in normal flow right under the table
+          // name. No close button and no CTA on this surface: the guest
+          // is already in the ordering app.
+          return (
+            <aside
+              className="promo-phone"
+              role="note"
+              data-still={promo.look.still}
+              data-tone={promo.look.tone}
+            >
+              {showStill && (
+                <div className="promo-still">
+                  <img src={imageUrl} alt="" style={{ objectFit, objectPosition }} />
+                </div>
+              )}
+              <div className="promo-copy">
+                {promo.kicker && <p className="promo-kicker">{promo.kicker}</p>}
+                <p className="promo-title">{promo.title}</p>
+                {promo.dek && <p className="promo-dek">{promo.dek}</p>}
+                {off && <p className="promo-off">{off}</p>}
+                {promo.code && <p className="promo-code">{promo.code}</p>}
+              </div>
+            </aside>
+          );
+        })()}
 
         <div className="lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-8">
           {/* Menu column */}
-          <div>
+          <div className="relative">
             {orderActive && (
               <div className="lg:hidden">
                 <OrderTracker
@@ -512,7 +525,7 @@ export default function GuestOrderPage({
             {/* Categories — sticky just under the header, so switching
                 category never means scrolling back up to find the tabs. */}
             {!query && mains.length > 0 && (
-              <div className="sticky top-[64px] z-10 -mx-4 mb-3 flex gap-2 overflow-x-auto bg-guest-bg px-4 pb-1 pt-2 sm:mx-0 sm:flex-wrap sm:px-0">
+              <div className="no-scrollbar sticky top-[64px] z-10 -mx-4 mb-3 flex gap-2 overflow-x-auto bg-guest-bg px-4 pb-1 pt-2 sm:mx-0 sm:flex-wrap sm:px-0">
                 {mains.map((main) => {
                   const active = main.id === activeMain;
                   return (
@@ -524,7 +537,7 @@ export default function GuestOrderPage({
                       }}
                       className={`shrink-0 rounded-full px-4 py-2.5 text-sm font-medium transition-colors ${
                         active
-                          ? "bg-guest-accent text-white"
+                          ? "bg-guest-accent text-guest-accent-text"
                           : "border border-guest-border bg-guest-card text-guest-muted"
                       }`}
                     >
@@ -536,7 +549,7 @@ export default function GuestOrderPage({
             )}
 
             {!query && visibleSubs.length > 0 && (
-              <div className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+              <div className="no-scrollbar -mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
                 <button
                   onClick={() => setActiveSub(null)}
                   className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm ${
@@ -602,30 +615,11 @@ export default function GuestOrderPage({
                           gallery.length > 0 ? "cursor-pointer" : "cursor-default"
                         }`}
                       >
-                        {item.picture && (
-                          <>
-                            <img
-                              src={item.picture}
-                              alt=""
-                              aria-hidden
-                              className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-lg"
-                            />
-                            <img
-                              src={item.picture}
-                              alt=""
-                              className="relative h-full w-full object-contain"
-                            />
-                          </>
-                        )}
+                        <ItemThumb gallery={gallery} />
 
                         {discounted && (
-                          <span className="absolute left-1.5 top-1.5 rounded-full bg-guest-accent px-2 py-0.5 text-[10px] font-semibold text-white">
+                          <span className="absolute left-1.5 top-1.5 rounded-full bg-guest-accent px-2 py-0.5 text-[10px] font-semibold text-guest-accent-text">
                             Offer
-                          </span>
-                        )}
-                        {gallery.length > 1 && (
-                          <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                            1/{gallery.length}
                           </span>
                         )}
                       </button>
@@ -645,7 +639,7 @@ export default function GuestOrderPage({
                             {item.promo_titles.map((promoTitle) => (
                               <span
                                 key={promoTitle}
-                                className="rounded-full bg-guest-accent px-2 py-0.5 text-[11px] font-medium text-white"
+                                className="rounded-full bg-guest-accent px-2 py-0.5 text-[11px] font-medium text-guest-accent-text"
                               >
                                 {promoTitle}
                               </span>
@@ -685,9 +679,7 @@ export default function GuestOrderPage({
                             </span>
                           )}
 
-                          {!canOrder ? (
-                            <span className="text-xs text-guest-muted">Ask a waiter</span>
-                          ) : qty > 0 ? (
+                          {qty > 0 ? (
                             <div className="flex items-center gap-1 rounded-full border border-guest-border p-1">
                               <button
                                 onClick={() => change(item.id, -1)}
@@ -702,7 +694,7 @@ export default function GuestOrderPage({
                               <button
                                 onClick={() => change(item.id, 1)}
                                 aria-label="Add one"
-                                className="flex h-8 w-8 items-center justify-center rounded-full bg-guest-accent text-white"
+                                className="flex h-8 w-8 items-center justify-center rounded-full bg-guest-accent text-guest-accent-text"
                               >
                                 <Plus size={16} />
                               </button>
@@ -710,7 +702,7 @@ export default function GuestOrderPage({
                           ) : (
                             <button
                               onClick={() => change(item.id, 1)}
-                              className="rounded-full bg-guest-accent px-4 py-2 text-sm font-medium text-white"
+                              className="rounded-full bg-guest-accent px-4 py-2 text-sm font-medium text-guest-accent-text"
                             >
                               Add
                             </button>
@@ -723,13 +715,6 @@ export default function GuestOrderPage({
               </ul>
             )}
 
-            {/* Mobile only — the sidebar takes over on large screens.
-                Sits exactly where the cart would otherwise build up. */}
-            {!canOrder && !orderActive && (
-              <div className="mt-6 lg:hidden">
-                <WaiterNotice />
-              </div>
-            )}
           </div>
 
           {/* Sidebar — large screens only */}
@@ -789,13 +774,11 @@ export default function GuestOrderPage({
                 </div>
                 <button
                   onClick={openCheckout}
-                  className="mt-4 w-full rounded-xl bg-guest-accent py-3 text-sm font-semibold text-white"
+                  className="mt-4 w-full rounded-xl bg-guest-accent py-3 text-sm font-semibold text-guest-accent-text"
                 >
-                  Place order
+                  {canSelfCheckout ? "Place order" : "Ask for waiter"}
                 </button>
               </div>
-            ) : !canOrder ? (
-              <WaiterNotice />
             ) : (
               <div className="rounded-2xl border border-dashed border-guest-border p-8 text-center">
                 <ShoppingBag size={24} className="mx-auto text-guest-muted" />
@@ -841,9 +824,9 @@ export default function GuestOrderPage({
             </span>
             <button
               onClick={openCheckout}
-              className="rounded-xl bg-guest-accent px-6 py-3 text-sm font-semibold text-white"
+              className="rounded-xl bg-guest-accent px-6 py-3 text-sm font-semibold text-guest-accent-text"
             >
-              {addingMore ? "Review" : "Place order"}
+              {!canSelfCheckout ? "Ask for waiter" : addingMore ? "Review" : "Place order"}
             </button>
           </div>
         </div>
@@ -920,7 +903,7 @@ export default function GuestOrderPage({
 
                 <button
                   onClick={() => setSheetStep("review")}
-                  className="w-full rounded-xl bg-guest-accent py-4 text-base font-semibold text-white"
+                  className="w-full rounded-xl bg-guest-accent py-4 text-base font-semibold text-guest-accent-text"
                 >
                   Continue
                 </button>
@@ -961,7 +944,7 @@ export default function GuestOrderPage({
                           <button
                             onClick={() => change(id, 1)}
                             aria-label="Add one"
-                            className="flex h-8 w-8 items-center justify-center rounded-full bg-guest-accent text-white"
+                            className="flex h-8 w-8 items-center justify-center rounded-full bg-guest-accent text-guest-accent-text"
                           >
                             <Plus size={15} />
                           </button>
@@ -996,25 +979,27 @@ export default function GuestOrderPage({
                   </div>
                 )}
 
-                <div className="space-y-1.5">
-                  <label htmlFor="promo-code" className="flex items-center gap-2 text-sm">
-                    Got a promo code?
-                    <span className="rounded-full bg-guest-elevated px-2 py-0.5 text-[11px] text-guest-muted">
-                      Optional
-                    </span>
-                  </label>
-                  <input
-                    id="promo-code"
-                    value={manualCode}
-                    onChange={(e) => setManualCode(e.target.value)}
-                    placeholder="Enter code"
-                    autoCapitalize="characters"
-                    className="h-12 w-full rounded-xl border border-guest-border bg-guest-bg px-4 text-base uppercase outline-none placeholder:normal-case placeholder:text-guest-muted focus:border-guest-accent"
-                  />
-                  {manualCode.trim() && manualCode.trim().toUpperCase() !== codePromo?.code && (
-                    <p className="text-xs text-guest-muted">Checked when you send the order.</p>
-                  )}
-                </div>
+                {canSelfCheckout && (
+                  <div className="space-y-1.5">
+                    <label htmlFor="promo-code" className="flex items-center gap-2 text-sm">
+                      Got a promo code?
+                      <span className="rounded-full bg-guest-elevated px-2 py-0.5 text-[11px] text-guest-muted">
+                        Optional
+                      </span>
+                    </label>
+                    <input
+                      id="promo-code"
+                      value={manualCode}
+                      onChange={(e) => setManualCode(e.target.value)}
+                      placeholder="Enter code"
+                      autoCapitalize="characters"
+                      className="h-12 w-full rounded-xl border border-guest-border bg-guest-bg px-4 text-base uppercase outline-none placeholder:normal-case placeholder:text-guest-muted focus:border-guest-accent"
+                    />
+                    {manualCode.trim() && manualCode.trim().toUpperCase() !== codePromo?.code && (
+                      <p className="text-xs text-guest-muted">Checked when you send the order.</p>
+                    )}
+                  </div>
+                )}
 
                 <div className="space-y-2 border-t border-guest-border pt-4">
                   {saving > 0 && (
@@ -1038,15 +1023,23 @@ export default function GuestOrderPage({
                 </div>
 
                 <button
-                  onClick={placeOrder}
+                  onClick={canSelfCheckout ? placeOrder : () => setSheetStep(null)}
                   disabled={submitting}
-                  className="w-full rounded-xl bg-guest-accent py-4 text-base font-semibold text-white disabled:opacity-60"
+                  className="w-full rounded-xl bg-guest-accent py-4 text-base font-semibold text-guest-accent-text disabled:opacity-60"
                 >
-                  {submitting ? "Sending…" : addingMore ? "Add to order" : "Send order"}
+                  {!canSelfCheckout
+                    ? "Done"
+                    : submitting
+                    ? "Sending…"
+                    : addingMore
+                    ? "Add to order"
+                    : "Send order"}
                 </button>
 
                 <p className="text-center text-xs text-guest-muted">
-                  {addingMore
+                  {!canSelfCheckout
+                    ? "Show this screen to a member of staff."
+                    : addingMore
                     ? "These go on the same bill."
                     : "You can change or cancel this while it's still with the kitchen."}
                 </p>
@@ -1068,17 +1061,38 @@ export default function GuestOrderPage({
   );
 }
 
-/** Replaces the cart entirely in waiter mode — there's nothing to add, so
-   this sits exactly where a cart would otherwise build up, on both the
-   desktop sidebar and the mobile flow. */
-function WaiterNotice() {
+/** The item row's own thumbnail — cycles through every photo on its own,
+   same pace as the full-screen DishCarousel below, so a dish with several
+   pictures shows them all without the guest needing to tap it open first. */
+function ItemThumb({ gallery }: { gallery: string[] }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (gallery.length < 2) return;
+    const timer = setInterval(() => {
+      setIndex((i) => (i + 1) % gallery.length);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, [gallery]);
+
+  const src = gallery[Math.min(index, gallery.length - 1)];
+  if (!src) return null;
+
   return (
-    <div className="rounded-2xl border-2 border-[#c9a24a] bg-[#c9a24a]/[0.06] p-6 text-center">
-      <p className="text-sm font-semibold text-[#c9a24a]">Ask a waiter</p>
-      <p className="mt-1 text-sm text-guest-muted">
-        Browse the menu, then ask a member of staff to order for you.
-      </p>
-    </div>
+    <>
+      <img
+        src={src}
+        alt=""
+        aria-hidden
+        className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-lg"
+      />
+      <img src={src} alt="" className="relative h-full w-full object-contain" />
+      {gallery.length > 1 && (
+        <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+          {index + 1}/{gallery.length}
+        </span>
+      )}
+    </>
   );
 }
 
@@ -1191,7 +1205,7 @@ function OrderTracker({
     <div className="mb-5 overflow-hidden rounded-2xl border border-guest-accent/30 bg-guest-accent-soft">
       {!alwaysOpen && (
         <button onClick={onToggle} className="flex w-full items-center gap-3 px-4 py-3.5 text-left">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-guest-accent text-white">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-guest-accent text-guest-accent-text">
             {done ? <Check size={17} /> : <Clock size={17} />}
           </span>
           <span className="min-w-0 flex-1">
@@ -1227,7 +1241,7 @@ function OrderTracker({
                     <span
                       className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
                         reached
-                          ? "bg-guest-accent text-white"
+                          ? "bg-guest-accent text-guest-accent-text"
                           : "border border-guest-border bg-guest-card text-guest-muted"
                       }`}
                     >
@@ -1290,7 +1304,7 @@ function OrderTracker({
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={onAddMore}
-                className="flex-1 rounded-xl bg-guest-accent px-4 py-2.5 text-sm font-medium text-white"
+                className="flex-1 rounded-xl bg-guest-accent px-4 py-2.5 text-sm font-medium text-guest-accent-text"
               >
                 Order more
               </button>

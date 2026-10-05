@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CoursePictureDialog } from "./course-picture-dialog";
-import type { MainCategory, MenuItem, SubCategory } from "./menu-browser";
+import { resolveStation, type MainCategory, type MenuItem, type SubCategory } from "./menu-browser";
 
 /** The menu board — one chapter per course (main category), each with its
  *  own medal picture and a list of dishes with circular thumbnails.
@@ -15,6 +15,7 @@ export function MenuBoard({
   onEditItem,
   onToggleItem,
   onCategoryChanged,
+  onStationChange,
 }: {
   mains: MainCategory[];
   subs: SubCategory[];
@@ -22,6 +23,7 @@ export function MenuBoard({
   onEditItem: (item: MenuItem) => void;
   onToggleItem: (item: MenuItem) => void;
   onCategoryChanged: (updated: MainCategory) => void;
+  onStationChange: (item: MenuItem, station: "kitchen" | "bar") => void;
 }) {
   const [pictureFor, setPictureFor] = useState<MainCategory | null>(null);
   const subById = new Map(subs.map((s) => [s.id, s]));
@@ -87,6 +89,18 @@ export function MenuBoard({
                     item.price,
                   )}
                 </p>
+                <div className="admin-station-pair" role="group" aria-label="Preparation">
+                  {(["kitchen", "bar"] as const).map((station) => (
+                    <button
+                      key={station}
+                      type="button"
+                      className={resolveStation(item, mains, subs) === station ? "is-on" : undefined}
+                      onClick={() => onStationChange(item, station)}
+                    >
+                      {station === "bar" ? "Bar" : "Kitchen"}
+                    </button>
+                  ))}
+                </div>
                 <div className="flex gap-3">
                   <button type="button" className="admin-edit" onClick={() => onEditItem(item)}>
                     Edit

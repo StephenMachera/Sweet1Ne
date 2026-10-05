@@ -14,9 +14,20 @@ from html import escape
 from typing import Any
 
 from app.core.config import settings
-from app.services.email.templates._layout import (
-    GOLD, HAIRLINE_FAINT, IVORY, IVORY_DIM, MUTED, wrap
-    )
+from app.services.email.templates._layout import wrap
+
+# Matches the admin editor's own live preview exactly (app/globals.css,
+# .admin-shell's --gold/--ivory/--ivory-dim) — kept local to campaigns
+# rather than imported from _layout's shared palette, so a reservation
+# confirmation, the newsletter welcome mail or an enquiry reply keep their
+# own look unaffected by this.
+GOLD = "#c9a24a"
+IVORY = "#e5e2e1"
+IVORY_DIM = "rgba(229, 226, 225, 0.68)"
+MUTED = "rgba(229, 226, 225, 0.68)"
+SURFACE = "#0c0c0c"
+BACKGROUND = "#050505"
+HAIRLINE_FAINT = "rgba(201, 162, 74, 0.28)"
 
 # Where a CTA preset kind actually points on the guest site. "url" isn't
 # here — that's a marketer-typed custom link, handled separately in _ctas.
@@ -150,7 +161,7 @@ def _button(block: dict[str, Any]) -> str:
     return f"""
           <tr><td style="padding:8px 40px 28px;" align="{align}">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-              <tr><td style="border:1px solid {GOLD};">
+              <tr><td>
                 <a href="{url}" style="display:inline-block;padding:14px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:{GOLD};text-decoration:none;">
                   {label}
                 </a>
@@ -197,9 +208,18 @@ def _logo(block: dict[str, Any]) -> str:
     else:
         mark = f"""<span style="font-family:Georgia,'Times New Roman',serif;font-size:22px;color:{GOLD};">Sweet1NE</span>"""
 
+    # A short centered line, same accent the admin preview's own <hr>
+    # renders under the logo — not a full-width border like before. Stays
+    # centered regardless of the logo's own alignment, matching the
+    # preview (its <hr> keeps margin:auto even when the image shifts left).
+    rule = f"""<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:10px auto 0;">
+              <tr><td width="35" height="1" style="background-color:{GOLD};line-height:1px;font-size:1px;">&nbsp;</td></tr>
+            </table>"""
+
     return f"""
-          <tr><td style="padding:10px 40px 18px;text-align:{align};border-bottom:1px solid {HAIRLINE_FAINT};">
+          <tr><td style="padding:10px 40px 18px;text-align:{align};">
             {mark}
+            {rule}
           </td></tr>"""
 
 
@@ -246,7 +266,7 @@ def _ctas(block: dict[str, Any]) -> str:
         buttons.append(
             f"""<td style="padding:0 8px 0 0;">
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                    <tr><td style="border:1px solid {GOLD};">
+                    <tr><td>
                       <a href="{escape(href)}" style="display:inline-block;padding:14px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:{GOLD};text-decoration:none;">
                         {escape(label)}
                       </a>
@@ -276,6 +296,25 @@ def _divider(_block: dict[str, Any]) -> str:
 def _spacer(_block: dict[str, Any]) -> str:
     return """
           <tr><td style="padding:14px 0;">&nbsp;</td></tr>"""
+
+
+def _campaign_footer(recipient_email: str) -> str:
+    """Matches the admin editor's preview footer exactly — no business
+    name/address line and no divider above it, since the preview shows
+    neither (its .admin-foot is plain text with top margin, no border).
+    "Unsubscribe" stays a real, working link (every marketing email needs
+    one) even though the preview's copy shows it as plain text; everything
+    else here is the preview's own wording verbatim."""
+    unsubscribe_url = f"{settings.FRONTEND_URL}/unsubscribe?email={recipient_email}"
+    privacy_url = f"{settings.FRONTEND_URL}/privacy"
+    return f"""
+          <tr><td style="padding:24px 40px;">
+            <p style="margin:0;font-size:12px;line-height:1.6;color:{MUTED};">
+              You asked to hear from Sweet1NE.
+              <a href="{unsubscribe_url}" style="color:{MUTED};text-decoration:underline;">Unsubscribe</a> any time.
+              <a href="{privacy_url}" style="color:{MUTED};text-decoration:underline;">Privacy</a> &middot; info@sweet1ne.com
+            </p>
+          </td></tr>"""
 
 
 RENDERERS = {
@@ -327,4 +366,8 @@ def render_campaign(
         preheader=escape(preheader) if preheader else None,
         unsubscribe_email=recipient_email,
         show_header=not has_logo_block,
+        footer_override=_campaign_footer(recipient_email),
+        background=BACKGROUND,
+        surface=SURFACE,
+        hairline="",
     )
