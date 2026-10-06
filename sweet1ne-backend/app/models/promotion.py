@@ -39,9 +39,17 @@ class Promotion(Base):
     kicker: Mapped[str | None] = mapped_column(String)
     dek: Mapped[str | None] = mapped_column(String)
 
-    # book | find | menu | events | contact | order | join
+    # Deprecated — superseded by `buttons` below. Left in place (unused) so
+    # older rows keep their original value rather than being destroyed; no
+    # code still reads these two.
     cta: Mapped[str] = mapped_column(String, nullable=False, server_default="book")
     cta_label: Mapped[str | None] = mapped_column(String)
+
+    # [{id, kind, label, href, on}, ...] — one or more buttons, each its own
+    # on/off switch. kind is book|find|menu|events|contact|order|join|page;
+    # href is only meaningful for "page" (a staff-typed URL). The first ON
+    # button renders filled/gold; the rest render outline.
+    buttons: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, server_default="[]")
 
     # Only meaningful when kind == "code". A live code-kind promotion whose
     # surfaces.phone is on gets applied automatically to the guest's basket

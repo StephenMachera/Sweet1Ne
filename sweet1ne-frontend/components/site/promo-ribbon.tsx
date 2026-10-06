@@ -5,7 +5,9 @@ import { getGuestId } from "@/lib/guest-id";
 import {
   heroImageOf,
   BANNER_POSITION_COORDS,
-  CTA_PRESETS,
+  liveButtons,
+  buttonHref,
+  buttonLabel,
   type PublicPromotion,
 } from "@/lib/promotion-blocks";
 
@@ -50,8 +52,15 @@ export function PromoRibbon() {
   const imageUrl = hero?.image_url || "";
   const objectPosition = BANNER_POSITION_COORDS[hero?.position ?? "center"];
   const objectFit = hero?.fit === "fit" ? "contain" : "cover";
+  const scale = hero?.scale ?? 100;
+  const stillStyle = {
+    objectFit,
+    objectPosition,
+    transform: scale === 100 ? undefined : `scale(${scale / 100})`,
+    transformOrigin: objectPosition,
+  } as const;
   const showStill = promotion.look.still !== "none" && Boolean(imageUrl);
-  const preset = CTA_PRESETS[promotion.cta];
+  const buttons = liveButtons(promotion.buttons);
 
   return (
     <div
@@ -59,11 +68,12 @@ export function PromoRibbon() {
       className="promo-ribbon"
       role="note"
       data-still={promotion.look.still}
+      data-size={promotion.look.still_size || "m"}
       data-tone={promotion.look.tone}
     >
       {showStill && (
         <div className="promo-still">
-          <img src={imageUrl} alt="" style={{ objectFit, objectPosition }} />
+          <img src={imageUrl} alt="" style={stillStyle} />
         </div>
       )}
       <div className="promo-copy">
@@ -71,10 +81,14 @@ export function PromoRibbon() {
         <p className="promo-title">{promotion.title}</p>
       </div>
       {promotion.code && <p className="promo-code">{promotion.code}</p>}
-      {!(promotion.kind === "code" && promotion.code) && (
-        <a className="promo-cta" href={preset.href}>
-          {promotion.cta_label || preset.label}
-        </a>
+      {!(promotion.kind === "code" && promotion.code) && buttons.length > 0 && (
+        <div className="promo-ctas">
+          {buttons.map((btn, i) => (
+            <a key={btn.id} className={`promo-cta${i === 0 ? " is-filled" : ""}`} href={buttonHref(btn)}>
+              {buttonLabel(btn)}
+            </a>
+          ))}
+        </div>
       )}
       <button
         type="button"

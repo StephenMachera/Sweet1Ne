@@ -15,6 +15,9 @@ export type Dish = {
   /** A dish with a real photo gets the circular thumbnail treatment. */
   featured?: boolean;
   image?: string;
+  /** The real sub-category's name — undefined for the catch-all "General"
+   *  one, so a course with no real subdivision never prints a heading. */
+  sub?: string;
 };
 
 export type Chapter = {
@@ -40,6 +43,7 @@ export type PublicMenuItem = {
   picture: string | null;
   pictures: string[];
   main_category_id: string;
+  sub_category_id: string;
 };
 
 export type PublicCategory = { id: string; name: string; parent_id: string | null };
@@ -94,6 +98,7 @@ function priceLabel(item: PublicMenuItem): string {
  *  unphotographed section is reached by scrolling, same as before). */
 export function buildMenu(data: PublicMenuData): { chapters: Chapter[]; courseIds: string[] } {
   const mainCategories = data.categories.filter((c) => c.parent_id === null);
+  const subById = new Map(data.categories.filter((c) => c.parent_id !== null).map((c) => [c.id, c]));
   const usedIds = new Set<string>();
 
   const chapters: Chapter[] = mainCategories.map((main) => {
@@ -103,14 +108,18 @@ export function buildMenu(data: PublicMenuData): { chapters: Chapter[]; courseId
 
     const dishes = data.items
       .filter((item) => item.main_category_id === main.id)
-      .map((item) => ({
-        id: item.id,
-        name: item.title,
-        price: priceLabel(item),
-        description: item.description ?? undefined,
-        featured: Boolean(item.picture),
-        image: item.picture ?? undefined,
-      }));
+      .map((item) => {
+        const subName = subById.get(item.sub_category_id)?.name;
+        return {
+          id: item.id,
+          name: item.title,
+          price: priceLabel(item),
+          description: item.description ?? undefined,
+          featured: Boolean(item.picture),
+          image: item.picture ?? undefined,
+          sub: subName && subName.toLowerCase() !== "general" ? subName : undefined,
+        };
+      });
 
     const curated = CURATED.find((c) => c.test.test(main.name));
 

@@ -162,7 +162,7 @@ def _button(block: dict[str, Any]) -> str:
           <tr><td style="padding:8px 40px 28px;" align="{align}">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
               <tr><td>
-                <a href="{url}" style="display:inline-block;padding:14px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:{GOLD};text-decoration:none;">
+                <a href="{url}" style="display:inline-block;padding:14px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:{GOLD};text-decoration:none;border:1px solid {GOLD};border-radius:6px;">
                   {label}
                 </a>
               </td></tr>
@@ -267,7 +267,7 @@ def _ctas(block: dict[str, Any]) -> str:
             f"""<td style="padding:0 8px 0 0;">
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                     <tr><td>
-                      <a href="{escape(href)}" style="display:inline-block;padding:14px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:{GOLD};text-decoration:none;">
+                      <a href="{escape(href)}" style="display:inline-block;padding:14px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:{GOLD};text-decoration:none;border:1px solid {GOLD};border-radius:6px;">
                         {escape(label)}
                       </a>
                     </td></tr>

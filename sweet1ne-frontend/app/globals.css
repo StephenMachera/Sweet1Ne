@@ -1063,6 +1063,85 @@ body {
   }
 }
 
+/* The selection checkmark on the main Media library's own grid, while
+   picking several items to delete at once — the tile itself still gets
+   the shared .is-on highlight above. */
+.admin-media-check {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #0e0e0e;
+}
+
+/* A review-before-you-delete lightbox for one media item — replaces the
+   old instant-delete-on-click behaviour on the Media library's grid. */
+.admin-lightbox-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  /* Lighter than a full blackout — the grid underneath should still read
+     as "there", with the card popping up above it, not a separate screen. */
+  background: rgba(5, 5, 5, 0.5);
+  animation: adminLightboxVeilIn 0.15s ease both;
+}
+.admin-lightbox {
+  width: min(32rem, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--gold-line);
+  border-radius: 4px;
+  padding: 1.1rem;
+  /* The elevation is what makes it read as a popup floating over the
+     grid, not just another flat panel on the page. */
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  animation: adminLightboxIn 0.15s ease both;
+}
+@keyframes adminLightboxVeilIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes adminLightboxIn {
+  from { opacity: 0; transform: scale(0.96) translateY(0.4rem); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-lightbox-veil, .admin-lightbox { animation: none; }
+}
+.admin-lightbox-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 0.9rem;
+}
+.admin-lightbox-media {
+  display: block;
+  width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  background: #050505;
+  border: 1px solid rgba(201, 162, 74, 0.22);
+}
+.admin-lightbox-acts {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+}
+
 /* "Show on" — a row of checkbox chips, gold when checked. */
 .admin-chip-row {
   display: flex;
@@ -1512,11 +1591,15 @@ label.admin-chip:has(input:checked) span {
    popup, header ribbon, table phone) render from the exact same rules.
    var(--display)/var(--body) there are var(--font-display)/var(--font-body)
    here — this file's own token names — everything else is unchanged. ── */
+/* Floats above every page (mounted once in the shared site layout, same
+   as the header ribbon) — fixed rather than anchored to the homepage
+   hero, with enough clearance above the cookie banner's own fixed strip
+   at the very bottom. */
 .promo-stage {
-  position: absolute;
-  z-index: 10;
+  position: fixed;
+  z-index: 60;
   top: auto;
-  bottom: 10.5rem;
+  bottom: 5.5rem;
   left: 0;
   right: 0;
   display: flex;
@@ -1529,6 +1612,17 @@ label.admin-chip:has(input:checked) span {
   width: min(26.5rem, 100%);
 }
 .promo-stage[hidden] { display: none; }
+/* The homepage has its own bottom-anchored "room words" (.hero-copy) the
+   floating card would otherwise sit on top of — give it more clearance
+   there specifically, higher than the default used elsewhere. */
+body:has(.home-page) .promo-stage {
+  bottom: 10rem;
+}
+@media (max-width: 720px) {
+  body:has(.home-page) .promo-stage {
+    bottom: 7.5rem;
+  }
+}
 .promo-stage.is-ready .promo {
   animation: promoIn 0.75s ease 0.28s both;
 }
@@ -1547,9 +1641,9 @@ label.admin-chip:has(input:checked) span {
   display: grid;
   grid-template-columns: 8.6rem minmax(0, 1fr);
   border: 1px solid rgba(201, 162, 74, 0.48);
-  background: rgba(5, 5, 5, 0.68);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  border-radius: 1.1rem;
+  overflow: hidden;
+  background: transparent;
   box-shadow:
     inset 0 0 0 5px #050505,
     inset 0 0 0 6px rgba(201, 162, 74, 0.16),
@@ -1624,11 +1718,37 @@ label.admin-chip:has(input:checked) span {
   color: var(--gold);
 }
 .promo-code[hidden] { display: none; }
+/* Several buttons can live on one card, each its own on/off switch — the
+   first live one renders filled/gold, the rest render outline (and still
+   fill gold on hover, same as every other "book"-style link). */
+.promo-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
 .promo-cta {
+  display: inline-block;
   align-self: flex-start;
   margin: 0;
   padding: 0.48rem 0.85rem;
   font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  border: 1px solid rgba(201, 162, 74, 0.9);
+  border-radius: 3px;
+  color: var(--gold);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.promo-cta:hover {
+  background: var(--gold);
+  color: #0e0e0e;
+}
+.promo-cta.is-filled {
+  background: var(--gold);
+  color: #0e0e0e;
 }
 .promo-close {
   position: absolute;
@@ -1717,7 +1837,7 @@ label.admin-chip:has(input:checked) span {
   width: min(43.5rem, 100%);
   padding: 1.21rem 2.76rem 1.267rem;
   text-align: center;
-  background: rgba(5, 5, 5, 0.52);
+  background: transparent;
   border: 1px solid rgba(201, 162, 74, 0.45);
   box-shadow:
     inset 0 0 0 5px #050505,
@@ -1726,11 +1846,11 @@ label.admin-chip:has(input:checked) span {
 }
 #promo-stage .promo-still,
 .admin-look-frame.is-enter .promo-still {
-  width: 3.917rem;
-  height: 3.917rem;
-  min-height: 3.917rem;
-  max-height: 3.917rem;
-  margin: 0.058rem 0 0.662rem;
+  width: 4.9rem;
+  height: 4.9rem;
+  min-height: 4.9rem;
+  max-height: 4.9rem;
+  margin: 0.07rem 0 0.83rem;
   border-radius: 50%;
   overflow: hidden;
   flex: 0 0 auto;
@@ -1776,7 +1896,7 @@ label.admin-chip:has(input:checked) span {
 .admin-look-frame.is-enter .promo-dots { left: 0; }
 
 @media (max-width: 720px) {
-  .promo-stage { bottom: 7.4rem; padding: 0 0.85rem; justify-content: center; }
+  .promo-stage { bottom: 5rem; padding: 0 0.85rem; justify-content: center; }
   .promo { grid-template-columns: 1fr; width: min(21rem, 100%); }
   #promo-stage .promo,
   .admin-look-frame.is-enter .promo { width: min(20.5rem, 100%); padding: 1.05rem 1.15rem 1.15rem; }
@@ -1827,11 +1947,24 @@ label.admin-chip:has(input:checked) span {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.promo-ribbon .promo-cta {
+/* Plain text links here regardless of position — a ribbon is one slim
+   line, no room for button chrome even on the "filled" one. */
+.promo-ribbon .promo-cta,
+.promo-ribbon .promo-cta.is-filled {
+  background: none;
+  border: 0;
+  padding: 0;
   color: var(--gold);
   font-size: 0.62rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+.promo-ribbon .promo-cta:hover {
+  background: none;
+  color: var(--ivory);
+}
+.promo-ribbon .promo-ctas {
+  gap: 0.75rem;
 }
 .promo-ribbon .promo-close { position: static; width: auto; height: auto; font-size: 1.1rem; }
 .promo-ribbon[data-still="none"],
@@ -1852,6 +1985,7 @@ label.admin-chip:has(input:checked) span {
   overflow: hidden;
   isolation: isolate;
   border: 1px solid rgba(201, 162, 74, 0.4);
+  border-radius: 0.85rem;
   background: rgba(8, 8, 8, 0.92);
   box-shadow: inset 2px 0 0 var(--gold);
 }
@@ -2351,19 +2485,21 @@ label.admin-chip:has(input:checked) span {
 }
 .admin-mail-preview .admin-still {
   width: 100%;
-  max-height: 16rem;
-  object-fit: cover;
-  object-position: 50% 28%;
   margin: 0.4rem 0 1rem;
   border: 1px solid rgba(201, 162, 74, 0.28);
   background: #050505;
   display: block;
 }
-.admin-mail-preview .admin-still.is-short {
-  max-height: 8.5rem;
+/* "Fit" — the real email's height:auto, no-crop mode: the photo keeps its
+   own natural ratio, same as it actually sends. */
+.admin-mail-preview .admin-still.is-fit {
+  height: auto;
 }
-.admin-mail-preview .admin-still.is-tall {
-  max-height: 24rem;
+/* "Fill" — the real email's fixed-height banner crop (height:220px there);
+   scaled down for this smaller preview, with the same focal point. */
+.admin-mail-preview .admin-still.is-fill {
+  height: 11rem;
+  object-fit: cover;
 }
 .admin-mail-preview .admin-mail-ctas {
   display: flex;
@@ -2374,6 +2510,9 @@ label.admin-chip:has(input:checked) span {
 }
 .admin-mail-preview .admin-mail-ctas .admin-book {
   margin: 0;
+  /* Matches the real email button's own corner now (campaign_renderer.py) —
+     rounder than the sharp-cornered admin-book used elsewhere. */
+  border-radius: 6px;
 }
 .admin-mail-preview .admin-slogan {
   margin: 0.9rem 0 0;
@@ -2694,6 +2833,11 @@ label.admin-chip:has(input:checked) span {
 .admin-station-pair button.is-on {
   border-color: var(--gold);
   color: var(--gold);
+}
+/* The one NOT currently picked dulls further the moment its sibling is
+   active, so which station actually fires this dish reads at a glance. */
+.admin-station-pair button:not(.is-on) {
+  opacity: 0.45;
 }
 
 /* Preparation Deck — the alternate view to the normal course-by-course

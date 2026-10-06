@@ -2,12 +2,15 @@
 
 import {
   heroImageOf,
-  CTA_PRESETS,
   BANNER_POSITION_COORDS,
   offerText,
+  liveButtons,
+  buttonHref,
+  buttonLabel,
   type PromotionBlock,
   type PromotionBlockType,
-  type PromotionCtaKind,
+  type PromotionButton,
+  type StillSize,
   type NoteBlock,
 } from "@/lib/promotion-blocks";
 
@@ -16,9 +19,14 @@ export type PromotionPreviewData = {
   title: string;
   dek: string | null;
   layout: PromotionBlock[];
-  cta: PromotionCtaKind;
-  cta_label: string | null;
-  look: { still: string; tone: string; align: string; background_image: string | null };
+  buttons: PromotionButton[];
+  look: {
+    still: string;
+    tone: string;
+    align: string;
+    background_image: string | null;
+    still_size: StillSize;
+  };
   kind: string;
   code: string | null;
   offer: string;
@@ -48,33 +56,39 @@ export function PromotionPreview({
   const notes = data.layout.filter(
     (b): b is NoteBlock => b.type === "note" && Boolean(b.text),
   );
-  const preset = CTA_PRESETS[data.cta];
-  const label = data.cta_label || preset.label;
   const kicker = hasType("kicker") ? data.kicker || "Now" : "";
   const title = hasType("title") ? data.title || "Title sits here." : "";
   const dek = hasType("dek") ? data.dek : null;
   const code = data.kind === "code" ? data.code : null;
   const off = offerText(data.offer, data.off);
-  // A code promotion applies itself at the table phone — no CTA needed on
-  // the surfaces that show the code (matches the template's fillCopy():
-  // `link.hidden = !cta.label || (row.kind === "code" && row.code)`).
-  const showCta = hasType("ctas") && !(data.kind === "code" && code);
+  // A code promotion applies itself at the table phone — no buttons needed
+  // on the surfaces that show the code.
+  const buttons = hasType("ctas") && !(data.kind === "code" && code) ? liveButtons(data.buttons) : [];
   const hero = heroImageOf(data.layout);
   const imageUrl = hero?.image_url || defaultImage || "";
   const objectPosition = BANNER_POSITION_COORDS[hero?.position ?? "center"];
   const objectFit = hero?.fit === "fit" ? "contain" : "cover";
+  const scale = hero?.scale ?? 100;
+  const stillStyle = {
+    objectFit,
+    objectPosition,
+    transform: scale === 100 ? undefined : `scale(${scale / 100})`,
+    transformOrigin: objectPosition,
+  } as const;
 
   const showStill = data.look.still !== "none" && Boolean(imageUrl);
-  // Independent of the hero still above — a full-bleed backdrop behind the
-  // whole "enter" card, not used by ribbon/phone.
-  const backgroundUrl = data.look.background_image || defaultImage || "";
 
   if (surface === "ribbon") {
     return (
-      <div className="promo-ribbon" data-still={data.look.still} data-tone={data.look.tone}>
+      <div
+        className="promo-ribbon"
+        data-still={data.look.still}
+        data-size={data.look.still_size}
+        data-tone={data.look.tone}
+      >
         {showStill && (
           <div className="promo-still">
-            <img src={imageUrl} alt="" style={{ objectFit, objectPosition }} />
+            <img src={imageUrl} alt="" style={stillStyle} />
           </div>
         )}
         <div className="promo-copy">
@@ -82,10 +96,19 @@ export function PromotionPreview({
           {title && <p className="promo-title">{title}</p>}
         </div>
         {code && <p className="promo-code">{code}</p>}
-        {showCta && (
-          <a className="promo-cta" href={preset.href} onClick={(e) => e.stopPropagation()}>
-            {label}
-          </a>
+        {buttons.length > 0 && (
+          <div className="promo-ctas">
+            {buttons.map((btn, i) => (
+              <a
+                key={btn.id}
+                className={`promo-cta${i === 0 ? " is-filled" : ""}`}
+                href={buttonHref(btn)}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {buttonLabel(btn)}
+              </a>
+            ))}
+          </div>
         )}
       </div>
     );
@@ -93,10 +116,15 @@ export function PromotionPreview({
 
   if (surface === "phone") {
     return (
-      <div className="promo-phone" data-still={data.look.still} data-tone={data.look.tone}>
+      <div
+        className="promo-phone"
+        data-still={data.look.still}
+        data-size={data.look.still_size}
+        data-tone={data.look.tone}
+      >
         {showStill && (
           <div className="promo-still">
-            <img src={imageUrl} alt="" style={{ objectFit, objectPosition }} />
+            <img src={imageUrl} alt="" style={stillStyle} />
           </div>
         )}
         <div className="promo-copy">
@@ -115,17 +143,13 @@ export function PromotionPreview({
       className="promo"
       data-kind={data.kind}
       data-still={data.look.still}
+      data-size={data.look.still_size}
       data-tone={data.look.tone}
       data-align={data.look.align}
     >
-      {backgroundUrl && (
-        <div className="promo-bg" aria-hidden>
-          <img src={backgroundUrl} alt="" />
-        </div>
-      )}
       {showStill && (
         <div className="promo-still">
-          <img src={imageUrl} alt="" style={{ objectFit, objectPosition }} />
+          <img src={imageUrl} alt="" style={stillStyle} />
         </div>
       )}
       <div className="promo-copy">
@@ -139,14 +163,19 @@ export function PromotionPreview({
         ))}
         {code && <p className="promo-code">{code}</p>}
         {off && <p className="promo-off">{off}</p>}
-        {showCta && (
-          <a
-            className="admin-book promo-cta"
-            href={preset.href}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {label}
-          </a>
+        {buttons.length > 0 && (
+          <div className="promo-ctas">
+            {buttons.map((btn, i) => (
+              <a
+                key={btn.id}
+                className={`promo-cta${i === 0 ? " is-filled" : ""}`}
+                href={buttonHref(btn)}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {buttonLabel(btn)}
+              </a>
+            ))}
+          </div>
         )}
       </div>
       {/* Decorative here — the Frame around this preview is itself the

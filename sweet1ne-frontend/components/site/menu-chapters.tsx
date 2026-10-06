@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import Image from "next/image";
 import Slogan from "@/components/site/slogan";
 import { SiteFooter } from "./site-footer";
@@ -101,9 +102,18 @@ function MenuChapter({ chapter }: { chapter: Chapter }) {
       )}
 
       <div className="list">
-        {chapter.dishes.map((dish) => (
-          <DishRow key={dish.id} dish={dish} />
-        ))}
+        {chapter.dishes.map((dish, i) => {
+          // A heading only where the sub-category actually changes — the
+          // same convention as the template's own dish-sub, and "General"
+          // (no real subdivision) never gets one at all.
+          const showSub = dish.sub && dish.sub !== chapter.dishes[i - 1]?.sub;
+          return (
+            <Fragment key={dish.id}>
+              {showSub && <p className="dish-sub">{dish.sub}</p>}
+              <DishRow dish={dish} />
+            </Fragment>
+          );
+        })}
       </div>
     </section>
   );

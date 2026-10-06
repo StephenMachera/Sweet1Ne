@@ -21,7 +21,7 @@ const SURFACE_COPY: Record<
   },
   ribbon: {
     label: "Quiet line",
-    cap: "Short line under the header: still, kicker, title, and Book a table. They can close it. The longer copy stays on the opening page and the QR app.",
+    cap: "Short line under the header: still, kicker, title, and the buttons that are on. They can close it. The longer copy stays on the opening page and the QR app.",
     frameClass: "is-ribbon",
   },
   phone: {

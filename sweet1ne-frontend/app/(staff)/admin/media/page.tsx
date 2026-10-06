@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import JSZip from "jszip";
+import { Check, X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useMe, hasPermission } from "@/lib/use-me";
@@ -86,6 +87,15 @@ export default function AdminMediaPage() {
   const [exportLabel, setExportLabel] = useState("");
   const [exporting, setExporting] = useState(false);
   const [exportMsg, setExportMsg] = useState<string | null>(null);
+
+  // Clicking a tile used to delete it on the spot — now it opens this
+  // review lightbox instead, with Delete as an explicit choice inside it.
+  const [reviewing, setReviewing] = useState<MediaItem | null>(null);
+  // While on, clicking a tile toggles it into `selected` instead of
+  // opening the review lightbox, so several can be removed in one go.
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const load = useCallback(
     () =>
@@ -366,6 +376,57 @@ export default function AdminMediaPage() {
     }
   }
 
+  async function deleteReviewing() {
+    if (!reviewing) return;
+    await remove(reviewing);
+    setReviewing(null);
+  }
+
+  function toggleSelectMode() {
+    setSelectMode((v) => !v);
+    setSelected(new Set());
+  }
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function onTileClick(item: MediaItem) {
+    if (selectMode) {
+      if (item.locked) return;
+      toggleSelected(item.id);
+    } else {
+      setReviewing(item);
+    }
+  }
+
+  async function deleteSelected() {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+
+    setBulkDeleting(true);
+    setError(null);
+    const failed: string[] = [];
+    for (const id of ids) {
+      try {
+        await apiFetch(`/media/${id}`, { method: "DELETE" });
+      } catch {
+        failed.push(id);
+      }
+    }
+    setItems((prev) => prev.filter((m) => !ids.includes(m.id) || failed.includes(m.id)));
+    setSelected(new Set(failed));
+    setBulkDeleting(false);
+    if (failed.length) {
+      setError(`Couldn't remove ${failed.length} of ${ids.length} selected item(s).`);
+    }
+  }
+
   if (meLoading || !me || !canManage) {
     return <AdminLoading />;
   }
@@ -397,6 +458,22 @@ export default function AdminMediaPage() {
         <button type="button" className="admin-ghost" disabled={exporting} onClick={exportAll}>
           {exporting ? "Exporting…" : "Export all (.zip)"}
         </button>
+      </div>
+
+      <div className="admin-tools mb-3">
+        <button type="button" className="admin-ghost" onClick={toggleSelectMode}>
+          {selectMode ? "Done selecting" : "Select"}
+        </button>
+        {selectMode && (
+          <button
+            type="button"
+            className="admin-book"
+            disabled={selected.size === 0 || bulkDeleting}
+            onClick={deleteSelected}
+          >
+            {bulkDeleting ? "Removing…" : `Delete ${selected.size || ""} selected`.trim()}
+          </button>
+        )}
       </div>
 
       <div className="admin-tools mb-3">
@@ -474,16 +551,35 @@ export default function AdminMediaPage() {
         <div className="admin-media-grid">
           {items.map((m) => {
             const thumb = m.kind === "video" ? m.poster : m.src;
+            const isSelected = selectMode && selected.has(m.id);
             return (
               <button
                 key={m.id}
                 type="button"
-                className={m.kind === "video" && !thumb ? "is-film" : undefined}
-                title={m.locked ? undefined : "Remove"}
-                disabled={m.locked}
-                onClick={() => remove(m)}
+                className={[
+                  m.kind === "video" && !thumb ? "is-film" : "",
+                  isSelected ? "is-on" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ") || undefined}
+                title={
+                  selectMode
+                    ? m.locked
+                      ? "Locked — can't be removed"
+                      : isSelected
+                        ? "Selected"
+                        : "Select"
+                    : "Review"
+                }
+                disabled={selectMode && m.locked}
+                onClick={() => onTileClick(m)}
               >
                 {thumb && <img src={thumb} alt="" />}
+                {isSelected && (
+                  <span className="admin-media-check" aria-hidden>
+                    <Check size={14} />
+                  </span>
+                )}
                 <span>
                   {m.label}
                   {kindTag(m)}
@@ -491,6 +587,45 @@ export default function AdminMediaPage() {
               </button>
             );
           })}
+        </div>
+      )}
+
+      {reviewing && (
+        <div className="admin-lightbox-veil" onClick={() => setReviewing(null)}>
+          <div className="admin-lightbox" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-lightbox-head">
+              <div>
+                <p className="admin-kicker">{reviewing.label}</p>
+                <p className="admin-dek">
+                  {reviewing.kind === "video" ? "Film" : reviewing.kind === "gif" ? "GIF" : "Photo"}
+                  {reviewing.locked ? " · house — can't be removed" : ""}
+                </p>
+              </div>
+              <button type="button" className="admin-edit" onClick={() => setReviewing(null)} aria-label="Close">
+                <X size={16} />
+              </button>
+            </div>
+
+            {reviewing.kind === "video" ? (
+              <video
+                className="admin-lightbox-media"
+                src={reviewing.src}
+                poster={reviewing.poster ?? undefined}
+                controls
+              />
+            ) : (
+              <img className="admin-lightbox-media" src={reviewing.src} alt="" />
+            )}
+
+            <div className="admin-lightbox-acts">
+              <button type="button" className="admin-edit" onClick={() => setReviewing(null)}>
+                Close
+              </button>
+              <button type="button" className="admin-book" disabled={reviewing.locked} onClick={deleteReviewing}>
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>

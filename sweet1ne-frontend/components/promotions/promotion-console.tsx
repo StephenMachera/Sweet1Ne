@@ -18,11 +18,19 @@ import {
   updateBlock,
   BANNER_POSITIONS,
   CTA_PRESETS,
+  STILL_SIZES,
+  MAX_BUTTONS,
+  defaultButton,
+  nextButtonKind,
+  liveButtons,
+  buttonLabel,
   type PromotionBlock,
   type PromotionBlockType,
   type PromotionCtaKind,
+  type PromotionButton,
+  type StillSize,
 } from "@/lib/promotion-blocks";
-import { BackgroundPicker, HeroPicker, PromotionLayoutEditor } from "./promotion-blocks-editor";
+import { HeroPicker, PromotionLayoutEditor } from "./promotion-blocks-editor";
 import { PromotionLookDesk, type SurfaceKey } from "./promotion-look-desk";
 import { AdminLoading } from "@/components/admin/admin-loading";
 
@@ -43,7 +51,13 @@ type Surfaces = {
   ribbon: boolean;
   phone: boolean;
 };
-type Look = { still: string; tone: string; align: string; background_image: string | null };
+type Look = {
+  still: string;
+  tone: string;
+  align: string;
+  background_image: string | null;
+  still_size: StillSize;
+};
 
 type Promotion = {
   id: string;
@@ -52,8 +66,7 @@ type Promotion = {
   title: string;
   kicker: string | null;
   dek: string | null;
-  cta: PromotionCtaKind;
-  cta_label: string | null;
+  buttons: PromotionButton[];
   code: string | null;
   offer: Offer;
   off: number | null;
@@ -106,8 +119,7 @@ function emptyDraft(branchId: string | null): Draft {
     title: "",
     kicker: "Now",
     dek: "",
-    cta: "book",
-    cta_label: "",
+    buttons: [defaultButton("book")],
     code: "",
     offer: "none",
     off: null,
@@ -119,7 +131,7 @@ function emptyDraft(branchId: string | null): Draft {
     regular_visits: 4,
     surfaces: { ...defs },
     layout: defaultPromotionLayout(),
-    look: { still: "left", tone: "glass", align: "left", background_image: null },
+    look: { still: "left", tone: "glass", align: "left", background_image: null, still_size: "m" },
     map_id: null,
   };
 }
@@ -191,8 +203,7 @@ function statusNote(p: {
   title: string;
   kind: Kind;
   kicker: string | null;
-  cta: PromotionCtaKind;
-  cta_label: string | null;
+  buttons: PromotionButton[];
   code: string | null;
   surfaces: Surfaces;
 }, editing: boolean): string {
@@ -201,13 +212,12 @@ function statusNote(p: {
   if (p.surfaces.ribbon) seats.push("quiet line");
   if (p.surfaces.phone) seats.push("QR app");
 
-  const ctaLabel =
-    p.cta_label || (p.cta === "book" ? CTA_PRESETS.book.label : "");
+  const live = liveButtons(p.buttons);
 
   let note = `${p.title || "Untitled"} — ${kindLabel(p.kind)}`;
   if (p.kicker) note += ` · ${p.kicker}`;
   note += seats.length ? `. Shows on ${seats.join(", ")}` : ". No seats on";
-  if (ctaLabel) note += `. Button: ${ctaLabel}`;
+  note += live.length ? `. Buttons: ${live.map(buttonLabel).join(", ")}` : ". No buttons";
   if (p.kind === "code" && p.code) note += `. Code ${p.code}`;
   note += editing ? " Gold means a seat is on." : ".";
   return note;
@@ -292,8 +302,7 @@ export function PromotionConsole({
       title: p.title,
       kicker: p.kicker,
       dek: p.dek,
-      cta: p.cta,
-      cta_label: p.cta_label,
+      buttons: p.buttons.length ? p.buttons : [],
       code: p.code,
       offer: p.offer,
       off: p.off,
@@ -328,7 +337,6 @@ export function PromotionConsole({
         off: draft.off || null,
         dek: draft.dek || null,
         kicker: draft.kicker || null,
-        cta_label: draft.cta_label || null,
         code: draft.code || null,
         ends_at: draft.ends_at || null,
         map_id: draft.map_id || null,
@@ -659,7 +667,8 @@ export function PromotionConsole({
             Same offer, three seats — each in its own place. Opening page:
             full card, centred above the room words. Quiet line: short line
             under the header. QR app: the same words on the table phone.
-            Gold means that seat is on.
+            Gold means that seat is on. Buttons are yours: add them, take
+            them off, or switch each one on or off.
           </p>
 
           {formOpen ? (
@@ -733,12 +742,13 @@ export function PromotionConsole({
                         patch({
                           kind: k.id,
                           surfaces: k.surfaces,
-                          cta:
-                            k.id === "invite"
-                              ? "join"
-                              : k.id === "code"
-                                ? draft.cta
-                                : "book",
+                          buttons: draft.buttons.length
+                            ? draft.buttons
+                            : k.id === "invite"
+                              ? [defaultButton("join")]
+                              : k.id === "notice"
+                                ? [defaultButton("book")]
+                                : [],
                         })
                       }
                     >
@@ -776,33 +786,126 @@ export function PromotionConsole({
                   />
                 </label>
 
-                <div className="admin-row">
-                  <label>
-                    Button
-                    <select
-                      value={draft.cta}
-                      onChange={(e) =>
-                        patch({ cta: e.target.value as PromotionCtaKind })
-                      }
-                    >
-                      <option value="book">Book a table</option>
-                      <option value="find">Find Us</option>
-                      <option value="menu">The menu</option>
-                      <option value="events">Events</option>
-                      <option value="contact">Write to us</option>
-                      <option value="order">Order</option>
-                      <option value="join">Join the list</option>
-                    </select>
-                  </label>
-                  <label>
-                    Button words
-                    <input
-                      value={draft.cta_label ?? ""}
-                      onChange={(e) => patch({ cta_label: e.target.value })}
-                      placeholder="Book a table"
-                    />
-                  </label>
+                <p className="admin-kicker">Buttons</p>
+                <div className="admin-block-head">
+                  <p className="admin-dek">
+                    Each one on or off. Add as many as the offer needs.
+                  </p>
+                  <button
+                    type="button"
+                    className="admin-add-bit"
+                    disabled={draft.buttons.length >= MAX_BUTTONS}
+                    onClick={() =>
+                      patch({
+                        buttons: [...draft.buttons, defaultButton(nextButtonKind(draft.buttons))],
+                      })
+                    }
+                  >
+                    Add a button
+                  </button>
                 </div>
+                <div className="admin-cta-stack">
+                  {draft.buttons.length === 0 && (
+                    <p className="admin-dek">
+                      No buttons. The offer is words only until you add one.
+                    </p>
+                  )}
+                  {draft.buttons.map((btn, i) => (
+                    <div key={btn.id} className={`admin-cta-row${btn.kind === "page" ? " is-page" : ""}`}>
+                      <label className="admin-chip">
+                        <input
+                          type="checkbox"
+                          checked={btn.on !== false}
+                          onChange={(e) =>
+                            patch({
+                              buttons: draft.buttons.map((b, j) =>
+                                j === i ? { ...b, on: e.target.checked } : b,
+                              ),
+                            })
+                          }
+                        />
+                        <span>On</span>
+                      </label>
+                      <label>
+                        Goes to
+                        <select
+                          value={btn.kind}
+                          onChange={(e) => {
+                            const kind = e.target.value as PromotionCtaKind;
+                            // Keeps the label in step with the preset unless
+                            // it's been customised away from every preset's
+                            // own wording.
+                            const stock = Object.values(CTA_PRESETS).map((c) => c.label);
+                            const stillDefault = !btn.label || stock.includes(btn.label);
+                            patch({
+                              buttons: draft.buttons.map((b, j) =>
+                                j === i
+                                  ? {
+                                      ...b,
+                                      kind,
+                                      label: kind !== "page" && stillDefault ? null : b.label,
+                                      href: kind === "page" ? b.href ?? "" : null,
+                                    }
+                                  : b,
+                              ),
+                            });
+                          }}
+                        >
+                          <option value="book">Book a table</option>
+                          <option value="find">Find Us</option>
+                          <option value="menu">The menu</option>
+                          <option value="events">Events</option>
+                          <option value="contact">Write to us</option>
+                          <option value="order">Order</option>
+                          <option value="join">Join the list</option>
+                          <option value="page">A page</option>
+                        </select>
+                      </label>
+                      <label>
+                        Button words
+                        <input
+                          value={btn.label ?? ""}
+                          onChange={(e) =>
+                            patch({
+                              buttons: draft.buttons.map((b, j) =>
+                                j === i ? { ...b, label: e.target.value } : b,
+                              ),
+                            })
+                          }
+                          placeholder={buttonLabel(btn)}
+                        />
+                      </label>
+                      {btn.kind === "page" && (
+                        <label>
+                          Page
+                          <input
+                            value={btn.href ?? ""}
+                            onChange={(e) =>
+                              patch({
+                                buttons: draft.buttons.map((b, j) =>
+                                  j === i ? { ...b, href: e.target.value } : b,
+                                ),
+                              })
+                            }
+                            placeholder="/menu"
+                          />
+                        </label>
+                      )}
+                      <button
+                        type="button"
+                        className="admin-ghost"
+                        onClick={() =>
+                          patch({ buttons: draft.buttons.filter((_, j) => j !== i) })
+                        }
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <p className="admin-dek">
+                  The first live button is filled gold. The rest are outline.
+                </p>
 
                 <div className="admin-code-box" hidden={draft.kind !== "code"}>
                   <div className="admin-row">
@@ -964,6 +1067,93 @@ export function PromotionConsole({
                   layout={draft.layout}
                   onChange={(layout) => patch({ layout })}
                 />
+                {hero && (
+                  <>
+                    <p className="admin-dek">
+                      Tap a square to move the photo. Size is how large it
+                      sits on the banner.
+                    </p>
+                    <div
+                      className="admin-anchor-grid"
+                      role="group"
+                      aria-label="Banner position"
+                    >
+                      {BANNER_POSITIONS.map(({ key, label }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          aria-label={label}
+                          className={
+                            (hero.position ?? "center") === key
+                              ? "is-on"
+                              : undefined
+                          }
+                          onClick={() =>
+                            patch({
+                              layout: updateBlock(draft.layout, hero.id, {
+                                position: key,
+                              }),
+                            })
+                          }
+                        >
+                          <span />
+                        </button>
+                      ))}
+                    </div>
+                    <div className="admin-row">
+                      <label>
+                        Size
+                        <select
+                          value={draft.look.still_size}
+                          onChange={(e) =>
+                            patch({
+                              look: { ...draft.look, still_size: e.target.value as StillSize },
+                            })
+                          }
+                        >
+                          {STILL_SIZES.map(({ key, label }) => (
+                            <option key={key} value={key}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        In the frame
+                        <select
+                          value={hero.fit ?? "fill"}
+                          onChange={(e) =>
+                            patch({
+                              layout: updateBlock(draft.layout, hero.id, {
+                                fit: e.target.value as "fill" | "fit",
+                              }),
+                            })
+                          }
+                        >
+                          <option value="fill">Fill</option>
+                          <option value="fit">Fit</option>
+                        </select>
+                      </label>
+                      <label>
+                        Zoom
+                        <input
+                          type="range"
+                          min={80}
+                          max={160}
+                          step={5}
+                          value={hero.scale ?? 100}
+                          onChange={(e) =>
+                            patch({
+                              layout: updateBlock(draft.layout, hero.id, {
+                                scale: Number(e.target.value),
+                              }),
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+                  </>
+                )}
                 <div className="admin-row">
                   <label>
                     Place
@@ -1007,68 +1197,6 @@ export function PromotionConsole({
                     </select>
                   </label>
                 </div>
-
-                <p className="admin-kicker">Background</p>
-                <p className="admin-dek">
-                  Sits behind the whole card, dimmed — separate from the
-                  picture above. Leave it blank to use your most recent
-                  upload automatically.
-                </p>
-                <BackgroundPicker
-                  media={media}
-                  value={draft.look.background_image}
-                  onChange={(background_image) =>
-                    patch({ look: { ...draft.look, background_image } })
-                  }
-                />
-                {hero && (
-                  <>
-                    <p className="admin-kicker">Banner position</p>
-                    <div
-                      className="admin-anchor-grid"
-                      role="group"
-                      aria-label="Banner position"
-                    >
-                      {BANNER_POSITIONS.map(({ key, label }) => (
-                        <button
-                          key={key}
-                          type="button"
-                          aria-label={label}
-                          className={
-                            (hero.position ?? "center") === key
-                              ? "is-on"
-                              : undefined
-                          }
-                          onClick={() =>
-                            patch({
-                              layout: updateBlock(draft.layout, hero.id, {
-                                position: key,
-                              }),
-                            })
-                          }
-                        >
-                          <span />
-                        </button>
-                      ))}
-                    </div>
-                    <label>
-                      Fit
-                      <select
-                        value={hero.fit ?? "fill"}
-                        onChange={(e) =>
-                          patch({
-                            layout: updateBlock(draft.layout, hero.id, {
-                              fit: e.target.value as "fill" | "fit",
-                            }),
-                          })
-                        }
-                      >
-                        <option value="fill">Fill the frame</option>
-                        <option value="fit">Show all of it</option>
-                      </select>
-                    </label>
-                  </>
-                )}
 
                 <details className="admin-drawer-fold" open>
                   <summary>Pieces — same boxes as a campaign</summary>

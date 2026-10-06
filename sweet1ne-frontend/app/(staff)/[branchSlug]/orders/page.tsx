@@ -103,15 +103,20 @@ export default function BranchOrdersPage({
   const canEdit = hasPermission(me, "edit_orders");
   const seesEverything = hasPermission(me, "view_all_orders");
 
-  const load = useCallback(() => {
+  // `silent` is set on the background poll so new orders just appear in
+  // place, instead of the whole list flashing to a loading spinner every
+  // few seconds.
+  const load = useCallback((silent = false) => {
     const params = new URLSearchParams({ period });
     if (status) params.set("status", status);
 
-    setLoading(true);
+    if (!silent) setLoading(true);
     return apiFetch(`/staff/orders?${params.toString()}`)
       .then(setOrders)
       .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!silent) setLoading(false);
+      });
   }, [period, status]);
 
   useEffect(() => {
@@ -122,8 +127,9 @@ export default function BranchOrdersPage({
     }
     load();
     // Today's view is live; historical periods don't need refreshing.
+    // Silent so it doesn't flash the whole list on every tick.
     if (period !== "daily") return;
-    const interval = setInterval(load, 30000);
+    const interval = setInterval(() => load(true), 3000);
     return () => clearInterval(interval);
   }, [meLoading, me, canView, branchSlug, router, load, period]);
 

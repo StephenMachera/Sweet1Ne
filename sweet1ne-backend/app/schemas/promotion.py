@@ -22,6 +22,10 @@ class PromotionLook(BaseModel):
     # Events page's own full-bleed preview). None falls back to the
     # tenant's own most recent upload, same convention as everywhere else.
     background_image: str | None = None
+    # s | m | l — how large the hero still (in `layout`) renders on the
+    # card. A look-level setting, not stored on the image block itself,
+    # since it's about the card's own proportions, not the photo.
+    still_size: str = "m"
 
 
 class PromotionChannels(BaseModel):
@@ -38,8 +42,8 @@ class PromotionIn(BaseModel):
     title: str
     kicker: str | None = None
     dek: str | None = None
-    cta: str = "book"
-    cta_label: str | None = None
+    # [{id, kind, label, href, on}, ...] — see Promotion.buttons.
+    buttons: list[dict[str, Any]] = []
     code: str | None = None
     offer: str = "none"
     off: float | None = None
@@ -62,8 +66,7 @@ class PromotionUpdate(BaseModel):
     title: str | None = None
     kicker: str | None = None
     dek: str | None = None
-    cta: str | None = None
-    cta_label: str | None = None
+    buttons: list[dict[str, Any]] | None = None
     code: str | None = None
     offer: str | None = None
     off: float | None = None
@@ -89,8 +92,7 @@ class PromotionOut(BaseModel):
     title: str
     kicker: str | None
     dek: str | None
-    cta: str
-    cta_label: str | None
+    buttons: list[dict[str, Any]]
     code: str | None
     offer: str
     off: float | None
@@ -119,8 +121,7 @@ class PublicPromotionOut(BaseModel):
     title: str
     kicker: str | None
     dek: str | None
-    cta: str
-    cta_label: str | None
+    buttons: list[dict[str, Any]]
     code: str | None
     offer: str
     off: float | None

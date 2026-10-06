@@ -438,6 +438,13 @@ export default function GuestOrderPage({
           const imageUrl = hero?.image_url || "";
           const objectPosition = BANNER_POSITION_COORDS[hero?.position ?? "center"];
           const objectFit = hero?.fit === "fit" ? "contain" : "cover";
+          const scale = hero?.scale ?? 100;
+          const stillStyle = {
+            objectFit,
+            objectPosition,
+            transform: scale === 100 ? undefined : `scale(${scale / 100})`,
+            transformOrigin: objectPosition,
+          } as const;
           const showStill = promo.look.still !== "none" && Boolean(imageUrl);
           const off = offerText(promo.offer, promo.off);
 
@@ -450,11 +457,12 @@ export default function GuestOrderPage({
               className="promo-phone"
               role="note"
               data-still={promo.look.still}
+              data-size={promo.look.still_size || "m"}
               data-tone={promo.look.tone}
             >
               {showStill && (
                 <div className="promo-still">
-                  <img src={imageUrl} alt="" style={{ objectFit, objectPosition }} />
+                  <img src={imageUrl} alt="" style={stillStyle} />
                 </div>
               )}
               <div className="promo-copy">

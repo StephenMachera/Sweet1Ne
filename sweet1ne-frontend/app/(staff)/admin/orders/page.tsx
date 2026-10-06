@@ -36,7 +36,7 @@ type Order = {
   is_read: boolean;
 };
 
-const AUTO_REFRESH_MS = 3 * 60 * 1000;
+const AUTO_REFRESH_MS = 3000;
 
 type Branch = { id: string; name: string; settings?: { toast?: string } };
 
@@ -100,16 +100,21 @@ export default function AdminOrdersPage() {
   const canView = hasPermission(me, "view_orders");
   const canVoid = hasPermission(me, "void_orders");
 
-  const load = useCallback(() => {
+  // `silent` is set on the background poll so new orders just appear in
+  // place, instead of the whole list flashing to a loading spinner every
+  // few seconds.
+  const load = useCallback((silent = false) => {
     const params = new URLSearchParams({ period });
     if (branchFilter) params.set("branch_id", branchFilter);
     if (status) params.set("status", status);
 
-    setLoading(true);
+    if (!silent) setLoading(true);
     return apiFetch(`/staff/orders?${params.toString()}`)
       .then(setOrders)
       .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!silent) setLoading(false);
+      });
   }, [period, branchFilter, status]);
 
   useEffect(() => {
@@ -123,9 +128,9 @@ export default function AdminOrdersPage() {
       return;
     }
     load();
-    // Same cadence as Inbox — new orders should show up on their own, not
-    // only when a filter is touched.
-    const id = setInterval(load, AUTO_REFRESH_MS);
+    // New orders should show up on their own, not only when a filter is
+    // touched — silent so it doesn't flash the whole list on every tick.
+    const id = setInterval(() => load(true), AUTO_REFRESH_MS);
     return () => clearInterval(id);
   }, [meLoading, me, canView, router, load]);
 

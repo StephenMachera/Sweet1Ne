@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useStage } from "./stage-provider";
 import { getGuestId } from "@/lib/guest-id";
 import {
   heroImageOf,
   BANNER_POSITION_COORDS,
-  CTA_PRESETS,
+  liveButtons,
+  buttonHref,
+  buttonLabel,
   offerText,
   type NoteBlock,
   type PublicPromotion,
@@ -18,21 +19,18 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 // is a different surface with its own independent on/off state.
 const DISMISS_PREFIX = "sweet1ne_promo_card_dismissed_";
 
-/** The "After they enter" surface — centred on the film, above the room
-   words. Classes (.promo-stage, .promo, .promo-still, .promo-copy, ...)
-   and the #promo-stage id match the template's own promo.css/promo.js
-   exactly, including the circular-still/centred-copy treatment that
-   `#promo-stage .promo` applies on top of the base card shape. Rendered
-   inside Cinema itself (components/site/home/cinema.tsx), not as a
-   separate section below it — the stage is absolutely positioned over the
-   hero film. */
+/** The "After they enter" surface — a floating, rounded card, fixed above
+   the bottom of the viewport on every page (mounted once in the shared
+   site layout, same as the header ribbon). Classes (.promo-stage, .promo,
+   .promo-still, .promo-copy, ...) and the #promo-stage id match the
+   template's own promo.css/promo.js naming, with the circular-still/
+   centred-copy treatment `#promo-stage .promo` applies on top of the base
+   card shape. */
 export function PromoCard() {
-  const { gated } = useStage();
   const [promotion, setPromotion] = useState<PublicPromotion | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    if (gated) return;
     let cancelled = false;
     const guestId = getGuestId();
 
@@ -48,21 +46,27 @@ export function PromoCard() {
     return () => {
       cancelled = true;
     };
-  }, [gated]);
+  }, []);
 
-  if (gated || !promotion || dismissed) return null;
+  if (!promotion || dismissed) return null;
 
   const hero = heroImageOf(promotion.layout);
   const imageUrl = hero?.image_url || "";
   const objectPosition = BANNER_POSITION_COORDS[hero?.position ?? "center"];
   const objectFit = hero?.fit === "fit" ? "contain" : "cover";
+  const scale = hero?.scale ?? 100;
+  const stillStyle = {
+    objectFit,
+    objectPosition,
+    transform: scale === 100 ? undefined : `scale(${scale / 100})`,
+    transformOrigin: objectPosition,
+  } as const;
   const showStill = promotion.look.still !== "none" && Boolean(imageUrl);
   const off = offerText(promotion.offer, promotion.off);
   const note = promotion.layout.find(
     (b): b is NoteBlock => b.type === "note" && Boolean(b.text),
   )?.text;
-  const preset = CTA_PRESETS[promotion.cta];
-  const backgroundUrl = promotion.look.background_image || "";
+  const buttons = liveButtons(promotion.buttons);
 
   return (
     <div
@@ -74,17 +78,13 @@ export function PromoCard() {
         className="promo"
         data-kind={promotion.kind}
         data-still={promotion.look.still}
+        data-size={promotion.look.still_size || "m"}
         data-tone={promotion.look.tone}
         data-align={promotion.look.align}
       >
-        {backgroundUrl && (
-          <div className="promo-bg" aria-hidden>
-            <img src={backgroundUrl} alt="" />
-          </div>
-        )}
         {showStill && (
           <div className="promo-still">
-            <img src={imageUrl} alt="" style={{ objectFit, objectPosition }} />
+            <img src={imageUrl} alt="" style={stillStyle} />
           </div>
         )}
         <div className="promo-copy">
@@ -94,10 +94,18 @@ export function PromoCard() {
           {note && <p className="promo-note">{note}</p>}
           {promotion.code && <p className="promo-code">{promotion.code}</p>}
           {off && <p className="promo-off">{off}</p>}
-          {!(promotion.kind === "code" && promotion.code) && (
-            <a className="book promo-cta" href={preset.href}>
-              {promotion.cta_label || preset.label}
-            </a>
+          {!(promotion.kind === "code" && promotion.code) && buttons.length > 0 && (
+            <div className="promo-ctas">
+              {buttons.map((btn, i) => (
+                <a
+                  key={btn.id}
+                  className={`promo-cta${i === 0 ? " is-filled" : ""}`}
+                  href={buttonHref(btn)}
+                >
+                  {buttonLabel(btn)}
+                </a>
+              ))}
+            </div>
           )}
         </div>
         <button

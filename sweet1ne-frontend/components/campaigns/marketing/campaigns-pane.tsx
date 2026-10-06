@@ -613,17 +613,23 @@ function MailStagePreview({ draft }: { draft: PreviewDraft | null }) {
           case "image": {
             const url = block.url || defaultImage;
             if (!url) return null;
-            const objectFit = block.fit === "fit" ? "contain" : "cover";
+            // Matches the real email's _image() exactly: "fill" crops to a
+            // fixed banner height with a focal point; anything else shows
+            // the photo at its own natural ratio (height:auto, no crop) —
+            // this used to always crop/cover regardless of that setting,
+            // which is why a "fit" picture looked blown up here but not in
+            // the actual mail.
+            const isFill = block.fit === "fill";
             const objectPosition =
               BANNER_POSITION_COORDS[block.position as BannerPosition] ??
               BANNER_POSITION_COORDS.center;
             return (
               <img
                 key={i}
-                className="admin-still"
+                className={`admin-still${isFill ? " is-fill" : " is-fit"}`}
                 src={url}
                 alt=""
-                style={{ objectFit, objectPosition }}
+                style={isFill ? { objectPosition } : undefined}
               />
             );
           }

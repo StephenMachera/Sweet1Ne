@@ -1372,6 +1372,18 @@ body:has(#promo-ribbon:not([hidden])) .cinema .pause { top: 7.7rem; }
   gap: 0;
 }
 
+.menu-page .dish-sub {
+  grid-column: 1 / -1;
+  margin: 1.4rem 0 0.2rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.menu-page .dish-sub:first-child {
+  margin-top: 0.35rem;
+}
+
 .menu-page .dish {
   display: grid;
   grid-template-columns: 1fr auto;

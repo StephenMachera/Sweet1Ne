@@ -2,9 +2,9 @@
  * The promotion composer's block model — mirrors the event composer
  * (components/events/event-blocks.ts) but for Promotion.layout (JSONB,
  * app/models/promotion.py). kicker/title/dek/ctas are show/hide toggles for
- * the matching plain fields on the promotion (kicker, title, dek, cta/
- * cta_label) — they carry no data of their own. logo/image/note carry their
- * own content and can repeat (image, note) or not (logo).
+ * the matching plain fields on the promotion (kicker, title, dek, buttons)
+ * — they carry no data of their own. logo/image/note carry their own
+ * content and can repeat (image, note) or not (logo).
  */
 
 export type PromotionBlockType = "logo" | "kicker" | "title" | "dek" | "image" | "note" | "ctas";
@@ -57,7 +57,19 @@ export type ImageBlock = {
   // "fill" crops the frame edge-to-edge (may crop the image); "fit" shows
   // the whole image, letterboxed if its shape doesn't match the frame.
   fit: "fill" | "fit";
+  // 80-160 (%) — zooms the image within its own frame, independent of the
+  // card's own "still size" (Look.still_size). 100 = no zoom.
+  scale?: number;
 };
+
+// s | m | l — how large the hero still renders on the card. Lives on
+// Look (not the image block) since it's about the card's proportions.
+export type StillSize = "s" | "m" | "l";
+export const STILL_SIZES: { key: StillSize; label: string }[] = [
+  { key: "s", label: "Small" },
+  { key: "m", label: "Medium" },
+  { key: "l", label: "Large" },
+];
 export type NoteBlock = { id: string; type: "note"; text: string };
 export type CtasBlock = { id: string; type: "ctas" };
 
@@ -70,10 +82,12 @@ export type PromotionBlock =
   | NoteBlock
   | CtasBlock;
 
-export type PromotionCtaKind = "book" | "find" | "menu" | "events" | "contact" | "order" | "join";
+export type PromotionCtaKind =
+  | "book" | "find" | "menu" | "events" | "contact" | "order" | "join" | "page";
 
 // Real routes on the guest site — not invented placeholders. "join" points
 // at /events, which already carries the real newsletter sign-up form.
+// "page" has no fixed route — its href/label come from the button itself.
 export const CTA_PRESETS: Record<PromotionCtaKind, { label: string; href: string }> = {
   book: { label: "Book a table", href: "/reservations" },
   find: { label: "Find Us", href: "/locations" },
@@ -82,7 +96,56 @@ export const CTA_PRESETS: Record<PromotionCtaKind, { label: string; href: string
   contact: { label: "Write to us", href: "/contact" },
   order: { label: "Order", href: "/order" },
   join: { label: "Join the list", href: "/events" },
+  page: { label: "A page", href: "" },
 };
+
+// One promotion can carry several buttons, each its own on/off switch —
+// mirrors Promotion.buttons (JSONB, app/models/promotion.py). The first ON
+// button renders filled/gold; the rest render outline.
+export type PromotionButton = {
+  id: string;
+  kind: PromotionCtaKind;
+  label: string | null;
+  // Only meaningful when kind === "page" — a staff-typed URL.
+  href: string | null;
+  on: boolean;
+};
+
+export const MAX_BUTTONS = 5;
+
+let buttonSeq = 0;
+export function newButtonId(): string {
+  buttonSeq += 1;
+  return `btn-${Date.now().toString(36)}${buttonSeq}`;
+}
+
+export function defaultButton(kind: PromotionCtaKind): PromotionButton {
+  const preset = CTA_PRESETS[kind];
+  return { id: newButtonId(), kind, label: kind === "page" ? "" : preset.label, href: kind === "page" ? "" : null, on: true };
+}
+
+// Picks the next CTA kind not already used by a button, so "Add a button"
+// doesn't hand back a duplicate of one already on the stack. Falls back to
+// "page" (always addable, since each page button can point anywhere) once
+// every preset kind is taken.
+export function nextButtonKind(buttons: PromotionButton[]): PromotionCtaKind {
+  const used = new Set(buttons.map((b) => b.kind));
+  const order: PromotionCtaKind[] = ["book", "find", "menu", "events", "contact", "order", "join"];
+  return order.find((k) => !used.has(k)) ?? "page";
+}
+
+export function liveButtons(buttons: PromotionButton[]): PromotionButton[] {
+  return buttons.filter((b) => b.on !== false);
+}
+
+export function buttonHref(button: PromotionButton): string {
+  if (button.kind === "page") return button.href || "";
+  return CTA_PRESETS[button.kind].href;
+}
+
+export function buttonLabel(button: PromotionButton): string {
+  return button.label || CTA_PRESETS[button.kind].label;
+}
 
 export const BLOCK_LABELS: Record<PromotionBlockType, string> = {
   logo: "Logo",
@@ -177,8 +240,7 @@ export type PublicPromotion = {
   title: string;
   kicker: string | null;
   dek: string | null;
-  cta: PromotionCtaKind;
-  cta_label: string | null;
+  buttons: PromotionButton[];
   code: string | null;
   offer: string;
   off: number | null;
@@ -188,5 +250,6 @@ export type PublicPromotion = {
     tone: "glass" | "solid";
     align: "left" | "center";
     background_image: string | null;
+    still_size?: StillSize;
   };
 };
