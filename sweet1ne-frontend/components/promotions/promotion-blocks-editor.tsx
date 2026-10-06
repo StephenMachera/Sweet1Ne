@@ -28,23 +28,30 @@ export function BackgroundPicker({
   onChange: (next: string | null) => void;
 }) {
   return (
-    <div className="admin-media-grid is-compact">
-      {media.map((item) => {
-        const thumb = mediaThumb(item);
-        const selected = Boolean(thumb) && value === thumb;
-        return (
-          <button
-            key={item.id}
-            type="button"
-            className={`${item.kind === "video" ? "is-film " : ""}${selected ? "is-on" : ""}`.trim()}
-            aria-pressed={selected}
-            onClick={() => onChange(selected ? null : thumb)}
-          >
-            {thumb && <img src={thumb} alt="" />}
-            <span>{item.label}</span>
-          </button>
-        );
-      })}
+    <div>
+      {value && (
+        <button type="button" className="admin-edit mb-2" onClick={() => onChange(null)}>
+          Remove background — card goes back to plain, see-through
+        </button>
+      )}
+      <div className="admin-media-grid is-compact">
+        {media.map((item) => {
+          const thumb = mediaThumb(item);
+          const selected = Boolean(thumb) && value === thumb;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={`${item.kind === "video" ? "is-film " : ""}${selected ? "is-on" : ""}`.trim()}
+              aria-pressed={selected}
+              onClick={() => onChange(selected ? null : thumb)}
+            >
+              {thumb && <img src={thumb} alt="" />}
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

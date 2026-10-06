@@ -1632,8 +1632,8 @@ label.admin-chip:has(input:checked) span {
 }
 .promo-close {
   position: absolute;
-  top: 0.45rem;
-  right: 0.5rem;
+  top: 0;
+  right: 0;
   width: 1.7rem;
   height: 1.7rem;
   appearance: none;
@@ -1644,6 +1644,9 @@ label.admin-chip:has(input:checked) span {
   line-height: 1;
   cursor: pointer;
   padding: 0;
+  /* A background photo can land under this corner at any brightness —
+     the glow keeps the gold readable regardless. */
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
 }
 .promo-close:hover { color: var(--ivory); }
 .promo-dots {
@@ -1686,14 +1689,33 @@ label.admin-chip:has(input:checked) span {
 
 /* On the real homepage (inside #promo-stage, above the hero words) and in
    the admin "Opening page" preview, the card becomes centred with a
-   circular still — a different shape, not just a resize. */
+   circular still — a different shape, not just a resize. The real site's
+   card runs 20% larger than the admin preview's own mockup of it — a
+   deliberate size difference between the two, not a drift to fix. */
+.promo-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.promo-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.95) saturate(1.05);
+}
+.promo-still,
+.promo-copy {
+  position: relative;
+  z-index: 1;
+}
+
 #promo-stage .promo,
 .admin-look-frame.is-enter .promo {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: min(29rem, 100%);
-  padding: 2.1rem 2.3rem 2.2rem;
+  width: min(43.5rem, 100%);
+  padding: 1.21rem 2.76rem 1.267rem;
   text-align: center;
   background: rgba(5, 5, 5, 0.52);
   border: 1px solid rgba(201, 162, 74, 0.45);
@@ -1704,11 +1726,11 @@ label.admin-chip:has(input:checked) span {
 }
 #promo-stage .promo-still,
 .admin-look-frame.is-enter .promo-still {
-  width: 6.8rem;
-  height: 6.8rem;
-  min-height: 6.8rem;
-  max-height: 6.8rem;
-  margin: 0.1rem 0 1.15rem;
+  width: 3.917rem;
+  height: 3.917rem;
+  min-height: 3.917rem;
+  max-height: 3.917rem;
+  margin: 0.058rem 0 0.662rem;
   border-radius: 50%;
   overflow: hidden;
   flex: 0 0 auto;
@@ -1717,11 +1739,11 @@ label.admin-chip:has(input:checked) span {
 }
 #promo-stage .promo[data-size="s"] .promo-still,
 .admin-look-frame.is-enter .promo[data-size="s"] .promo-still {
-  width: 3.7rem; height: 3.7rem; min-height: 3.7rem; max-height: 3.7rem;
+  width: 2.131rem; height: 2.131rem; min-height: 2.131rem; max-height: 2.131rem;
 }
 #promo-stage .promo[data-size="l"] .promo-still,
 .admin-look-frame.is-enter .promo[data-size="l"] .promo-still {
-  width: 5.8rem; height: 5.8rem; min-height: 5.8rem; max-height: 5.8rem;
+  width: 3.341rem; height: 3.341rem; min-height: 3.341rem; max-height: 3.341rem;
 }
 #promo-stage .promo-copy,
 .admin-look-frame.is-enter .promo-copy {
@@ -1731,18 +1753,25 @@ label.admin-chip:has(input:checked) span {
 }
 #promo-stage .promo-title,
 .admin-look-frame.is-enter .promo-title {
-  font-size: 1.75rem;
-  margin: 0 0 0.6rem;
+  font-size: 2.1rem;
+  margin: 0 0 0.346rem;
 }
 #promo-stage .promo-dek,
 .admin-look-frame.is-enter .promo-dek {
   display: block;
-  max-width: 22rem;
-  margin: 0 0 1.15rem;
-  font-size: 0.94rem;
+  max-width: 26.4rem;
+  margin: 0 0 0.662rem;
+  font-size: 1.128rem;
 }
 #promo-stage .promo-cta,
-.admin-look-frame.is-enter .promo-cta { align-self: center; }
+.admin-look-frame.is-enter .promo-cta {
+  align-self: center;
+  /* A background photo sits right behind this now — full-strength gold
+     and a glow keep both the border and the close button legible no
+     matter what's underneath. */
+  border-color: var(--gold);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
+}
 #promo-stage .promo-dots,
 .admin-look-frame.is-enter .promo-dots { left: 0; }
 

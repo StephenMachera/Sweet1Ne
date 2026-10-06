@@ -62,6 +62,7 @@ export function PromoCard() {
     (b): b is NoteBlock => b.type === "note" && Boolean(b.text),
   )?.text;
   const preset = CTA_PRESETS[promotion.cta];
+  const backgroundUrl = promotion.look.background_image || "";
 
   return (
     <div
@@ -76,6 +77,11 @@ export function PromoCard() {
         data-tone={promotion.look.tone}
         data-align={promotion.look.align}
       >
+        {backgroundUrl && (
+          <div className="promo-bg" aria-hidden>
+            <img src={backgroundUrl} alt="" />
+          </div>
+        )}
         {showStill && (
           <div className="promo-still">
             <img src={imageUrl} alt="" style={{ objectFit, objectPosition }} />

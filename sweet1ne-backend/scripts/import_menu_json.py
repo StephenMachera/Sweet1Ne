@@ -8,8 +8,15 @@ same validation a human editing the Menu page would.
 Safe to re-run, and now a real sync rather than an add-only import:
   - Categories/subcategories are matched by name; missing ones are created.
   - Items are matched by (sub_category, title). An existing match has its
-    price/description/pictures/availability UPDATED from the JSON (via
-    PATCH) rather than left alone. A title with no match is created.
+    price/description/pictures/availability/preparation UPDATED from the
+    JSON (via PATCH) rather than left alone. A title with no match is
+    created.
+  - items[].station ("kitchen"/"bar") only ever becomes a per-item
+    OVERRIDE (prep_station_override) when it actually disagrees with its
+    own category's station — a dish that already matches its category's
+    default is left alone (null override, inherits normally). This mirrors
+    how the admin's own "Preparation" field works: most dishes should just
+    follow their category, not carry a redundant pinned value.
   - An item that exists in the DB (under a category this run touches) but
     has no match in the JSON is DEACTIVATED (is_available=False) — never
     hard-deleted, since ordered items can't be removed without breaking
@@ -240,6 +247,11 @@ def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, passwor
             desc = item.get("desc") or None
             price = parse_price(item["price"])
             is_available = bool(item.get("on", True))
+            station = item.get("station")
+            # Only a real exception to the category's own station becomes a
+            # pinned per-item override — matching it exactly is the same as
+            # leaving it unset.
+            desired_override = station if station in ("kitchen", "bar") and station != prep_station else None
 
             existing_item = imp.find_existing_item(sub["id"], item["name"], existing_items)
             if existing_item:
@@ -253,6 +265,8 @@ def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, passwor
                     changes["pictures"] = pictures
                 if existing_item.get("is_available") != is_available:
                     changes["is_available"] = is_available
+                if (existing_item.get("prep_station_override") or None) != desired_override:
+                    changes["prep_station_override"] = desired_override
                 if changes:
                     imp.patch_json(f"/staff/menu/menu-items/{existing_item['id']}", changes)
                     existing_item.update(changes)
@@ -269,6 +283,7 @@ def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, passwor
                 "price": price,
                 "pictures": pictures,
                 "is_available": is_available,
+                "prep_station_override": desired_override,
             }
             created = imp.post_json("/staff/menu/menu-items", payload)
             existing_items.append(created)

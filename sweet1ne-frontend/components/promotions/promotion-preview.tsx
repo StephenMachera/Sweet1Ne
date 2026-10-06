@@ -65,6 +65,9 @@ export function PromotionPreview({
   const objectFit = hero?.fit === "fit" ? "contain" : "cover";
 
   const showStill = data.look.still !== "none" && Boolean(imageUrl);
+  // Independent of the hero still above — a full-bleed backdrop behind the
+  // whole "enter" card, not used by ribbon/phone.
+  const backgroundUrl = data.look.background_image || defaultImage || "";
 
   if (surface === "ribbon") {
     return (
@@ -115,6 +118,11 @@ export function PromotionPreview({
       data-tone={data.look.tone}
       data-align={data.look.align}
     >
+      {backgroundUrl && (
+        <div className="promo-bg" aria-hidden>
+          <img src={backgroundUrl} alt="" />
+        </div>
+      )}
       {showStill && (
         <div className="promo-still">
           <img src={imageUrl} alt="" style={{ objectFit, objectPosition }} />
