@@ -3,6 +3,7 @@ import uuid
 from fastapi import Depends, APIRouter, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy  import select, or_
+from sqlalchemy.exc import IntegrityError
 
 from app.core.security import CurrentStaff, get_current_staff, require_permission
 from app.db.session import get_db
@@ -368,3 +369,37 @@ def delete_menu_item(
 
     item.is_available = False
     db.commit()
+
+
+@router.delete("/menu-items/{item_id}/purge", status_code=204)
+def purge_menu_item(
+    item_id: uuid.UUID,
+    staff: CurrentStaff = Depends(require_permission("edit_menu")),
+    db: Session = Depends(get_db),
+):
+    """Actually removes the row — unlike DELETE /menu-items/{id} above,
+    which only deactivates it. Only for a genuine duplicate/mistake with no
+    real history: the order_items.menu_item_id foreign key has no cascade,
+    so the database itself refuses this (409, nothing changed) the moment
+    a real order ever referenced this item — that's the backstop, not this
+    endpoint's own logic."""
+    item = db.get(MenuItem, item_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Menu item not found")
+
+    sub_category = db.get(SubCategory, item.sub_category_id)
+    main_category = db.get(MainCategory, sub_category.main_category_id)
+    if str(main_category.tenant_id) != staff.tenant_id:
+        raise HTTPException(status_code=404, detail="Menu item not found")
+    if staff.branch_id is not None and str(main_category.branch_id) != staff.branch_id:
+        raise HTTPException(status_code=403, detail="Not allowed to delete this item")
+
+    db.delete(item)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="This item has real orders against it — it can only be turned off, not removed.",
+        )
