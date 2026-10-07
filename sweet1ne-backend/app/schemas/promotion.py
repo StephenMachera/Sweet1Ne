@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class PromotionSurfaces(BaseModel):
@@ -110,6 +110,11 @@ class PromotionOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    @field_validator("buttons", mode="before")
+    @classmethod
+    def _buttons_default(cls, v: Any) -> Any:
+        return v if v is not None else []
+
 
 class PublicPromotionOut(BaseModel):
     """What a guest's device is allowed to see — no audience-targeting
@@ -128,3 +133,8 @@ class PublicPromotionOut(BaseModel):
     layout: list[dict[str, Any]]
     look: dict[str, Any]
     map_id: str | None
+
+    @field_validator("buttons", mode="before")
+    @classmethod
+    def _buttons_default(cls, v: Any) -> Any:
+        return v if v is not None else []

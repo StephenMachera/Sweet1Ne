@@ -268,7 +268,9 @@ export function PromotionConsole({
   const load = useCallback(
     () =>
       apiFetch("/promotions")
-        .then(setPromotions)
+        .then((data: Promotion[]) =>
+          setPromotions(data.map((p) => ({ ...p, buttons: p.buttons ?? [] }))),
+        )
         .catch((e) =>
           setError(
             e instanceof Error ? e.message : "Couldn't load promotions.",
@@ -350,10 +352,11 @@ export function PromotionConsole({
             method: "POST",
             body: JSON.stringify(body),
           });
+      const normalized = { ...saved, buttons: saved.buttons ?? [] };
       setPromotions((prev) =>
         editingId
-          ? prev.map((p) => (p.id === saved.id ? saved : p))
-          : [saved, ...prev],
+          ? prev.map((p) => (p.id === normalized.id ? normalized : p))
+          : [normalized, ...prev],
       );
       setLookId(saved.id);
       closeForm();
@@ -375,8 +378,9 @@ export function PromotionConsole({
         method: "PATCH",
         body: JSON.stringify({ is_on: !p.is_on }),
       });
+      const normalized = { ...updated, buttons: updated.buttons ?? [] };
       setPromotions((prev) =>
-        prev.map((x) => (x.id === updated.id ? updated : x)),
+        prev.map((x) => (x.id === normalized.id ? normalized : x)),
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't change that.");

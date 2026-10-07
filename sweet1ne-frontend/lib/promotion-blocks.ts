@@ -134,8 +134,8 @@ export function nextButtonKind(buttons: PromotionButton[]): PromotionCtaKind {
   return order.find((k) => !used.has(k)) ?? "page";
 }
 
-export function liveButtons(buttons: PromotionButton[]): PromotionButton[] {
-  return buttons.filter((b) => b.on !== false);
+export function liveButtons(buttons: PromotionButton[] | null | undefined): PromotionButton[] {
+  return (buttons ?? []).filter((b) => b.on !== false);
 }
 
 export function buttonHref(button: PromotionButton): string {
