@@ -21,5 +21,5 @@ ssh -i "$KEY" "$SERVER" "cd ~/sweet1ne-backend && docker compose pull api && doc
 
 echo "→ Checking"
 sleep 5
-curl -s https://api.fgck-githurai44.com/health
+curl -s https://api.sweet1ne.com/health
 echo
