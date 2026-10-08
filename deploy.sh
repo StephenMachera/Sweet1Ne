@@ -17,7 +17,7 @@ echo "→ Pushing"
 docker push "$IMAGE"
 
 echo "→ Deploying"
-ssh -i "$KEY" "$SERVER" "cd ~/sweet1ne-backend && docker compose pull api && docker compose up -d api && docker image prune -f"
+ssh -i "$KEY" "$SERVER" "cd ~/sweet1ne-backend && docker compose pull api && docker compose run --rm api alembic upgrade head && docker compose up -d api && docker image prune -f"
 
 echo "→ Checking"
 sleep 5

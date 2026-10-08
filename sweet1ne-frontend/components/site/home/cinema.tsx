@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BEATS } from "@/lib/home-content";
+import { PromoCard } from "@/components/site/home/promo-card";
 import { useStage } from "./stage-provider";
 
 type FilmsApi = {
@@ -212,6 +213,8 @@ export default function Cinema() {
         <p className="kicker">Elevated Afro-Caribbean fusion</p>
         <h1>A culinary adventure for all the senses.</h1>
       </div>
+
+      <PromoCard />
 
       <button
         type="button"

@@ -19,13 +19,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 // is a different surface with its own independent on/off state.
 const DISMISS_PREFIX = "sweet1ne_promo_card_dismissed_";
 
-/** The "After they enter" surface — a floating, rounded card, fixed above
-   the bottom of the viewport on every page (mounted once in the shared
-   site layout, same as the header ribbon). Classes (.promo-stage, .promo,
-   .promo-still, .promo-copy, ...) and the #promo-stage id match the
-   template's own promo.css/promo.js naming, with the circular-still/
-   centred-copy treatment `#promo-stage .promo` applies on top of the base
-   card shape. */
+/** The homepage promotion card, positioned in the cinema above the room
+   words. Its classes and #promo-stage id match the supplied opening-page
+   template while its content remains driven by the live promotion. */
 export function PromoCard() {
   const [promotion, setPromotion] = useState<PublicPromotion | null>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -77,6 +73,7 @@ export function PromoCard() {
       <article
         className="promo"
         data-kind={promotion.kind}
+        data-id={promotion.id}
         data-still={promotion.look.still}
         data-size={promotion.look.still_size || "m"}
         data-tone={promotion.look.tone}
@@ -99,7 +96,7 @@ export function PromoCard() {
               {buttons.map((btn, i) => (
                 <a
                   key={btn.id}
-                  className={`promo-cta${i === 0 ? " is-filled" : ""}`}
+                  className={`book promo-cta${i === 0 ? " is-filled" : ""}`}
                   href={buttonHref(btn)}
                 >
                   {buttonLabel(btn)}

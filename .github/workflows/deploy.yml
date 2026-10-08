@@ -95,9 +95,11 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           # Pulls the new image and recreates only the api container —
-          # nginx and certbot keep running untouched.
+          # nginx and certbot keep running untouched. Apply schema changes
+          # from that image before the replacement API starts serving.
           script: |
             cd /home/${{ secrets.VPS_USER }}/sweet1ne-backend
             docker compose pull api
+            docker compose run --rm api alembic upgrade head
             docker compose up -d api
             docker image prune -f

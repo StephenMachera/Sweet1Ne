@@ -1616,11 +1616,11 @@ label.admin-chip:has(input:checked) span {
    floating card would otherwise sit on top of — give it more clearance
    there specifically, higher than the default used elsewhere. */
 body:has(.home-page) .promo-stage {
-  bottom: 10rem;
+  bottom: 10.5rem;
 }
 @media (max-width: 720px) {
   body:has(.home-page) .promo-stage {
-    bottom: 7.5rem;
+    bottom: 8.5rem;
   }
 }
 .promo-stage.is-ready .promo {
@@ -1830,12 +1830,14 @@ body:has(.home-page) .promo-stage {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: min(21.5rem, 100%);
-  padding: 2.35rem 1.45rem 1.25rem;
+  width: min(23.65rem, 100%);
+  max-width: calc(100vw - 2.5rem);
+  box-sizing: border-box;
+  padding: 1.6rem 1.45rem 0.9rem;
   text-align: center;
-  overflow: visible;
+  overflow: hidden;
   border-radius: 1.35rem;
-  background: rgba(5, 5, 5, 0.28);
+  background: rgba(35, 35, 35, 0.65);
   border: 1px solid rgba(201, 162, 74, 0.38);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -1851,7 +1853,8 @@ body:has(.home-page) .promo-stage {
   height: 4.7rem;
   min-height: 4.7rem;
   max-height: 4.7rem;
-  margin: -2.05rem 0 0.85rem;
+  max-width: 100%;
+  margin: 0 0 0.85rem;
   border-radius: 50%;
   overflow: hidden;
   flex: 0 0 auto;
@@ -1894,8 +1897,9 @@ body:has(.home-page) .promo-stage {
   min-width: 9.2rem;
   padding: 0.72rem 1.35rem;
   font-size: 0.8rem;
+  background: var(--gold);
+  color: #0e0e0e;
   border-color: var(--gold);
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
 }
 #promo-stage .promo-close {
   top: 0.45rem;
@@ -1923,28 +1927,40 @@ body:has(.home-page) .promo-stage {
   .promo-close { width: 2rem; height: 2rem; top: 0.3rem; right: 0.3rem; }
 }
 
-/* "Quiet line" — the header ribbon, a left-to-right strip: still, kicker +
-   title, an optional code, a CTA, and a close button. */
+/* "Quiet line" — a glass pill under the site header. */
 .promo-ribbon {
   display: grid;
-  grid-template-columns: 3.15rem minmax(0, 1fr) auto auto auto;
+  grid-template-columns: 2.55rem minmax(0, 1fr) auto auto auto;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.65rem;
   width: 100%;
-  min-height: 3.15rem;
-  padding: 0;
-  padding-right: 0.7rem;
-  border-bottom: 1px solid rgba(201, 162, 74, 0.28);
-  background: rgba(5, 5, 5, 0.92);
-  box-shadow: inset 2px 0 0 var(--gold);
+  min-height: 2.85rem;
+  padding: 0.28rem 0.75rem 0.28rem 0.32rem;
+  border: 1px solid rgba(201, 162, 74, 0.28);
+  border-radius: 999px;
+  background: rgba(35, 35, 35, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: none;
   pointer-events: auto;
 }
-.promo-ribbon[data-size="s"] { grid-template-columns: 2.4rem minmax(0, 1fr) auto auto auto; min-height: 2.4rem; }
-.promo-ribbon[data-size="l"] { grid-template-columns: 4.2rem minmax(0, 1fr) auto auto auto; min-height: 4.2rem; }
-.promo-ribbon .promo-still { width: 3.15rem; height: 3.15rem; min-height: 3.15rem; }
-.promo-ribbon[data-size="s"] .promo-still { width: 2.4rem; height: 2.4rem; min-height: 2.4rem; }
-.promo-ribbon[data-size="l"] .promo-still { width: 4.2rem; height: 4.2rem; min-height: 4.2rem; }
-.promo-ribbon .promo-copy { padding: 0.35rem 0; min-width: 0; }
+.promo-ribbon[data-size="s"] { grid-template-columns: 2.1rem minmax(0, 1fr) auto auto auto; min-height: 2.4rem; }
+.promo-ribbon[data-size="l"] { grid-template-columns: 3.15rem minmax(0, 1fr) auto auto auto; min-height: 3.4rem; }
+.promo-ribbon .promo-still {
+  width: 2.55rem;
+  height: 2.55rem;
+  min-height: 2.55rem;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 0 1.5px var(--gold);
+  background: #080808;
+}
+.promo-ribbon[data-size="s"] .promo-still { width: 2.1rem; height: 2.1rem; min-height: 2.1rem; }
+.promo-ribbon[data-size="l"] .promo-still { width: 3.15rem; height: 3.15rem; min-height: 3.15rem; }
+.promo-ribbon .promo-copy {
+  padding: 0.35rem 0;
+  min-width: 0;
+}
 .promo-ribbon .promo-kicker { margin: 0 0 0.12rem; }
 .promo-ribbon .promo-title {
   margin: 0;
@@ -1955,24 +1971,27 @@ body:has(.home-page) .promo-stage {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* Plain text links here regardless of position — a ribbon is one slim
-   line, no room for button chrome even on the "filled" one. */
 .promo-ribbon .promo-cta,
 .promo-ribbon .promo-cta.is-filled {
-  background: none;
-  border: 0;
-  padding: 0;
-  color: var(--gold);
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.42rem 0.78rem;
+  border: 1px solid var(--gold);
+  background: var(--gold);
+  color: #050505;
   font-size: 0.62rem;
-  letter-spacing: 0.12em;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 .promo-ribbon .promo-cta:hover {
-  background: none;
-  color: var(--ivory);
+  background: #ead7a2;
+  color: #050505;
+  border-color: #ead7a2;
 }
 .promo-ribbon .promo-ctas {
-  gap: 0.75rem;
+  justify-content: flex-end;
+  gap: 0.35rem;
 }
 .promo-ribbon .promo-close { position: static; width: auto; height: auto; font-size: 1.1rem; }
 .promo-ribbon[data-still="none"],
@@ -1980,6 +1999,49 @@ body:has(.home-page) .promo-stage {
 .promo-ribbon[data-still="none"] .promo-still,
 .promo-ribbon[data-still="top"] .promo-still,
 .promo-ribbon .promo-still[hidden] { display: none; }
+
+@media (max-width: 720px) {
+  .promo-ribbon {
+    grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+    gap: 0.2rem 0.45rem;
+    padding: 0.32rem 0.5rem 0.38rem 0.28rem;
+    border-radius: 1.15rem;
+  }
+  .promo-ribbon .promo-still,
+  .promo-ribbon[data-size="s"] .promo-still,
+  .promo-ribbon[data-size="l"] .promo-still {
+    width: 2.2rem;
+    height: 2.2rem;
+    min-height: 2.2rem;
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+  .promo-ribbon .promo-copy { grid-column: 2; grid-row: 1; padding: 0.15rem 0 0; }
+  .promo-ribbon .promo-title { font-size: 0.82rem; }
+  .promo-ribbon .promo-ctas {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+    gap: 0.3rem;
+    margin-bottom: 0.12rem;
+  }
+  .promo-ribbon .promo-cta,
+  .promo-ribbon .promo-cta.is-filled {
+    padding: 0.28rem 0.62rem;
+    font-size: 0.52rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 0;
+  }
+  .promo-ribbon .promo-close {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+  .promo-ribbon .promo-code { display: none; }
+  .promo-ribbon[data-still="none"],
+  .promo-ribbon[data-still="top"] {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
 
 /* "Table phone" (QR app) — in normal flow, right under the table name, no
    close button and no CTA (the guest is already in the ordering app). */

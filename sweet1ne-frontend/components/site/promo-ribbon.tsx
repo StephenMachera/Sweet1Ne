@@ -16,13 +16,10 @@ const DISMISS_PREFIX = "sweet1ne_ribbon_dismissed_";
 
 /**
  * The quiet line under the header — a real, live "ribbon"-surface
- * promotion, or nothing at all. Markup and classes (.promo-ribbon,
- * .promo-still, .promo-copy, .promo-kicker, .promo-title, .promo-code,
- * .promo-cta, .promo-close) match the template's htmlRibbon() exactly —
- * same id (#promo-ribbon) so the fixed-position + layout-push rules in
- * site.css key on it. Dismissal is stored against the promotion's own id,
- * so closing it hides that one for good while a later promotion still gets
- * shown.
+ * promotion, or nothing at all. The outer #promo-ribbon is the fixed
+ * positioning wrapper; its inner .promo-ribbon is the template's pill.
+ * Dismissal is stored against the promotion's own id, so closing it hides
+ * that one while a later promotion can still be shown.
  */
 export function PromoRibbon() {
   const [promotion, setPromotion] = useState<PublicPromotion | null>(null);
@@ -63,44 +60,54 @@ export function PromoRibbon() {
   const buttons = liveButtons(promotion.buttons);
 
   return (
-    <div
-      id="promo-ribbon"
-      className="promo-ribbon"
-      role="note"
-      data-still={promotion.look.still}
-      data-size={promotion.look.still_size || "m"}
-      data-tone={promotion.look.tone}
-    >
-      {showStill && (
-        <div className="promo-still">
-          <img src={imageUrl} alt="" style={stillStyle} />
-        </div>
-      )}
-      <div className="promo-copy">
-        {promotion.kicker && <p className="promo-kicker">{promotion.kicker}</p>}
-        <p className="promo-title">{promotion.title}</p>
-      </div>
-      {promotion.code && <p className="promo-code">{promotion.code}</p>}
-      {!(promotion.kind === "code" && promotion.code) && buttons.length > 0 && (
-        <div className="promo-ctas">
-          {buttons.map((btn, i) => (
-            <a key={btn.id} className={`promo-cta${i === 0 ? " is-filled" : ""}`} href={buttonHref(btn)}>
-              {buttonLabel(btn)}
-            </a>
-          ))}
-        </div>
-      )}
-      <button
-        type="button"
-        className="promo-close"
-        aria-label="Close"
-        onClick={() => {
-          window.localStorage.setItem(`${DISMISS_PREFIX}${promotion.id}`, "1");
-          setDismissed(true);
-        }}
+    <div id="promo-ribbon">
+      <div
+        className="promo-ribbon"
+        role="note"
+        data-kind={promotion.kind}
+        data-id={promotion.id}
+        data-still={promotion.look.still}
+        data-tone={promotion.look.tone}
+        data-align={promotion.look.align}
+        data-size={promotion.look.still_size || "m"}
       >
-        ×
-      </button>
+        {showStill && (
+          <div className="promo-still">
+            <img src={imageUrl} alt="" style={stillStyle} />
+          </div>
+        )}
+        <div className="promo-copy">
+          {promotion.kicker && <p className="promo-kicker">{promotion.kicker}</p>}
+          <p className="promo-title">{promotion.title}</p>
+        </div>
+        <p className="promo-code" hidden={!promotion.code}>
+          {promotion.code}
+        </p>
+        {!(promotion.kind === "code" && promotion.code) && buttons.length > 0 && (
+          <div className="promo-ctas">
+            {buttons.map((btn, i) => (
+              <a
+                key={btn.id}
+                className={`book promo-cta${i === 0 ? " is-filled" : ""}`}
+                href={buttonHref(btn)}
+              >
+                {buttonLabel(btn)}
+              </a>
+            ))}
+          </div>
+        )}
+        <button
+          type="button"
+          className="promo-close"
+          aria-label="Close"
+          onClick={() => {
+            window.localStorage.setItem(`${DISMISS_PREFIX}${promotion.id}`, "1");
+            setDismissed(true);
+          }}
+        >
+          ×
+        </button>
+      </div>
     </div>
   );
 }

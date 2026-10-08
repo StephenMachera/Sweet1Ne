@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Bodoni_Moda, Hanken_Grotesk } from "next/font/google";
 import { SiteHeader } from "@/components/site/site-header";
 import { PromoRibbon } from "@/components/site/promo-ribbon";
-import { PromoCard } from "@/components/site/home/promo-card";
 import { BookingModal } from "@/components/site/booking-modal";
 import { Analytics } from "@/components/site/analytics";
 import { CookieConsent } from "@/components/site/cookie-consent";
@@ -59,7 +58,6 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         <main className="w-full">{children}</main>
       </SmoothScroll>
 
-      <PromoCard />
       <BookingModal />
       <CookieConsent />
       <Analytics />

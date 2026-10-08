@@ -1208,13 +1208,43 @@ body.is-gated #promo-ribbon { display: none; }
    nudges the two things that would otherwise sit right where it lands. */
 #promo-ribbon:not([hidden]) {
   position: fixed;
-  top: 4.15rem;
+  top: 3.85rem;
   left: 0;
   right: 0;
+  width: auto;
   z-index: 80;
 }
+
+/* Keep the fixed ribbon just below the actual app header. The reference
+   header is shorter than the app's default py-4 layout, so tighten its
+   inner spacing while the quiet line is present instead of letting the
+   higher header layer cover the pill. */
+body:has(#promo-ribbon:not([hidden])) .site-header > div {
+  padding-block: 0.65rem;
+}
+
+body:has(#promo-ribbon:not([hidden])) .site-header > div > div > a[href="/locations"] {
+  padding: 0.58rem 1.05rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+}
+
 @media (max-width: 720px) {
-  #promo-ribbon:not([hidden]) { top: 3.7rem; }
+  #promo-ribbon:not([hidden]) {
+    top: 3.4rem;
+    left: 0;
+    right: 0;
+  }
+
+  body:has(#promo-ribbon:not([hidden])) .site-header > div {
+    padding-block: 0.5rem;
+  }
+
+  body:has(#promo-ribbon:not([hidden])) .site-header > div > div > a[href="/locations"] {
+    padding: 0.48rem 0.58rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+  }
 }
 body:has(#promo-ribbon:not([hidden])) .courses-wrap { top: 7.3rem; }
 body:has(#promo-ribbon:not([hidden])) .cinema .pause { top: 7.7rem; }

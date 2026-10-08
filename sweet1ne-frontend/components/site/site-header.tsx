@@ -70,10 +70,10 @@ export function SiteHeader() {
 
   return (
     <>
-      {/* z-[70] puts the header above the mobile takeover, so the logo and
-          close button stay visible over it. */}
+      {/* Keep the header above both the mobile takeover and the quiet-line
+          ribbon, matching the shared site chrome in the promotion template. */}
       <header
-        className={`site-header fixed inset-x-0 top-0 z-[70] font-body transition-colors duration-500 ${
+        className={`site-header fixed inset-x-0 top-0 z-[90] font-body transition-colors duration-500 ${
           isHome ? "is-home" : "is-page"
         } ${
           isHome && isPage

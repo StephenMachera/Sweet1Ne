@@ -271,6 +271,9 @@ export default function AdminMenuManagePage() {
 
   async function setItemStation(item: MenuItem, station: "kitchen" | "bar") {
     setError(null);
+    const next = { ...item, prep_station_override: station };
+    setItems((prev) => prev.map((i) => (i.id === item.id ? next : i)));
+    setCategoryItems((prev) => prev && prev.map((i) => (i.id === item.id ? next : i)));
     try {
       const updated = await apiFetch(`/staff/menu/menu-items/${item.id}`, {
         method: "PATCH",
@@ -279,6 +282,8 @@ export default function AdminMenuManagePage() {
       setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
       setCategoryItems((prev) => prev && prev.map((i) => (i.id === updated.id ? updated : i)));
     } catch (err) {
+      setItems((prev) => prev.map((i) => (i.id === item.id ? item : i)));
+      setCategoryItems((prev) => prev && prev.map((i) => (i.id === item.id ? item : i)));
       setError(err instanceof Error ? err.message : "Couldn't change that.");
     }
   }
