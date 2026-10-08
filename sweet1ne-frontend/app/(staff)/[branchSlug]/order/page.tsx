@@ -166,6 +166,7 @@ export default function GuestOrderPage({
   const [order, setOrder] = useState<Order | null>(null);
   const [trackOpen, setTrackOpen] = useState(false);
   const [addingMore, setAddingMore] = useState(false);
+  const [promoDismissed, setPromoDismissed] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -197,6 +198,11 @@ export default function GuestOrderPage({
     ])
       .then(([ctx, m, s, i]) => {
         setContext(ctx);
+        if (ctx.promotion) {
+          setPromoDismissed(
+            Boolean(window.localStorage.getItem(`sweet1ne_order_promo_dismissed_${ctx.promotion.id}`)),
+          );
+        }
         const sorted = [...m].sort((a, b) => a.sort_order - b.sort_order);
         setMains(sorted);
         setSubs(s);
@@ -422,7 +428,7 @@ export default function GuestOrderPage({
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 pb-40 pt-5 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-6xl px-4 pb-40 pt-7 sm:px-6 lg:px-8">
         {error && (
           <div
             role="alert"
@@ -432,7 +438,7 @@ export default function GuestOrderPage({
           </div>
         )}
 
-        {context?.promotion && (() => {
+        {context?.promotion && !promoDismissed && (() => {
           const promo = context.promotion;
           const hero = heroImageOf(promo.layout);
           const imageUrl = hero?.image_url || "";
@@ -450,11 +456,14 @@ export default function GuestOrderPage({
 
           // Matches the template's htmlPhone() exactly — still, kicker,
           // title, dek, off, code, in normal flow right under the table
-          // name. No close button and no CTA on this surface: the guest
-          // is already in the ordering app.
+          // name. No CTA on this surface: the guest is already in the
+          // ordering app. Closing it is in-memory + localStorage only (same
+          // convention as the ribbon/card) — it just stops rendering, so
+          // the space it took collapses and the search bar/categories move
+          // back up to where they'd sit without it.
           return (
             <aside
-              className="promo-phone"
+              className="promo-phone -mx-4 mb-4 sm:mx-0"
               role="note"
               data-still={promo.look.still}
               data-size={promo.look.still_size || "m"}
@@ -472,6 +481,17 @@ export default function GuestOrderPage({
                 {off && <p className="promo-off">{off}</p>}
                 {promo.code && <p className="promo-code">{promo.code}</p>}
               </div>
+              <button
+                type="button"
+                className="promo-close"
+                aria-label="Close"
+                onClick={() => {
+                  window.localStorage.setItem(`sweet1ne_order_promo_dismissed_${promo.id}`, "1");
+                  setPromoDismissed(true);
+                }}
+              >
+                ×
+              </button>
             </aside>
           );
         })()}

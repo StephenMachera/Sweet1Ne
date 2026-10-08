@@ -133,6 +133,20 @@ export function PromotionPreview({
           {dek && <p className="promo-dek">{dek}</p>}
           {off && <p className="promo-off">{off}</p>}
           {code && <p className="promo-code">{code}</p>}
+          {buttons.length > 0 && (
+            <div className="promo-ctas">
+              {buttons.map((btn, i) => (
+                <a
+                  key={btn.id}
+                  className={`promo-cta${i === 0 ? " is-filled" : ""}`}
+                  href={buttonHref(btn)}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {buttonLabel(btn)}
+                </a>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );

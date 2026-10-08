@@ -725,6 +725,9 @@ export default function AdminMenuManagePage() {
               onDraftChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
               onSaved={(saved) => {
                 setItems((prev) => (editing ? prev.map((i) => (i.id === saved.id ? saved : i)) : [...prev, saved]));
+                if (editing) {
+                  setCategoryItems((prev) => prev && prev.map((i) => (i.id === saved.id ? saved : i)));
+                }
                 closeForm();
               }}
               onCancel={closeForm}

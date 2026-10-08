@@ -92,11 +92,11 @@ def wrap(*, title: str, body: str, preheader: str | None = None,
     <title>{title}</title>
     {head_extra}
   </head>
-  <body style="margin:0;padding:0;background-color:{background};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+  <body style="margin:0;padding:0;background-color:{background};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
     {preheader_block}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:{background};padding:36px 16px;">
       <tr><td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background-color:{surface};{border_style}">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;background-color:{surface};{border_style}">
 {header() if show_header else ""}
 {body}
 {footer_html}

@@ -152,7 +152,7 @@ def _image(block: dict[str, Any]) -> str:
     if block.get("fit") == "fill":
         position = _BANNER_POSITION_COORDS.get(block.get("position", "center"), "50% 50%")
         style = (
-            f"display:block;width:100%;max-width:560px;height:220px;"
+            f"display:block;width:100%;max-width:560px;height:160px;"
             f"object-fit:cover;object-position:{position};border:0;"
         )
     else:

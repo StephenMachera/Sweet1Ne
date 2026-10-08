@@ -112,6 +112,28 @@ function slugify(text: string): string {
 // No default photo: unlike the mockup's fixed asset pack, a real tenant has
 // no guaranteed stock image to fall back to, so the picture slot starts
 // empty for the marketer to fill.
+const PLACEHOLDER_IMAGE = "/images/homepage-gallery/carousel/web/01-table.jpg";
+
+// Preview-only stand-ins for the fields a brand-new draft starts empty —
+// so the live preview reads like a real campaign while it's being built
+// instead of showing gaps where the heading/copy/picture would go. Never
+// touches the saved draft or the real send: the backend renderer still
+// correctly omits a block with no real content once this is actually sent.
+function previewBlocks(blocks: Block[]): Block[] {
+  return blocks.map((block) => {
+    if (block.type === "heading" && !block.text) {
+      return { ...block, text: "A table this weekend" };
+    }
+    if (block.type === "paragraph" && !block.text) {
+      return { ...block, text: "Lewisham or Chingford. Same kitchen. Book the room you want." };
+    }
+    if (block.type === "image" && !block.url) {
+      return { ...block, url: PLACEHOLDER_IMAGE };
+    }
+    return block;
+  });
+}
+
 function defaultCampaignBlocks(): Block[] {
   return [
     { type: "logo", size: "l", align: "center" },
@@ -122,9 +144,9 @@ function defaultCampaignBlocks(): Block[] {
       type: "image",
       url: "",
       alt: "",
-      full_width: false,
+      full_width: true,
       position: "center",
-      fit: "fit",
+      fit: "fill",
     },
     {
       type: "ctas",
@@ -167,9 +189,9 @@ const BLOCK_KINDS: {
       type: "image",
       url: "",
       alt: "",
-      full_width: false,
+      full_width: true,
       position: "center",
-      fit: "fit",
+      fit: "fill",
     }),
   },
   {
@@ -527,6 +549,7 @@ function MailStagePreview({ draft }: { draft: PreviewDraft | null }) {
   const [html, setHtml] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [frameHeight, setFrameHeight] = useState(416);
 
   useEffect(() => {
     if (!draft) return;
@@ -541,7 +564,7 @@ function MailStagePreview({ draft }: { draft: PreviewDraft | null }) {
           name: draft.name || draft.subject,
           subject: draft.subject,
           preheader: draft.preheader,
-          blocks: draft.blocks,
+          blocks: previewBlocks(draft.blocks),
         }),
       })
         .then(({ html: rendered }: { html: string }) => {
@@ -578,6 +601,11 @@ function MailStagePreview({ draft }: { draft: PreviewDraft | null }) {
           title="Live email preview"
           srcDoc={html}
           className="admin-mail-preview-frame"
+          style={{ height: frameHeight }}
+          onLoad={(e) => {
+            const doc = e.currentTarget.contentDocument;
+            if (doc) setFrameHeight(Math.max(416, doc.documentElement.scrollHeight));
+          }}
         />
       )}
     </section>
@@ -1500,7 +1528,7 @@ function ImageBlockFields({
       }
 
       const { url } = await res.json();
-      onChange({ url });
+      onChange({ url, fit: "fill", full_width: true });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Couldn't upload that image.",
@@ -1536,7 +1564,13 @@ function ImageBlockFields({
                   type="button"
                   className={`${item.kind === "video" ? "is-film " : ""}${selected ? "is-on" : ""}`.trim()}
                   aria-pressed={selected}
-                  onClick={() => onChange({ url: selected ? "" : thumb })}
+                  onClick={() =>
+                    onChange(
+                      selected
+                        ? { url: "" }
+                        : { url: thumb, fit: "fill", full_width: true },
+                    )
+                  }
                 >
                   {thumb && <img src={thumb} alt="" />}
                   <span>{item.label}</span>

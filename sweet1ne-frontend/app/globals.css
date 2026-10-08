@@ -965,8 +965,8 @@ body {
   border-radius: 3px;
   padding: 0.35rem 0.55rem;
   font-size: 0.62rem;
-  letter-spacing: 0.08em;
-  text-transform: capitalize;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   cursor: pointer;
 }
 .admin-bit-bar button.is-on {
@@ -1529,7 +1529,7 @@ label.admin-chip:has(input:checked) span {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.45rem 0.7rem;
+  padding: 0.45rem 0.7rem 0.85rem;
   font-size: 0.68rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1550,7 +1550,7 @@ label.admin-chip:has(input:checked) span {
    14rem (224px) width shrinks that — 224/390 ≈ 0.574. */
 .admin-look-handset-stage {
   position: relative;
-  height: 18rem;
+  height: 24rem;
   overflow: hidden;
   background: #050505;
 }
@@ -1575,9 +1575,19 @@ label.admin-chip:has(input:checked) span {
   position: absolute;
   left: 0.5rem;
   right: 0.5rem;
-  top: 2.55rem;
+  top: 2.6rem;
   z-index: 1;
+  padding: 0.3rem 0.5rem 0.3rem 0.3rem;
 }
+.admin-look-handset-stage > .promo-phone .promo-still {
+  width: 2.6rem;
+  height: 2.6rem;
+  min-height: 2.6rem;
+  max-height: 2.6rem;
+}
+.admin-look-handset-stage > .promo-phone .promo-copy { padding: 0.2rem 0.3rem 0.2rem; }
+.admin-look-handset-stage > .promo-phone .promo-dek,
+.admin-look-handset-stage > .promo-phone .promo-ctas { display: none; }
 .admin-look-handset-dock {
   padding: 0.55rem 0.7rem;
   font-size: 0.78rem;
@@ -1750,6 +1760,12 @@ body:has(.home-page) .promo-stage {
   background: var(--gold);
   color: #0e0e0e;
 }
+/* Admin preview only — an outline button (no fill) is hard to read against
+   the glass card there, so give it a dark backing. The live site's own
+   buttons are untouched. */
+.admin-look-frame .promo-cta:not(.is-filled) {
+  background: rgba(5, 5, 5, 0.75);
+}
 .promo-close {
   position: absolute;
   top: 0;
@@ -1826,7 +1842,8 @@ body:has(.home-page) .promo-stage {
   z-index: 1;
 }
 
-#promo-stage .promo {
+#promo-stage .promo,
+.admin-look-frame.is-enter .promo {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1848,7 +1865,13 @@ body:has(.home-page) .promo-stage {
 #promo-stage .promo[data-still="left"] .promo-still,
 #promo-stage .promo[data-size="s"] .promo-still,
 #promo-stage .promo[data-size="m"] .promo-still,
-#promo-stage .promo[data-size="l"] .promo-still {
+#promo-stage .promo[data-size="l"] .promo-still,
+.admin-look-frame.is-enter .promo-still,
+.admin-look-frame.is-enter .promo[data-still="top"] .promo-still,
+.admin-look-frame.is-enter .promo[data-still="left"] .promo-still,
+.admin-look-frame.is-enter .promo[data-size="s"] .promo-still,
+.admin-look-frame.is-enter .promo[data-size="m"] .promo-still,
+.admin-look-frame.is-enter .promo[data-size="l"] .promo-still {
   width: 4.7rem;
   height: 4.7rem;
   min-height: 4.7rem;
@@ -1861,38 +1884,45 @@ body:has(.home-page) .promo-stage {
   box-shadow: 0 0 0 2px var(--gold);
   background: #080808;
 }
-#promo-stage .promo[data-size="s"] .promo-still {
+#promo-stage .promo[data-size="s"] .promo-still,
+.admin-look-frame.is-enter .promo[data-size="s"] .promo-still {
   width: 3.7rem;
   height: 3.7rem;
   min-height: 3.7rem;
   max-height: 3.7rem;
 }
-#promo-stage .promo[data-size="l"] .promo-still {
+#promo-stage .promo[data-size="l"] .promo-still,
+.admin-look-frame.is-enter .promo[data-size="l"] .promo-still {
   width: 5.8rem;
   height: 5.8rem;
   min-height: 5.8rem;
   max-height: 5.8rem;
 }
-#promo-stage .promo-copy {
+#promo-stage .promo-copy,
+.admin-look-frame.is-enter .promo-copy {
   padding: 0;
   align-items: center;
   text-align: center;
 }
-#promo-stage .promo-title {
+#promo-stage .promo-title,
+.admin-look-frame.is-enter .promo-title {
   font-size: 1.4rem;
   margin: 0 0 0.4rem;
 }
-#promo-stage .promo-dek {
+#promo-stage .promo-dek,
+.admin-look-frame.is-enter .promo-dek {
   display: block;
   max-width: 17.5rem;
   margin: 0 0 0.85rem;
   font-size: 0.82rem;
 }
-#promo-stage .promo-ctas {
+#promo-stage .promo-ctas,
+.admin-look-frame.is-enter .promo-ctas {
   align-self: center;
   justify-content: center;
 }
-#promo-stage .promo-cta {
+#promo-stage .promo-cta,
+.admin-look-frame.is-enter .promo-cta {
   align-self: center;
   min-width: 9.2rem;
   padding: 0.72rem 1.35rem;
@@ -1901,11 +1931,13 @@ body:has(.home-page) .promo-stage {
   color: #0e0e0e;
   border-color: var(--gold);
 }
-#promo-stage .promo-close {
+#promo-stage .promo-close,
+.admin-look-frame.is-enter .promo-close {
   top: 0.45rem;
   right: 0.5rem;
 }
-#promo-stage .promo-dots { left: 0; }
+#promo-stage .promo-dots,
+.admin-look-frame.is-enter .promo-dots { left: 0; }
 
 @media (max-width: 720px) {
   .promo-stage { bottom: 5rem; padding: 0 0.85rem; justify-content: center; }
@@ -2048,30 +2080,37 @@ body:has(.home-page) .promo-stage {
 .promo-phone {
   position: relative;
   display: grid;
-  grid-template-columns: 4.4rem minmax(0, 1fr);
-  align-items: stretch;
-  gap: 0;
-  margin: 0.45rem 0 0.2rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.45rem 0.15rem 0.35rem;
+  padding: 0.4rem 0.65rem 0.4rem 0.4rem;
   overflow: hidden;
   isolation: isolate;
-  border: 1px solid rgba(201, 162, 74, 0.4);
-  border-radius: 0.85rem;
-  background: rgba(8, 8, 8, 0.92);
-  box-shadow: inset 2px 0 0 var(--gold);
+  border: 1px solid rgba(201, 162, 74, 0.38);
+  border-radius: 1.05rem;
+  background: rgba(35, 35, 35, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: none;
 }
 .promo-phone[data-size="s"] { grid-template-columns: 3.4rem minmax(0, 1fr); }
 .promo-phone[data-size="l"] { grid-template-columns: 5.6rem minmax(0, 1fr); }
 .promo-phone .promo-still {
   position: relative;
-  width: 4.4rem;
-  height: 4.4rem;
-  min-height: 4.4rem;
-  max-height: 4.4rem;
+  width: 3.6rem;
+  height: 3.6rem;
+  min-height: 3.6rem;
+  max-height: 3.6rem;
   overflow: hidden;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--gold);
+  background: #080808;
+  flex: 0 0 auto;
 }
 .promo-phone[data-size="s"] .promo-still { width: 3.4rem; height: 3.4rem; min-height: 3.4rem; max-height: 3.4rem; }
 .promo-phone[data-size="l"] .promo-still { width: 5.6rem; height: 5.6rem; min-height: 5.6rem; max-height: 5.6rem; }
-.promo-phone .promo-still img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.promo-phone .promo-still img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .promo-phone .promo-copy { padding: 0.55rem 0.7rem 0.6rem; min-width: 0; }
 .promo-phone .promo-kicker { margin: 0 0 0.2rem; }
 .promo-phone .promo-title {
@@ -2083,11 +2122,38 @@ body:has(.home-page) .promo-stage {
 .promo-phone .promo-dek { display: block; margin: 0.25rem 0 0; font-size: 0.78rem; }
 .promo-phone .promo-off { margin: 0.4rem 0 0; }
 .promo-phone .promo-code { margin: 0.4rem 0 0; }
+.promo-phone .promo-ctas { margin-top: 0.55rem; }
+.promo-phone .promo-cta {
+  display: inline-flex;
+  min-width: 7.6rem;
+  padding: 0.48rem 0.82rem;
+  font-size: 0.68rem;
+}
 .promo-phone[data-still="none"],
 .promo-phone[data-still="top"] { grid-template-columns: 1fr; }
 .promo-phone[data-still="none"] .promo-still,
 .promo-phone[data-still="top"] .promo-still,
 .promo-phone .promo-still[hidden] { display: none; }
+@media (max-width: 640px) {
+  .promo-phone {
+    border-radius: 0.75rem;
+    padding: 0.3rem 0.5rem 0.3rem 0.3rem;
+    gap: 0.4rem;
+  }
+  .promo-phone .promo-still,
+  .promo-phone[data-size="s"] .promo-still,
+  .promo-phone[data-size="l"] .promo-still {
+    width: 2.6rem;
+    height: 2.6rem;
+    min-height: 2.6rem;
+    max-height: 2.6rem;
+  }
+  .promo-phone .promo-copy { padding: 0.3rem 0.4rem 0.3rem; }
+  .promo-phone .promo-title { font-size: 0.9rem; }
+  .promo-phone .promo-dek { font-size: 0.72rem; margin-top: 0.15rem; }
+  .promo-phone .promo-ctas { margin-top: 0.4rem; }
+  .promo-phone .promo-cta { min-width: 6.2rem; padding: 0.4rem 0.65rem; font-size: 0.62rem; }
+}
 
 /* ── Event composer — the block stack, its per-block rows, and the CTA
    list, all inside the .admin-drawer-edit / .admin-form editor. ───────── */
@@ -2521,8 +2587,7 @@ body:has(.home-page) .promo-stage {
 .admin-mail-preview-frame {
   display: block;
   width: 100%;
-  height: min(76vh, 920px);
-  min-height: 36rem;
+  min-height: 26rem;
   border: 0;
   background: #050505;
 }
@@ -2533,7 +2598,7 @@ body:has(.home-page) .promo-stage {
    whatever's left — it's the thing staff are actually there to look at. */
 .admin-camp-desk {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(22rem, 26rem);
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 21rem);
   gap: 1.5rem;
   align-items: start;
   margin: 1.5rem 0 0;
@@ -2546,11 +2611,15 @@ body:has(.home-page) .promo-stage {
 .admin-camp-desk .admin-mail-preview {
   position: sticky;
   top: 0.55rem;
+  max-height: 32rem;
+  overflow: auto;
 }
 @container admin-stage (max-width: 960px) {
   .admin-camp-desk .admin-mail-preview {
     position: relative;
     top: 0;
+    max-height: none;
+    overflow: visible;
   }
 }
 .admin-camp-build {
