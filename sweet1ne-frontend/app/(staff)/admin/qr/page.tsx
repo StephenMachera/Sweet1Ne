@@ -263,11 +263,6 @@ export default function AdminQrPage() {
       </div>
 
       <h1>QR Codes</h1>
-      <p className="admin-dek">
-        The phone is the scan. Email opens the list at the table. Gold is how they order. Looked at
-        most fills after guests use it.
-      </p>
-
       {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
 
       <div className="admin-kpi-strip" aria-label="Summary">
