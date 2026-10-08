@@ -6,11 +6,7 @@ import { apiFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useMediaLibrary, mediaThumb } from "@/lib/use-media-library";
 import { EmojiField } from "@/components/ui/emoji-field";
-import {
-  BANNER_POSITIONS,
-  BANNER_POSITION_COORDS,
-  type BannerPosition,
-} from "@/lib/promotion-blocks";
+import { BANNER_POSITIONS } from "@/lib/promotion-blocks";
 import {
   Dialog,
   DialogContent,
@@ -89,6 +85,7 @@ type CtaItem = { kind: string; label: string; href: string };
 type PreviewDraft = {
   name: string;
   subject: string;
+  preheader: string | null;
   blocks: Block[];
 };
 
@@ -209,11 +206,8 @@ const BLOCK_KINDS: {
  * Campaigns tab of the unified /admin/marketing page. One table (every
  * campaign, regardless of status), and — right below it — the campaign
  * look: a live preview next to the editor, both always on screen together
- * rather than tucked into a side drawer. That editor-side preview is a
- * plain client-side mockup for on-screen editing, not the real send-safe
- * HTML — the Send dialog (in CampaignEditor, below) is what actually calls
- * /campaigns/preview and shows the real rendered letter before anything
- * goes out.
+ * rather than tucked into a side drawer. The preview uses the same backend
+ * renderer as the actual send.
  */
 export function CampaignsPane() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -527,143 +521,65 @@ function CampaignRow({
   );
 }
 
-const LOGO_SRC = "/images/brand/logo.png";
-
-/** What the marketer actually sees on screen — a direct DOM mockup, not the
-   email-safe inline-style HTML /campaigns/preview builds for a real inbox
-   (that endpoint's HTML still backs "Send test" and the real send; this
-   component never touches it). Renders straight from the live block state,
-   so it updates instantly with no debounce or network round trip. */
+/** Uses the real email renderer, so the live preview cannot drift from
+   the HTML sent to recipients. */
 function MailStagePreview({ draft }: { draft: PreviewDraft | null }) {
-  const { media } = useMediaLibrary();
-  if (!draft) return <div className="admin-mail-preview" />;
+  const [html, setHtml] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  // The tenant's own most recent upload — a real photo they actually own,
-  // never the logo — shown only when the marketer hasn't picked one yet.
-  const defaultImage = media[0] ? mediaThumb(media[0]) : "";
-  const hasLogoBlock = draft.blocks.some((b) => b.type === "logo");
-  const isLeft = draft.blocks.some(
-    (b) => b.type === "logo" && b.align === "left",
-  );
+  useEffect(() => {
+    if (!draft) return;
+
+    let current = true;
+    const timer = window.setTimeout(() => {
+      setLoading(true);
+      setError(null);
+      apiFetch("/campaigns/preview", {
+        method: "POST",
+        body: JSON.stringify({
+          name: draft.name || draft.subject,
+          subject: draft.subject,
+          preheader: draft.preheader,
+          blocks: draft.blocks,
+        }),
+      })
+        .then(({ html: rendered }: { html: string }) => {
+          if (current) setHtml(rendered);
+        })
+        .catch((err) => {
+          if (current) {
+            setError(err instanceof Error ? err.message : "Couldn't render that email.");
+          }
+        })
+        .finally(() => {
+          if (current) setLoading(false);
+        });
+    }, 250);
+
+    return () => {
+      current = false;
+      window.clearTimeout(timer);
+    };
+  }, [draft]);
+
+  if (!draft) {
+    return <section className="admin-mail-preview" aria-label="Email preview" />;
+  }
 
   return (
-    <section className={`admin-mail-preview${isLeft ? " is-left" : ""}`}>
-      {/* No logo block yet — the real send falls back to the same
-          fixed header logo (see campaign_renderer.render_campaign's
-          show_header), so the preview must match that, not go bare. */}
-      {!hasLogoBlock && (
-        <div>
-          <img className="admin-mark" src={LOGO_SRC} alt="Sweet1NE" />
-          <hr />
-        </div>
+    <section className="admin-mail-preview" aria-label="Email preview">
+      {error ? (
+        <p className="admin-hold p-6 text-center text-sm">{error}</p>
+      ) : loading && !html ? (
+        <p className="admin-muted p-6 text-center text-sm">Rendering email…</p>
+      ) : (
+        <iframe
+          title="Live email preview"
+          srcDoc={html}
+          className="admin-mail-preview-frame"
+        />
       )}
-      {draft.blocks.map((block, i) => {
-        switch (block.type) {
-          case "logo": {
-            const sizeClass =
-              block.size === "s" ? " is-s" : block.size === "l" ? " is-l" : "";
-            return (
-              <div key={i}>
-                <img
-                  className={`admin-mark${sizeClass}`}
-                  src={LOGO_SRC}
-                  alt="Sweet1NE"
-                />
-                <hr />
-              </div>
-            );
-          }
-          case "kicker":
-            return (
-              <p key={i} className="admin-kicker">
-                {block.text || "Sweet1NE"}
-              </p>
-            );
-          case "heading": {
-            return (
-              <h2
-                key={i}
-                style={{
-                  fontSize: `${headingSizePx(block.size)}px`,
-                  textAlign: (block.align ?? "left") as React.CSSProperties["textAlign"],
-                }}
-              >
-                {block.text || "Subject and title sit here."}
-              </h2>
-            );
-          }
-          case "paragraph":
-            return (
-              <p
-                key={i}
-                className="admin-dek"
-                style={{
-                  textAlign: (block.align ?? "left") as React.CSSProperties["textAlign"],
-                }}
-              >
-                {block.text || "Write the mail. The look stays the website."}
-              </p>
-            );
-          case "note":
-            return block.text ? (
-              <p key={i} className="admin-dek">
-                {block.text}
-              </p>
-            ) : null;
-          case "image": {
-            const url = block.url || defaultImage;
-            if (!url) return null;
-            // Matches the real email's _image() exactly: "fill" crops to a
-            // fixed banner height with a focal point; anything else shows
-            // the photo at its own natural ratio (height:auto, no crop) —
-            // this used to always crop/cover regardless of that setting,
-            // which is why a "fit" picture looked blown up here but not in
-            // the actual mail.
-            const isFill = block.fit === "fill";
-            const objectPosition =
-              BANNER_POSITION_COORDS[block.position as BannerPosition] ??
-              BANNER_POSITION_COORDS.center;
-            return (
-              <img
-                key={i}
-                className={`admin-still${isFill ? " is-fill" : " is-fit"}`}
-                src={url}
-                alt=""
-                style={isFill ? { objectPosition } : undefined}
-              />
-            );
-          }
-          case "ctas":
-            return (
-              <div key={i} className="admin-mail-ctas">
-                {(block.items ?? []).map((item: CtaItem, j: number) => (
-                  <a
-                    key={j}
-                    className="admin-book"
-                    href="#"
-                    onClick={(e) => e.preventDefault()}
-                  >
-                    {item.label ||
-                      CTA_PRESETS[item.kind as CampaignCtaKind] ||
-                      "Open"}
-                  </a>
-                ))}
-              </div>
-            );
-          case "slogan":
-            return (
-              <p key={i} className="admin-slogan">
-                {block.text || "Always in the mood for you."}
-              </p>
-            );
-          default:
-            return null;
-        }
-      })}
-      <p className="admin-foot">
-        You asked to hear from Sweet1NE. Unsubscribe any time.{" "}
-        <a href="/privacy">Privacy</a> · info@sweet1ne.com
-      </p>
     </section>
   );
 }
@@ -686,6 +602,7 @@ function CampaignEditor({
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
+  const [preheader, setPreheader] = useState("");
   const [blocks, setBlocks] = useState<Block[]>([]);
   // Which layout row reads gold — purely a "you're looking at this one"
   // marker, same as the reference build's own selection concept. Every
@@ -720,6 +637,7 @@ function CampaignEditor({
         setCampaign(c);
         setName(c.name);
         setSubject(c.subject);
+        setPreheader(c.preheader ?? "");
         setBlocks(c.blocks ?? []);
         setAudience(c.audience ?? "active");
         setChannels(c.channels ?? {});
@@ -736,8 +654,8 @@ function CampaignEditor({
   // Mirrors the live edit buffer up to the parent on every change, so the
   // preview beside it renders exactly what's on screen right now.
   useEffect(() => {
-    onDraftChange({ name, subject, blocks });
-  }, [name, subject, blocks, onDraftChange]);
+    onDraftChange({ name, subject, preheader: preheader || null, blocks });
+  }, [name, subject, preheader, blocks, onDraftChange]);
 
   function updateBlock(index: number, patch: Partial<Block>) {
     setBlocks((prev) =>
@@ -746,11 +664,8 @@ function CampaignEditor({
   }
 
   function addBlock(type: string, make: () => Block) {
-    // "+ Picture" while an empty picture slot already exists (the default
-    // one every new campaign starts with, showing a stand-in photo) should
-    // point at that same slot, not pile up a second, separate one — a
-    // marketer clicking it to replace what they see shouldn't end up with
-    // two Picture rows in the Look stack.
+    // Reuse the empty picture block every new campaign starts with instead
+    // of adding a second picture row.
     if (type === "image") {
       const existingEmpty = blocks.findIndex(
         (b) => b.type === "image" && !b.url,
@@ -792,6 +707,7 @@ function CampaignEditor({
         // whatever it was called on creation.
         name: subject || name,
         subject,
+        preheader: preheader || null,
         blocks,
         audience,
         channels,
@@ -863,6 +779,7 @@ function CampaignEditor({
         body: JSON.stringify({
           name: subject || name,
           subject,
+          preheader: preheader || null,
           blocks,
           audience,
           channels,
@@ -877,7 +794,7 @@ function CampaignEditor({
     } finally {
       setPreviewLoading(false);
     }
-  }, [subject, name, blocks, audience, channels, mapId]);
+  }, [subject, name, preheader, blocks, audience, channels, mapId]);
 
   function copyLetterHtml() {
     if (previewHtml) navigator.clipboard?.writeText(previewHtml);
@@ -938,6 +855,15 @@ function CampaignEditor({
                 onChange={setSubject}
                 placeholder="What shows up in the inbox"
                 required
+              />
+            </label>
+            <label>
+              Inbox preview text
+              <input
+                value={preheader}
+                disabled={readOnly}
+                onChange={(e) => setPreheader(e.target.value)}
+                placeholder="The short text shown beside the subject"
               />
             </label>
 

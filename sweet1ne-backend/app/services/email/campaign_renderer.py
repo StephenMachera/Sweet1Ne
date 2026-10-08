@@ -29,6 +29,17 @@ SURFACE = "#0c0c0c"
 BACKGROUND = "#050505"
 HAIRLINE_FAINT = "rgba(201, 162, 74, 0.28)"
 
+RESPONSIVE_STYLES = """<style>
+  @media only screen and (max-width: 480px) {
+    .campaign-pad { padding-left:20px !important; padding-right:20px !important; }
+    .campaign-cta-row { padding-left:20px !important; padding-right:20px !important; }
+    .campaign-cta-table { width:100% !important; }
+    .campaign-cta-cell { display:block !important; width:100% !important; padding:0 0 12px !important; }
+    .campaign-cta-button-wrap { width:100% !important; }
+    .campaign-cta-link { display:block !important; box-sizing:border-box !important; width:100% !important; text-align:center !important; }
+  }
+</style>"""
+
 # Where a CTA preset kind actually points on the guest site. "url" isn't
 # here — that's a marketer-typed custom link, handled separately in _ctas.
 CTA_PRESET_PATHS: dict[str, tuple[str, str]] = {
@@ -80,7 +91,7 @@ def _heading(block: dict[str, Any]) -> str:
     align = block.get("align", "left")
 
     return f"""
-          <tr><td style="padding:10px 40px 18px;">
+          <tr><td class="campaign-pad" style="padding:10px 40px 18px;">
             <h2 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:{size}px;font-weight:400;line-height:1.18;letter-spacing:{spacing}px;color:{IVORY};text-align:{align};">
               {text}
             </h2>
@@ -102,7 +113,7 @@ def _paragraph(block: dict[str, Any]) -> str:
     )
 
     return f"""
-          <tr><td style="padding:0 40px 14px;">{body}</td></tr>"""
+          <tr><td class="campaign-pad" style="padding:0 40px 14px;">{body}</td></tr>"""
 
 
 def _eyebrow(block: dict[str, Any]) -> str:
@@ -114,7 +125,7 @@ def _eyebrow(block: dict[str, Any]) -> str:
     align = block.get("align", "left")
 
     return f"""
-          <tr><td style="padding:6px 40px 4px;">
+          <tr><td class="campaign-pad" style="padding:6px 40px 4px;">
             <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:{GOLD};text-align:{align};">
               {text}
             </p>
@@ -129,7 +140,9 @@ def _image(block: dict[str, Any]) -> str:
 
     # Full-bleed images get no side padding — the difference between a hero
     # and an inline picture.
-    padding = "0 0 24px" if block.get("full_width") else "4px 40px 24px"
+    full_width = bool(block.get("full_width"))
+    padding = "0 0 24px" if full_width else "4px 40px 24px"
+    padding_class = "" if full_width else " class=\"campaign-pad\""
 
     # "fill" crops to a fixed banner height with a focal point, same as the
     # Promotions picture control — object-position only means anything once
@@ -146,7 +159,7 @@ def _image(block: dict[str, Any]) -> str:
         style = "display:block;width:100%;max-width:560px;height:auto;border:0;"
 
     return f"""
-          <tr><td style="padding:{padding};">
+          <tr><td{padding_class} style="padding:{padding};">
             <img src="{url}" alt="{alt}" width="100%" style="{style}" />
           </td></tr>"""
 
@@ -159,10 +172,10 @@ def _button(block: dict[str, Any]) -> str:
         return ""
 
     return f"""
-          <tr><td style="padding:8px 40px 28px;" align="{align}">
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+          <tr><td class="campaign-cta-row" style="padding:8px 40px 28px;" align="{align}">
+            <table class="campaign-cta-button-wrap" role="presentation" cellpadding="0" cellspacing="0" border="0">
               <tr><td>
-                <a href="{url}" style="display:inline-block;padding:14px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:{GOLD};text-decoration:none;border:1px solid {GOLD};border-radius:6px;">
+                <a class="campaign-cta-link" href="{url}" style="display:inline-block;padding:14px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:{GOLD};text-decoration:none;border:1px solid {GOLD};border-radius:6px;">
                   {label}
                 </a>
               </td></tr>
@@ -178,7 +191,7 @@ def _quote(block: dict[str, Any]) -> str:
         return ""
 
     return f"""
-          <tr><td style="padding:8px 40px 26px;">
+          <tr><td class="campaign-pad" style="padding:8px 40px 26px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td width="2" style="background-color:{GOLD};"></td>
@@ -217,7 +230,7 @@ def _logo(block: dict[str, Any]) -> str:
             </table>"""
 
     return f"""
-          <tr><td style="padding:10px 40px 18px;text-align:{align};">
+          <tr><td class="campaign-pad" style="padding:10px 40px 18px;text-align:{align};">
             {mark}
             {rule}
           </td></tr>"""
@@ -230,7 +243,7 @@ def _note(block: dict[str, Any]) -> str:
         return ""
 
     return f"""
-          <tr><td style="padding:0 40px 14px;">
+          <tr><td class="campaign-pad" style="padding:0 40px 14px;">
             <p style="margin:0;font-size:13px;line-height:1.6;color:{MUTED};">{text}</p>
           </td></tr>"""
 
@@ -240,7 +253,7 @@ def _slogan(block: dict[str, Any]) -> str:
     text = escape(block.get("text", "") or "Always in the mood for you.")
 
     return f"""
-          <tr><td style="padding:10px 40px 4px;text-align:center;">
+          <tr><td class="campaign-pad" style="padding:10px 40px 4px;text-align:center;">
             <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:17px;color:{IVORY};">
               {text}
             </p>
@@ -264,10 +277,10 @@ def _ctas(block: dict[str, Any]) -> str:
         if not label or not href:
             continue
         buttons.append(
-            f"""<td style="padding:0 8px 0 0;">
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+            f"""<td class="campaign-cta-cell" style="padding:0 8px 0 0;">
+                  <table class="campaign-cta-button-wrap" role="presentation" cellpadding="0" cellspacing="0" border="0">
                     <tr><td>
-                      <a href="{escape(href)}" style="display:inline-block;padding:14px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:{GOLD};text-decoration:none;border:1px solid {GOLD};border-radius:6px;">
+                      <a class="campaign-cta-link" href="{escape(href)}" style="display:inline-block;padding:14px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:{GOLD};text-decoration:none;border:1px solid {GOLD};border-radius:6px;">
                         {escape(label)}
                       </a>
                     </td></tr>
@@ -279,14 +292,14 @@ def _ctas(block: dict[str, Any]) -> str:
 
     align = block.get("align", "left")
     return f"""
-          <tr><td style="padding:8px 40px 28px;" align="{align}">
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>{"".join(buttons)}</tr></table>
+          <tr><td class="campaign-cta-row" style="padding:8px 40px 28px;" align="{align}">
+            <table class="campaign-cta-table" role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>{"".join(buttons)}</tr></table>
           </td></tr>"""
 
 
 def _divider(_block: dict[str, Any]) -> str:
     return f"""
-          <tr><td style="padding:6px 40px 26px;">
+          <tr><td class="campaign-pad" style="padding:6px 40px 26px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr><td height="1" style="background-color:{HAIRLINE_FAINT};line-height:1px;font-size:1px;">&nbsp;</td></tr>
             </table>
@@ -308,7 +321,7 @@ def _campaign_footer(recipient_email: str) -> str:
     unsubscribe_url = f"{settings.FRONTEND_URL}/unsubscribe?email={recipient_email}"
     privacy_url = f"{settings.FRONTEND_URL}/privacy"
     return f"""
-          <tr><td style="padding:24px 40px;">
+          <tr><td class="campaign-pad" style="padding:24px 40px;">
             <p style="margin:0;font-size:12px;line-height:1.6;color:{MUTED};">
               You asked to hear from Sweet1NE.
               <a href="{unsubscribe_url}" style="color:{MUTED};text-decoration:underline;">Unsubscribe</a> any time.
@@ -367,6 +380,7 @@ def render_campaign(
         unsubscribe_email=recipient_email,
         show_header=not has_logo_block,
         footer_override=_campaign_footer(recipient_email),
+        head_extra=RESPONSIVE_STYLES,
         background=BACKGROUND,
         surface=SURFACE,
         hairline="",

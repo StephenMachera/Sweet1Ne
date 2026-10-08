@@ -1807,11 +1807,8 @@ body:has(.home-page) .promo-stage {
   align-items: center;
 }
 
-/* On the real homepage (inside #promo-stage, above the hero words) and in
-   the admin "Opening page" preview, the card becomes centred with a
-   circular still — a different shape, not just a resize. The real site's
-   card runs 20% larger than the admin preview's own mockup of it — a
-   deliberate size difference between the two, not a drift to fix. */
+/* On the homepage the card uses the compact, centred glass treatment from
+   the October promotion template. */
 .promo-bg {
   position: absolute;
   inset: 0;
@@ -1829,71 +1826,82 @@ body:has(.home-page) .promo-stage {
   z-index: 1;
 }
 
-#promo-stage .promo,
-.admin-look-frame.is-enter .promo {
+#promo-stage .promo {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: min(43.5rem, 100%);
-  padding: 1.21rem 2.76rem 1.267rem;
+  width: min(21.5rem, 100%);
+  padding: 2.35rem 1.45rem 1.25rem;
   text-align: center;
-  background: transparent;
-  border: 1px solid rgba(201, 162, 74, 0.45);
-  box-shadow:
-    inset 0 0 0 5px #050505,
-    inset 0 0 0 6px rgba(201, 162, 74, 0.32),
-    0 22px 56px rgba(0, 0, 0, 0.42);
+  overflow: visible;
+  border-radius: 1.35rem;
+  background: rgba(5, 5, 5, 0.28);
+  border: 1px solid rgba(201, 162, 74, 0.38);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
 }
 #promo-stage .promo-still,
-.admin-look-frame.is-enter .promo-still {
-  width: 4.9rem;
-  height: 4.9rem;
-  min-height: 4.9rem;
-  max-height: 4.9rem;
-  margin: 0.07rem 0 0.83rem;
+#promo-stage .promo[data-still="top"] .promo-still,
+#promo-stage .promo[data-still="left"] .promo-still,
+#promo-stage .promo[data-size="s"] .promo-still,
+#promo-stage .promo[data-size="m"] .promo-still,
+#promo-stage .promo[data-size="l"] .promo-still {
+  width: 4.7rem;
+  height: 4.7rem;
+  min-height: 4.7rem;
+  max-height: 4.7rem;
+  margin: -2.05rem 0 0.85rem;
   border-radius: 50%;
   overflow: hidden;
   flex: 0 0 auto;
   box-shadow: 0 0 0 2px var(--gold);
   background: #080808;
 }
-#promo-stage .promo[data-size="s"] .promo-still,
-.admin-look-frame.is-enter .promo[data-size="s"] .promo-still {
-  width: 2.131rem; height: 2.131rem; min-height: 2.131rem; max-height: 2.131rem;
+#promo-stage .promo[data-size="s"] .promo-still {
+  width: 3.7rem;
+  height: 3.7rem;
+  min-height: 3.7rem;
+  max-height: 3.7rem;
 }
-#promo-stage .promo[data-size="l"] .promo-still,
-.admin-look-frame.is-enter .promo[data-size="l"] .promo-still {
-  width: 3.341rem; height: 3.341rem; min-height: 3.341rem; max-height: 3.341rem;
+#promo-stage .promo[data-size="l"] .promo-still {
+  width: 5.8rem;
+  height: 5.8rem;
+  min-height: 5.8rem;
+  max-height: 5.8rem;
 }
-#promo-stage .promo-copy,
-.admin-look-frame.is-enter .promo-copy {
+#promo-stage .promo-copy {
   padding: 0;
   align-items: center;
   text-align: center;
 }
-#promo-stage .promo-title,
-.admin-look-frame.is-enter .promo-title {
-  font-size: 2.1rem;
-  margin: 0 0 0.346rem;
+#promo-stage .promo-title {
+  font-size: 1.4rem;
+  margin: 0 0 0.4rem;
 }
-#promo-stage .promo-dek,
-.admin-look-frame.is-enter .promo-dek {
+#promo-stage .promo-dek {
   display: block;
-  max-width: 26.4rem;
-  margin: 0 0 0.662rem;
-  font-size: 1.128rem;
+  max-width: 17.5rem;
+  margin: 0 0 0.85rem;
+  font-size: 0.82rem;
 }
-#promo-stage .promo-cta,
-.admin-look-frame.is-enter .promo-cta {
+#promo-stage .promo-ctas {
   align-self: center;
-  /* A background photo sits right behind this now — full-strength gold
-     and a glow keep both the border and the close button legible no
-     matter what's underneath. */
+  justify-content: center;
+}
+#promo-stage .promo-cta {
+  align-self: center;
+  min-width: 9.2rem;
+  padding: 0.72rem 1.35rem;
+  font-size: 0.8rem;
   border-color: var(--gold);
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
 }
-#promo-stage .promo-dots,
-.admin-look-frame.is-enter .promo-dots { left: 0; }
+#promo-stage .promo-close {
+  top: 0.45rem;
+  right: 0.5rem;
+}
+#promo-stage .promo-dots { left: 0; }
 
 @media (max-width: 720px) {
   .promo-stage { bottom: 5rem; padding: 0 0.85rem; justify-content: center; }
@@ -2438,100 +2446,23 @@ body:has(.home-page) .promo-stage {
   margin: 0 0 1.2rem;
 }
 
-/* Campaign editor's live preview — a direct DOM mockup of the actual email
-   (same shape as the reference build's own #mail-stage), not the raw
-   email-safe HTML. That inline-style HTML is what /campaigns/{id}/test and
-   the real send still use — this is only ever what staff look at on screen,
-   so it can use the site's own CSS instead of reinventing an email-client-
-   safe render just to display it in a browser. */
+/* The editor preview embeds the same rendered email HTML used for sending. */
 .admin-mail-preview {
   position: sticky;
   top: 0.55rem;
   z-index: 3;
   border: 1px solid var(--gold-line);
   background: #050505;
-  padding: 1.5rem 1.2rem 1.3rem;
-  text-align: center;
   margin: 0 0 1.2rem;
+  overflow: hidden;
 }
-.admin-mail-preview .admin-mark {
-  width: 7.2rem;
-  margin: 0 auto 0.85rem;
-  filter: drop-shadow(0 8px 28px rgba(0, 0, 0, 0.55));
-}
-.admin-mail-preview .admin-mark.is-s {
-  width: 4.6rem;
-}
-.admin-mail-preview .admin-mark.is-l {
-  width: 10.5rem;
-}
-.admin-mail-preview hr {
-  width: 2.2rem;
-  height: 1px;
-  margin: 0 auto 1rem;
-  border: 0;
-  background: var(--gold);
-}
-.admin-mail-preview h2 {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(1.45rem, 3vw, 2rem);
-  letter-spacing: -0.02em;
-  margin: 0 0 0.5rem;
-}
-.admin-mail-preview .admin-dek {
-  margin: 0 auto 0.9rem;
-  max-width: 28rem;
-}
-.admin-mail-preview .admin-still {
-  width: 100%;
-  margin: 0.4rem 0 1rem;
-  border: 1px solid rgba(201, 162, 74, 0.28);
-  background: #050505;
+.admin-mail-preview-frame {
   display: block;
-}
-/* "Fit" — the real email's height:auto, no-crop mode: the photo keeps its
-   own natural ratio, same as it actually sends. */
-.admin-mail-preview .admin-still.is-fit {
-  height: auto;
-}
-/* "Fill" — the real email's fixed-height banner crop (height:220px there);
-   scaled down for this smaller preview, with the same focal point. */
-.admin-mail-preview .admin-still.is-fill {
-  height: 11rem;
-  object-fit: cover;
-}
-.admin-mail-preview .admin-mail-ctas {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem;
-  margin: 0 0 0.2rem;
-}
-.admin-mail-preview .admin-mail-ctas .admin-book {
-  margin: 0;
-  /* Matches the real email button's own corner now (campaign_renderer.py) —
-     rounder than the sharp-cornered admin-book used elsewhere. */
-  border-radius: 6px;
-}
-.admin-mail-preview .admin-slogan {
-  margin: 0.9rem 0 0;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 1.05rem;
-  color: var(--ivory);
-}
-.admin-mail-preview .admin-foot {
-  margin: 1.15rem 0 0;
-  font-size: 0.72rem;
-  color: var(--ivory-dim);
-  line-height: 1.5;
-}
-.admin-mail-preview.is-left {
-  text-align: left;
-}
-.admin-mail-preview.is-left .admin-mark {
-  margin-left: 0;
+  width: 100%;
+  height: min(76vh, 920px);
+  min-height: 36rem;
+  border: 0;
+  background: #050505;
 }
 
 /* Campaigns — the preview and the editor sit side by side in the main

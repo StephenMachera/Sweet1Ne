@@ -61,6 +61,7 @@ def footer(*, unsubscribe_email: str | None = None) -> str:
 def wrap(*, title: str, body: str, preheader: str | None = None,
          unsubscribe_email: str | None = None, show_header: bool = True,
          footer_override: str | None = None,
+         head_extra: str = "",
          background: str = BACKGROUND, surface: str = SURFACE, hairline: str = HAIRLINE) -> str:
     """Puts a body between the header and footer.
 
@@ -89,6 +90,7 @@ def wrap(*, title: str, body: str, preheader: str | None = None,
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
+    {head_extra}
   </head>
   <body style="margin:0;padding:0;background-color:{background};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
     {preheader_block}
