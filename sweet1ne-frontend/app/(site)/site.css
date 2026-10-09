@@ -321,7 +321,9 @@ body.is-gated .home-page .hero-copy {
   }
 
   .home-page .cinema {
-    background: url("/images/homepage-gallery/cinematic/poster-chingford-1080.jpg")
+    /* The poster lives in the Supabase storage bucket, not the repo — see
+       cinema.tsx's CDN_BASE. */
+    background: url("https://xqstowkptzyttfibyjhs.supabase.co/storage/v1/object/public/sweet1ne-storage/site/homepage/poster-chingford-1080.jpg")
       50% 38% / cover no-repeat;
   }
 

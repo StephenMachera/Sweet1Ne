@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# large media that belongs in the Supabase storage bucket (CDN-served),
+# not git — GitHub flags anything over 50MB. See cinema.tsx for the CDN
+# URLs and scripts/upload_site_asset.py in sweet1ne-backend to re-upload.
+public/images/homepage-gallery/videos/film-chingford.mp4
+public/images/homepage-gallery/videos/film-chingford-mobile.mp4
+public/images/homepage-gallery/cinematic/poster-chingford-1080.jpg
