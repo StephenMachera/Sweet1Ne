@@ -3,6 +3,7 @@
 
 services:
   api:
+    image: ghcr.io/stephenmachera/sweet1ne-api:latest
     build: .
     restart: unless-stopped
     env_file: .env

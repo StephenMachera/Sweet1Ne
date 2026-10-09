@@ -1,14 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { BEATS } from "@/lib/home-content";
+import { useEffect, useRef, useState } from "react";
 import { PromoCard } from "@/components/site/home/promo-card";
-import { useStage } from "./stage-provider";
 
 type FilmsApi = {
   armFilm?: (v: HTMLVideoElement) => void;
-  kickFilm?: (v: HTMLVideoElement) => void;
-  bindFilmUnlock?: (getFilms: () => (HTMLVideoElement | null)[]) => void;
 };
 
 declare global {
@@ -17,218 +13,309 @@ declare global {
   }
 }
 
-const BEAT_MS = 9000;
+const DESK_SRC = "/images/homepage-gallery/videos/film-chingford.mp4?v=ching1";
+const PHONE_SRC = "/images/homepage-gallery/videos/film-chingford-mobile.mp4?v=ching1";
+const POSTER = "/images/homepage-gallery/cinematic/poster-chingford-1080.jpg";
 
+/** The curtain intro + the film it reveals — one component, ported as
+   directly as possible from the 8 October homepage-intro pack's own single
+   script, because the two are one piece of timing-sensitive logic, not two.
+
+   The iOS rule that matters most: play() only ever runs either as a direct
+   result of the autoplay attribute, or synchronously inside a real
+   touchend/click handler — never inside a timeout, a fetch, or a promise
+   chain. That's why the tap handlers below call video.play() directly
+   rather than going through a React state update first. */
 export default function Cinema() {
   const sectionRef = useRef<HTMLElement | null>(null);
-  const beatRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const heldRef = useRef(false);
-  const beatRef = useRef(0);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const introRef = useRef<HTMLDivElement | null>(null);
+  const pauseBtnRef = useRef<HTMLButtonElement | null>(null);
 
-  const [beat, setBeat] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [reduce, setReduce] = useState(false);
-  const [phone, setPhone] = useState(false);
-
-  const { enter, setHeaderSolid, registerPlay, gated } = useStage();
+  const [gated, setGated] = useState(true);
+  const [needsTap, setNeedsTap] = useState(false);
+  const [introOut, setIntroOut] = useState(false);
+  const [introGone, setIntroGone] = useState(false);
+  const [hasIntro, setHasIntro] = useState(true);
 
   useEffect(() => {
-    setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-    setPhone(window.matchMedia("(max-width: 720px)").matches);
-  }, []);
-
-  const allFilms = useCallback(
-    () => Array.from(sectionRef.current?.querySelectorAll<HTMLVideoElement>(".film") ?? []),
-    []
-  );
-
-  const visibleFilm = useCallback((): HTMLVideoElement | null => {
-    const on = beatRefs.current[beatRef.current] ?? beatRefs.current[0];
-    if (!on) return null;
-    const shown = Array.from(on.querySelectorAll<HTMLVideoElement>(".film")).filter(
-      (film) => window.getComputedStyle(film).display !== "none"
-    );
-    return shown[0] ?? on.querySelector<HTMLVideoElement>(".film");
-  }, []);
-
-  const filmPlaying = useCallback(() => {
-    const lead = visibleFilm();
-    return !!(lead && !lead.paused && lead.readyState > 1);
-  }, [visibleFilm]);
-
-  const playCinema = useCallback(() => {
-    if (heldRef.current || reduce) return;
+    const film = videoRef.current;
+    const intro = introRef.current;
+    const pauseBtn = pauseBtnRef.current;
     const api = window.sweet1neFilms ?? {};
-    const lead = visibleFilm();
 
-    if (lead) {
-      lead.muted = true;
-      lead.defaultMuted = true;
-      lead.playsInline = true;
-      lead.setAttribute("playsinline", "");
-      lead.setAttribute("webkit-playsinline", "");
-      if (api.kickFilm) api.kickFilm(lead);
-      else void lead.play().catch(() => {});
-    }
+    const query = String(window.location.search || "");
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const skipIntro = /(?:\?|&)open=/.test(query);
+    const forceTap = /(?:\?|&)tap=1/.test(query);
+    const hold = 2400;
+    const outMs = 1150;
+    const startedAt = Date.now();
 
-    allFilms().forEach((film) => {
-      if (film === lead) return;
-      if (window.getComputedStyle(film).display === "none") return;
-      if (phone) film.pause();
-      else if (api.kickFilm) api.kickFilm(film);
-      else void film.play().catch(() => {});
-    });
-  }, [allFilms, phone, reduce, visibleFilm]);
-
-  // let the gate trigger playback inside its own gesture
-  useEffect(() => {
-    registerPlay(playCinema);
-    return () => registerPlay(null);
-  }, [playCinema, registerPlay]);
-
-  // arm films + keep the pause button label honest
-  useEffect(() => {
-    const api = window.sweet1neFilms ?? {};
-    const films = allFilms();
-    const sync = () => setPlaying(filmPlaying());
-
-    films.forEach((film) => {
-      api.armFilm?.(film);
-      film.addEventListener("playing", sync);
-      film.addEventListener("pause", sync);
-    });
-
-    api.bindFilmUnlock?.(() =>
-      heldRef.current || reduce ? [] : phone ? [visibleFilm()] : films
-    );
-
-    sync();
-    return () => {
-      films.forEach((film) => {
-        film.removeEventListener("playing", sync);
-        film.removeEventListener("pause", sync);
-      });
+    let held = false;
+    let opened = false;
+    let rolling = false;
+    let tapped = false;
+    const timers: number[] = [];
+    const setTimer = (fn: () => void, ms: number) => {
+      const id = window.setTimeout(fn, ms);
+      timers.push(id);
+      return id;
     };
-  }, [allFilms, filmPlaying, phone, reduce, visibleFilm]);
 
-  // rotate beats
-  useEffect(() => {
-    if (reduce || BEATS.length < 2) return;
-    playCinema();
-    const id = window.setInterval(() => {
-      if (heldRef.current) return;
-      beatRef.current = (beatRef.current + 1) % BEATS.length;
-      setBeat(beatRef.current);
-      const next = visibleFilm();
-      if (next && phone) next.preload = "auto";
-      playCinema();
-    }, BEAT_MS);
-    return () => window.clearInterval(id);
-  }, [phone, playCinema, reduce, visibleFilm]);
+    if (!intro || reduce) setHasIntro(false);
 
-  // solid header once the hero is mostly out of view
-  useEffect(() => {
-    const node = sectionRef.current;
-    if (!node || !("IntersectionObserver" in window)) return;
-    const io = new IntersectionObserver(
-      ([entry]) => setHeaderSolid(!entry.isIntersecting),
-      { threshold: 0.48 }
-    );
-    io.observe(node);
-    return () => io.disconnect();
-  }, [setHeaderSolid]);
+    // Picks the file before anything else runs — phones never start
+    // downloading the 1080p file. Kept as the very first thing here,
+    // matching the pack's own inline script placement.
+    if (film && !reduce) {
+      const phone = window.matchMedia("(max-width: 720px)").matches;
+      film.muted = true;
+      film.defaultMuted = true;
+      film.playsInline = true;
+      film.src = phone ? PHONE_SRC : DESK_SRC;
+    }
 
-  const togglePause = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (filmPlaying()) {
-      heldRef.current = true;
-      allFilms().forEach((film) => film.pause());
+    function filmPlaying() {
+      return !!film && !film.paused && film.readyState > 2;
+    }
+
+    function syncPauseBtn() {
+      if (!pauseBtn) return;
+      setPlaying(filmPlaying());
+    }
+
+    function askForTap() {
+      if (intro && !opened) setNeedsTap(true);
+    }
+
+    function ignite() {
+      if (!film || held || reduce) return;
+      if (forceTap && !tapped) return;
+      api.armFilm?.(film);
+      let play: Promise<void> | undefined;
+      try {
+        play = film.play();
+      } catch {
+        askForTap();
+        return;
+      }
+      play?.catch?.(() => {
+        if (Date.now() - startedAt >= hold) askForTap();
+      });
+    }
+
+    function openHouse() {
+      if (opened) return;
+      opened = true;
+      setGated(false);
+      document.body.classList.remove("is-gated");
+      if (intro) {
+        setIntroOut(true);
+        setTimer(() => setIntroGone(true), outMs);
+      }
+    }
+
+    function settle() {
+      if (opened || !rolling) return;
+      const wait = hold - (Date.now() - startedAt);
+      if (wait <= 0) openHouse();
+      else setTimer(openHouse, wait);
+    }
+
+    function enterFromTap() {
+      tapped = true;
+      held = false;
+      ignite();
+      openHouse();
+    }
+
+    document.body.classList.add("is-gated");
+
+    let cleanupFilm: (() => void) | undefined;
+    if (film) {
+      if (forceTap) {
+        film.removeAttribute("autoplay");
+        film.pause();
+      }
+      const onTimeUpdate = () => {
+        if (rolling || film.currentTime < 0.05) return;
+        rolling = true;
+        settle();
+      };
+      film.addEventListener("timeupdate", onTimeUpdate);
+      film.addEventListener("playing", syncPauseBtn);
+      film.addEventListener("pause", syncPauseBtn);
+
+      cleanupFilm = () => {
+        film.removeEventListener("timeupdate", onTimeUpdate);
+        film.removeEventListener("playing", syncPauseBtn);
+        film.removeEventListener("pause", syncPauseBtn);
+      };
+    }
+
+    let cleanupIntro: (() => void) | undefined;
+    if (intro) {
+      const onTouchEnd = (e: TouchEvent) => {
+        e.preventDefault();
+        enterFromTap();
+      };
+      const onClick = () => enterFromTap();
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          enterFromTap();
+        }
+      };
+      intro.addEventListener("touchend", onTouchEnd, { passive: false });
+      intro.addEventListener("click", onClick);
+      intro.addEventListener("keydown", onKeyDown);
+      cleanupIntro = () => {
+        intro.removeEventListener("touchend", onTouchEnd);
+        intro.removeEventListener("click", onClick);
+        intro.removeEventListener("keydown", onKeyDown);
+      };
+    }
+
+    const onDocKeyDown = (e: KeyboardEvent) => {
+      if (!opened && e.key === "Escape") enterFromTap();
+    };
+    document.addEventListener("keydown", onDocKeyDown);
+
+    let onPauseDown: ((e: PointerEvent) => void) | undefined;
+    let onPauseClick: ((e: MouseEvent) => void) | undefined;
+    if (pauseBtn) {
+      onPauseDown = (e) => e.stopPropagation();
+      onPauseClick = (e) => {
+        e.stopPropagation();
+        if (filmPlaying()) {
+          held = true;
+          film?.pause();
+        } else {
+          held = false;
+          ignite();
+        }
+        syncPauseBtn();
+      };
+      pauseBtn.addEventListener("pointerdown", onPauseDown);
+      pauseBtn.addEventListener("click", onPauseClick);
+    }
+
+    const section = sectionRef.current;
+    const onSectionClick = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).closest(".pause")) return;
+      if (!filmPlaying()) {
+        held = false;
+        ignite();
+      }
+    };
+    section?.addEventListener("click", onSectionClick);
+
+    if (reduce || skipIntro || !intro) {
+      if (intro) {
+        setIntroOut(true);
+        setIntroGone(true);
+      }
+      openHouse();
     } else {
-      heldRef.current = false;
-      playCinema();
+      setTimer(() => {
+        if (!rolling) askForTap();
+      }, hold);
     }
-    setPlaying(filmPlaying());
-  };
+    ignite();
+    syncPauseBtn();
 
-  const onSectionClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest(".pause")) return;
-    if (!filmPlaying()) {
-      heldRef.current = false;
-      enter();
-    }
-  };
+    return () => {
+      timers.forEach((id) => window.clearTimeout(id));
+      cleanupFilm?.();
+      cleanupIntro?.();
+      document.removeEventListener("keydown", onDocKeyDown);
+      if (pauseBtn && onPauseDown && onPauseClick) {
+        pauseBtn.removeEventListener("pointerdown", onPauseDown);
+        pauseBtn.removeEventListener("click", onPauseClick);
+      }
+      section?.removeEventListener("click", onSectionClick);
+      document.body.classList.remove("is-gated");
+    };
+    // Runs once on mount — this is a one-shot ignition sequence, not
+    // something that should re-run on a dependency change.
+  }, []);
 
   return (
-    <section
-      ref={sectionRef}
-      aria-label="Sweet1NE"
-      // The site header (rendered by the layout, outside StageProvider)
-      // watches this to know when it has scrolled past the film.
-      data-cinema
-      onClick={onSectionClick}
-      className="cinema cinema-fallback relative h-[100svh] min-h-[32rem] overflow-hidden bg-black
-        after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:z-[6] after:h-[52%] after:content-['']
-        after:bg-[linear-gradient(to_top,#050505_0%,#050505_14%,rgba(5,5,5,0.82)_36%,rgba(5,5,5,0.38)_62%,transparent_100%)]"
-    >
-      {BEATS.map((b, i) => (
+    <>
+      <noscript>
+        {/* Without JS, is-gated never gets added to body (that happens in
+           the effect below) and the header/hero-copy are already visible
+           by default — the curtain itself is the only thing that needs
+           hiding, since it blocks the view unconditionally either way. */}
+        <style>{`.home-page .intro { display: none !important; }`}</style>
+      </noscript>
+
+      {hasIntro && (
         <div
-          key={b.id}
-          ref={(el) => {
-            beatRefs.current[i] = el;
-          }}
+          ref={introRef}
+          className={`intro${introOut ? " is-out" : ""}${introGone ? " is-gone" : ""}${needsTap ? " needs-tap" : ""}`}
+          role="button"
+          tabIndex={introGone ? undefined : 0}
+          aria-label="Enter Sweet1NE"
+          aria-hidden={introOut ? true : undefined}
+        >
+          <span className="intro-panel is-top" aria-hidden="true" />
+          <span className="intro-panel is-bottom" aria-hidden="true" />
+          <span className="intro-seam" aria-hidden="true" />
+          <div className="intro-mark">
+            <div className="intro-logo" aria-hidden="true" />
+            <p className="intro-place">Lewisham · Chingford</p>
+          </div>
+          <p className="intro-hint">
+            <span className="on-touch">Tap to enter</span>
+            <span className="on-desk">Click to enter</span>
+          </p>
+        </div>
+      )}
+
+      <section
+        ref={sectionRef}
+        aria-label="Sweet1NE"
+        data-cinema
+        className="cinema cinema-fallback relative h-[100svh] min-h-[32rem] overflow-hidden bg-black
+          after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:z-[6] after:h-[52%] after:content-['']
+          after:bg-[linear-gradient(to_top,#050505_0%,#050505_14%,rgba(5,5,5,0.82)_36%,rgba(5,5,5,0.38)_62%,transparent_100%)]"
+      >
+        <video
+          ref={videoRef}
+          className="film block h-full w-full object-cover motion-reduce:hidden"
+          style={{ objectPosition: "58% center", pointerEvents: "none" }}
+          autoPlay
+          muted
+          loop
+          playsInline
+          disablePictureInPicture
+          preload="auto"
+          poster={POSTER}
+        />
+
+        <div className="hero-copy">
+          <p className="kicker">Elevated Afro-Caribbean fusion</p>
+          <h1>A culinary adventure for all the senses.</h1>
+        </div>
+
+        <PromoCard />
+
+        <button
+          ref={pauseBtnRef}
+          type="button"
+          aria-label={playing ? "Pause film" : "Play film"}
           className={[
-            "absolute inset-0 transition-opacity duration-[1600ms] ease-out",
-            i === beat ? "opacity-100" : "opacity-0",
+            "pause bottom-auto top-[4.55rem] z-[9] transition-opacity duration-[450ms] sm:top-[5.4rem]",
+            "motion-reduce:hidden",
+            gated ? "pointer-events-none opacity-0" : "opacity-100",
           ].join(" ")}
         >
-          {b.sources.map((source) => (
-            <video
-              key={source.src}
-              className={[
-                "film block h-full w-full object-cover motion-reduce:hidden",
-                source.only === "desktop" ? "max-[720px]:hidden" : "",
-                source.only === "phone" ? "hidden max-[720px]:block" : "",
-              ].join(" ")}
-              style={{ objectPosition: source.objectPosition, pointerEvents: "none" }}
-              src={source.src}
-              poster={source.poster}
-              preload={source.preload}
-              autoPlay={i === 0}
-              muted
-              loop
-              playsInline
-              disablePictureInPicture
-            />
-          ))}
-        </div>
-      ))}
-
-      {/* `hero-copy` is what the template's rules key on — the placement, the
-          gold hairline above the kicker, and the Bodoni setting of the
-          headline all come from .home-page .hero-copy in site.css. The
-          Tailwind that was here duplicated the positioning but left the h1
-          with no font-family at all, so it rendered in the body face. It
-          also broke at 640px where the template breaks at 720px. */}
-      <div className="hero-copy">
-        <p className="kicker">Elevated Afro-Caribbean fusion</p>
-        <h1>A culinary adventure for all the senses.</h1>
-      </div>
-
-      <PromoCard />
-
-      <button
-        type="button"
-        onClick={togglePause}
-        onPointerDown={(e) => e.stopPropagation()}
-        aria-label={playing ? "Pause films" : "Play films"}
-        className={[
-          "pause bottom-auto top-[4.55rem] z-[9] transition-opacity duration-[450ms] sm:top-[5.4rem]",
-          "motion-reduce:hidden",
-          gated ? "pointer-events-none opacity-0" : "opacity-100",
-        ].join(" ")}
-      >
-        {playing ? "II" : "▶"}
-      </button>
-    </section>
+          {playing ? "II" : "▶"}
+        </button>
+      </section>
+    </>
   );
 }

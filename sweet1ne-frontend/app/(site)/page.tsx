@@ -1,4 +1,3 @@
-import { StageProvider } from "@/components/site/home/stage-provider";
 import Cinema from "@/components/site/home/cinema";
 import House from "@/components/site/home/house";
 import Plates from "@/components/site/home/plates";
@@ -14,18 +13,16 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <StageProvider>
-      {/* Every homepage rule in site.css is scoped under .home-page — the
-          gate, cinema, house, plates, mood line and the ghost buttons all
-          depend on this wrapper. The header comes from the (site) layout;
-          rendering it here as well puts two on the page. */}
-      <div className="home-page">
-        <Cinema />
-        <House />
-        <Plates />
-        <Mood />
-        <SiteFooter />
-      </div>
-    </StageProvider>
+    // Every homepage rule in site.css is scoped under .home-page — the
+    // curtain intro, cinema, house, plates, mood line and the ghost buttons
+    // all depend on this wrapper. The header comes from the (site) layout;
+    // rendering it here as well puts two on the page.
+    <div className="home-page">
+      <Cinema />
+      <House />
+      <Plates />
+      <Mood />
+      <SiteFooter />
+    </div>
   );
 }
