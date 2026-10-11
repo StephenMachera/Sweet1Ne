@@ -290,7 +290,8 @@ def update_order_items(
             )
 
         order.total_amount = promotions_service.apply_code_discount(
-            db, staff.tenant_id, table.branch_id, order.promo_code, total
+            db, staff.tenant_id, table.branch_id, order.promo_code, total,
+            guest_id=order.guest_id, exclude_order_id=order.id,
         )
 
     db.commit()
@@ -352,7 +353,8 @@ def add_items_to_order(
     db.refresh(order)
     raw_subtotal = sum((Decimal(str(oi.total_price)) for oi in order.order_items), Decimal("0"))
     order.total_amount = promotions_service.apply_code_discount(
-        db, staff.tenant_id, table.branch_id, order.promo_code, raw_subtotal
+        db, staff.tenant_id, table.branch_id, order.promo_code, raw_subtotal,
+        guest_id=order.guest_id, exclude_order_id=order.id,
     )
     db.commit()
     db.refresh(order)

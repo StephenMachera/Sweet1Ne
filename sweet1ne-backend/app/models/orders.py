@@ -53,6 +53,10 @@ class Order(Base):
     # stored so a later edit (adding items, changing the order) can
     # re-check and reapply it, rather than silently losing the discount.
     promo_code: Mapped[str | None] = mapped_column(String)
+    # The guest's own anonymous device id (GuestVisit.guest_id) — None for
+    # a staff-placed order. Lets a "once per guest" code tell this guest's
+    # past orders apart from a different table using the same code.
+    guest_id: Mapped[str | None] = mapped_column(String)
 
     #--- Timestamps ---
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

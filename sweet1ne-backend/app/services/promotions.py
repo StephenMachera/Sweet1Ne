@@ -2,11 +2,14 @@ import uuid
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from app.models.branch import Branch
 from app.models.guest_visit import GuestVisit
+from app.models.orders import Order, OrderStatus
 from app.models.promotion import Promotion
+from app.models.table import Table
 
 # Two hits more than this far apart count as separate visits, not the same
 # person refreshing the page or moving between courses of one sitting.
@@ -139,17 +142,82 @@ def basket_discount(promotion: Promotion, subtotal: Decimal) -> Decimal:
     return min(off, subtotal).quantize(Decimal("0.01"))
 
 
+def _code_order_count(
+    db: Session,
+    tenant_id: uuid.UUID,
+    promotion: Promotion,
+    exclude_order_id: uuid.UUID | None,
+    guest_id: str | None = None,
+) -> int:
+    """How many real (non-cancelled) orders already carry this code — scoped
+    to wherever the promotion itself is valid (one branch, or every branch
+    for a "both" promotion), never just the caller's own branch. Narrowed to
+    one guest_id for the once-per-guest check; otherwise counts every order,
+    for max_uses. exclude_order_id leaves out the order being created/edited
+    right now, so a basket can't end up counting itself as a prior use.
+    """
+    statement = (
+        select(func.count())
+        .select_from(Order)
+        .join(Table, Order.table_id == Table.id)
+        .join(Branch, Table.branch_id == Branch.id)
+        .where(
+            Branch.tenant_id == tenant_id,
+            Order.promo_code == promotion.code,
+            Order.status != OrderStatus.cancelled,
+        )
+    )
+    if promotion.branch_id is not None:
+        statement = statement.where(Table.branch_id == promotion.branch_id)
+    if exclude_order_id is not None:
+        statement = statement.where(Order.id != exclude_order_id)
+    if guest_id is not None:
+        statement = statement.where(Order.guest_id == guest_id)
+    return db.execute(statement).scalar() or 0
+
+
+def discount_blocked(
+    db: Session,
+    tenant_id: uuid.UUID,
+    promotion: Promotion,
+    subtotal: Decimal,
+    guest_id: str | None,
+    exclude_order_id: uuid.UUID | None,
+) -> bool:
+    """Whether this code's rules stop its discount applying right now. The
+    code still counts as "on the table" either way — order.promo_code stays
+    set — same graceful degrade as a code that's since expired or been
+    turned off; it just stops taking anything off."""
+    if promotion.min_spend and subtotal < Decimal(str(promotion.min_spend)):
+        return True
+    if promotion.max_uses and _code_order_count(db, tenant_id, promotion, exclude_order_id) >= promotion.max_uses:
+        return True
+    if promotion.once_per_guest and guest_id:
+        if _code_order_count(db, tenant_id, promotion, exclude_order_id, guest_id=guest_id) > 0:
+            return True
+    return False
+
+
 def apply_code_discount(
-    db: Session, tenant_id: uuid.UUID, branch_id: uuid.UUID, promo_code: str | None, subtotal: Decimal
+    db: Session,
+    tenant_id: uuid.UUID,
+    branch_id: uuid.UUID,
+    promo_code: str | None,
+    subtotal: Decimal,
+    guest_id: str | None = None,
+    exclude_order_id: uuid.UUID | None = None,
 ) -> Decimal:
     """The total after an order's own stored code is reapplied to a fresh
     subtotal — re-checked every time (adding items, editing an order), the
     same way an item-level Promo discount already is. A code that's since
-    been turned off or expired just stops taking anything off, rather than
+    been turned off, expired, or hit one of its own rules (minimum basket,
+    use limit, once per guest) just stops taking anything off, rather than
     erroring on an order that's already in progress."""
     if not promo_code:
         return subtotal
     code_promo = code_promotion(db, tenant_id, branch_id, promo_code)
     if code_promo is None:
+        return subtotal
+    if discount_blocked(db, tenant_id, code_promo, subtotal, guest_id, exclude_order_id):
         return subtotal
     return subtotal - basket_discount(code_promo, subtotal)

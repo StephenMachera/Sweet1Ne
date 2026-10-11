@@ -47,6 +47,9 @@ class PromotionIn(BaseModel):
     code: str | None = None
     offer: str = "none"
     off: float | None = None
+    min_spend: float | None = None
+    max_uses: int | None = None
+    once_per_guest: bool = False
     starts_at: date
     ends_at: date | None = None
     is_on: bool = False
@@ -70,6 +73,9 @@ class PromotionUpdate(BaseModel):
     code: str | None = None
     offer: str | None = None
     off: float | None = None
+    min_spend: float | None = None
+    max_uses: int | None = None
+    once_per_guest: bool | None = None
     starts_at: date | None = None
     ends_at: date | None = None
     is_on: bool | None = None
@@ -96,6 +102,9 @@ class PromotionOut(BaseModel):
     code: str | None
     offer: str
     off: float | None
+    min_spend: float | None
+    max_uses: int | None
+    once_per_guest: bool
     starts_at: date
     ends_at: date | None
     is_on: bool

@@ -18,6 +18,10 @@ class OrderCreate(BaseModel):
     # the table phone (see PublicTableOut.promotion) — re-validated here
     # before it's allowed to reduce what they're actually charged.
     promo_code: str | None = None
+    # The guest's own anonymous device id — same one already sent with
+    # menu analytics events. Lets a "once per guest" code tell this guest's
+    # past orders apart from a different table using the same code.
+    guest_id: str | None = None
 
 
 class OrderItemOut(BaseModel):

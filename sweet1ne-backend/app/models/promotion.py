@@ -58,6 +58,14 @@ class Promotion(Base):
     # none (the code is the offer, no maths) | percent | pounds
     offer: Mapped[str] = mapped_column(String, nullable=False, server_default="none")
     off: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    # The three rules a code can carry, same as the per-item Promo engine's
+    # own guardrails — None/0 means "no limit" for the first two.
+    min_spend: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    max_uses: Mapped[int | None] = mapped_column(Integer)
+    # Enforced against Order.guest_id (the anonymous device id already used
+    # for "quiet"/"regular" targeting) — a code counts as used by a guest
+    # the moment an order of theirs carries it, win or not on the discount.
+    once_per_guest: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
     starts_at: Mapped[date] = mapped_column(Date, nullable=False)
     ends_at: Mapped[date | None] = mapped_column(Date)

@@ -31,6 +31,7 @@ def create_order(
         special_request=payload.special_request,
         status=OrderStatus.pending,
         total_amount=0,
+        guest_id=payload.guest_id,
     )
 
     db.add(order)
@@ -77,7 +78,10 @@ def create_order(
         else payload.promo_code.strip().upper() if payload.promo_code and unlocked_item_promo
         else None
     )
-    order.total_amount = promotions_service.apply_code_discount(db, branch.tenant_id, branch.id, order.promo_code, total)
+    order.total_amount = promotions_service.apply_code_discount(
+        db, branch.tenant_id, branch.id, order.promo_code, total,
+        guest_id=payload.guest_id, exclude_order_id=order.id,
+    )
     db.commit()
     db.refresh(order)
     return order
@@ -133,7 +137,8 @@ def add_items_to_my_order(
     db.refresh(order)
     raw_subtotal = sum((Decimal(str(oi.total_price)) for oi in order.order_items), Decimal("0"))
     order.total_amount = promotions_service.apply_code_discount(
-        db, branch.tenant_id, branch.id, order.promo_code, raw_subtotal
+        db, branch.tenant_id, branch.id, order.promo_code, raw_subtotal,
+        guest_id=order.guest_id, exclude_order_id=order.id,
     )
     db.commit()
     db.refresh(order)
@@ -211,7 +216,8 @@ def update_my_order(
             )
 
         order.total_amount = promotions_service.apply_code_discount(
-            db, branch.tenant_id, branch.id, order.promo_code, total
+            db, branch.tenant_id, branch.id, order.promo_code, total,
+            guest_id=order.guest_id, exclude_order_id=order.id,
         )
 
     db.commit()
