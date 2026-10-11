@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/use-me";
 import { Sidebar } from "@/components/staff/sidebar";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 type Branch = { id: string; name: string; slug: string };
 
@@ -71,9 +72,12 @@ export default function BranchLayout({
   }
 
   if (meLoading || !checked || !branch) {
+    // admin-shell scopes the --gold/--ivory custom properties AdminLoading
+    // draws from — kept local to this one-off fallback so the rest of the
+    // branch console (not in scope here) keeps its own palette untouched.
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-bg">
-        <p className="text-sm text-slate-muted">Loading…</p>
+      <div className="admin-shell flex min-h-screen items-center justify-center bg-[var(--bg)]">
+        <AdminLoading />
       </div>
     );
   }

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Banknote, Clock, ReceiptText, TrendingUp } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission, landingPath } from "@/lib/use-me";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 type Overview = {
   orders_today: number;
@@ -35,47 +35,11 @@ function minutesSince(iso: string) {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  pending: "bg-warning-bg text-warning",
-  in_progress: "bg-info-bg text-info",
-  completed: "bg-success-bg text-success",
-  cancelled: "bg-danger-bg text-danger",
-};
-
-function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div
-      className={`rounded-xl border border-slate-bg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${className}`}
-    >
-      {children}
-    </div>
-  );
-}
-
-function Kpi({
-  icon: Icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: any;
-  label: string;
-  value: string;
-  tone: string;
-}) {
-  return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.14em] text-slate-muted">{label}</p>
-          <p className="mt-2.5 text-3xl font-semibold tabular-nums text-navy">{value}</p>
-        </div>
-        <span className={`flex h-10 w-10 items-center justify-center rounded-lg ${tone}`}>
-          <Icon size={18} />
-        </span>
-      </div>
-    </Card>
-  );
+function Stat({ value, wait = false }: { value: number | string | null; wait?: boolean }) {
+  if (value === null) {
+    return <p className={`admin-stat${wait ? " admin-hold" : ""}`}>—</p>;
+  }
+  return <p className="admin-stat">{value}</p>;
 }
 
 export default function BranchDashboardPage() {
@@ -115,7 +79,11 @@ export default function BranchDashboardPage() {
   }, [meLoading, allowed, canSeeOrders, router]);
 
   if (meLoading || !allowed) {
-    return <p className="text-sm text-slate-muted">Loading…</p>;
+    return (
+      <div className="admin-shell flex min-h-[60vh] items-center justify-center bg-[var(--bg)]">
+        <AdminLoading />
+      </div>
+    );
   }
 
   const openOrders = orders.filter((o) => o.status === "pending" || o.status === "in_progress");
@@ -127,155 +95,119 @@ export default function BranchDashboardPage() {
   });
 
   return (
-    <div className="space-y-7">
-      {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-semibold text-navy max-md:hidden">Today</h1>
-          <p className="mt-1 text-sm text-slate-subtle">
-            {today}
-            {me?.full_name && <> · {me.full_name}</>}
-          </p>
-        </div>
+    <div className="admin-shell admin-stage">
+      <h1>Today</h1>
+      <p className="admin-dek">
+        {today}
+        {me?.full_name && <> · {me.full_name}</>}
+        {canSeeOrders && openOrders.length > 0 && <> · {openOrders.length} open</>}
+      </p>
 
-        {canSeeOrders && openOrders.length > 0 && (
-          <span className="inline-flex items-center gap-2 rounded-full bg-emerald/10 px-3.5 py-1.5 text-xs font-medium text-emerald-dark">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald" />
-            </span>
-            {openOrders.length} open
-          </span>
-        )}
+      {error && <p className="admin-hold">{error}</p>}
+
+      <div className="admin-board-group">
+        <section className="admin-board admin-board-stats" aria-label="Today">
+          <article className="admin-card">
+            <h2>Orders today</h2>
+            <Stat value={loading && !data ? null : data!.orders_today} wait={loading && !data} />
+          </article>
+          <article className="admin-card">
+            <h2>Revenue today</h2>
+            <Stat
+              value={loading && !data ? null : gbp.format(data!.revenue_today)}
+              wait={loading && !data}
+            />
+          </article>
+          <article className="admin-card">
+            <h2>Live now</h2>
+            <Stat value={loading && !data ? null : data!.live_orders} wait={loading && !data} />
+          </article>
+          <article className="admin-card">
+            <h2>Average order</h2>
+            <Stat
+              value={loading && !data ? null : gbpPrecise.format(data!.average_order_value)}
+              wait={loading && !data}
+            />
+          </article>
+        </section>
       </div>
 
-      {error && (
-        <div
-          role="alert"
-          className="rounded-xl border border-danger/20 bg-danger-bg px-4 py-3 text-sm text-danger"
-        >
-          {error}
-        </div>
-      )}
-
-      {/* KPIs */}
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {loading || !data ? (
-          [0, 1, 2, 3].map((i) => (
-            <Card key={i} className="p-5">
-              <div className="h-3 w-20 animate-pulse rounded bg-slate-bg" />
-              <div className="mt-4 h-8 w-24 animate-pulse rounded bg-slate-bg" />
-            </Card>
-          ))
-        ) : (
-          <>
-            <Kpi
-              icon={ReceiptText}
-              label="Orders today"
-              value={String(data.orders_today)}
-              tone="bg-info-bg text-info"
-            />
-            <Kpi
-              icon={Banknote}
-              label="Revenue today"
-              value={gbp.format(data.revenue_today)}
-              tone="bg-success-bg text-success"
-            />
-            <Kpi
-              icon={Clock}
-              label="Live now"
-              value={String(data.live_orders)}
-              tone="bg-warning-bg text-warning"
-            />
-            <Kpi
-              icon={TrendingUp}
-              label="Average order"
-              value={gbpPrecise.format(data.average_order_value)}
-              tone="bg-purple-bg text-purple"
-            />
-          </>
-        )}
-      </section>
-
-      {/* Detail */}
-      <div className={`grid gap-5 ${canSeeOrders ? "lg:grid-cols-[1.6fr_1fr]" : ""}`}>
-        {canSeeOrders && (
-          <Card className="overflow-hidden">
-            <div className="flex items-center justify-between border-b border-slate-border px-5 py-4">
-              <h2 className="font-semibold text-navy">Open orders</h2>
-              {openOrders.length > 0 && (
-                <span className="rounded-full bg-slate-bg px-2.5 py-0.5 text-xs text-slate-subtle">
-                  {openOrders.length}
-                </span>
-              )}
-            </div>
-
-            {openOrders.length > 0 ? (
-              <ul className="divide-y divide-slate-bg">
-                {openOrders.map((order) => {
-                  const waiting = minutesSince(order.created_at);
-                  const overdue = waiting > 15;
-                  return (
-                    <li key={order.id} className="flex items-center gap-4 px-5 py-3.5">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-navy">
-                          {order.seat_number ? `Seat ${order.seat_number}` : "Table order"}
-                        </p>
-                        <span
-                          className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${
-                            STATUS_STYLES[order.status] ?? "bg-slate-bg text-slate-subtle"
-                          }`}
-                        >
-                          {order.status.replace("_", " ")}
-                        </span>
-                      </div>
-                      <span
-                        className={`text-sm tabular-nums ${
-                          overdue ? "font-medium text-danger" : "text-slate-muted"
-                        }`}
+      <div className="admin-board-group">
+        <section className={`admin-board ${canSeeOrders ? "" : "tight"}`} aria-label="Detail">
+          {canSeeOrders && (
+            <article className="admin-card" style={{ gridColumn: "span 2", minHeight: "auto" }}>
+              <h2>Open orders{openOrders.length > 0 ? ` · ${openOrders.length}` : ""}</h2>
+              {openOrders.length > 0 ? (
+                <ul className="m-0 flex list-none flex-col gap-0 p-0">
+                  {openOrders.map((order) => {
+                    const waiting = minutesSince(order.created_at);
+                    const overdue = waiting > 15;
+                    return (
+                      <li
+                        key={order.id}
+                        className="flex items-center gap-4 border-b py-3 last:border-b-0"
+                        style={{ borderColor: "var(--gold-line)" }}
                       >
-                        {waiting}m
-                      </span>
-                      <span className="text-sm font-medium tabular-nums text-navy">
-                        {gbpPrecise.format(order.total_amount)}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="px-5 py-12 text-center text-sm text-slate-muted">
-                {loading ? "Loading…" : "Nothing open right now."}
-              </p>
-            )}
-          </Card>
-        )}
-
-        <Card className="overflow-hidden">
-          <div className="border-b border-slate-border px-5 py-4">
-            <h2 className="font-semibold text-navy">Top selling today</h2>
-          </div>
-
-          {data && data.top_items.length > 0 ? (
-            <ol className="divide-y divide-slate-bg">
-              {data.top_items.map((item, i) => (
-                <li key={item.menu_item_id} className="flex items-center gap-3 px-5 py-3.5">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-emerald/10 text-xs font-semibold text-emerald-dark">
-                    {i + 1}
-                  </span>
-                  <span className="flex-1 truncate text-sm text-body">{item.title}</span>
-                  <span className="text-sm font-medium tabular-nums text-navy">
-                    {item.total_quantity}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="px-5 py-12 text-center text-sm text-slate-muted">
-              {loading ? "Loading…" : "Nothing sold yet today."}
-            </p>
+                        <div className="min-w-0 flex-1">
+                          <p className="m-0 text-sm" style={{ color: "var(--ivory)" }}>
+                            {order.seat_number ? `Seat ${order.seat_number}` : "Table order"}
+                          </p>
+                          <p
+                            className="m-0 mt-1 text-[0.68rem] uppercase tracking-[0.12em]"
+                            style={{ color: "var(--ivory-dim)" }}
+                          >
+                            {order.status.replace("_", " ")}
+                          </p>
+                        </div>
+                        <span
+                          className="text-sm tabular-nums"
+                          style={{ color: overdue ? "var(--gold)" : "var(--ivory-dim)" }}
+                        >
+                          {waiting}m
+                        </span>
+                        <span className="text-sm font-medium tabular-nums" style={{ color: "var(--ivory)" }}>
+                          {gbpPrecise.format(order.total_amount)}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p>{loading ? "Loading…" : "Nothing open right now."}</p>
+              )}
+            </article>
           )}
-        </Card>
+
+          <article className="admin-card" style={{ minHeight: "auto" }}>
+            <h2>Top selling today</h2>
+            {data && data.top_items.length > 0 ? (
+              <ol className="m-0 flex list-none flex-col gap-0 p-0">
+                {data.top_items.map((item, i) => (
+                  <li
+                    key={item.menu_item_id}
+                    className="flex items-center gap-3 border-b py-3 last:border-b-0"
+                    style={{ borderColor: "var(--gold-line)" }}
+                  >
+                    <span
+                      className="flex h-6 w-6 shrink-0 items-center justify-center text-xs font-semibold"
+                      style={{ color: "var(--gold)", border: "1px solid var(--gold-line)" }}
+                    >
+                      {i + 1}
+                    </span>
+                    <span className="flex-1 truncate text-sm" style={{ color: "var(--ivory)" }}>
+                      {item.title}
+                    </span>
+                    <span className="text-sm font-medium tabular-nums" style={{ color: "var(--ivory)" }}>
+                      {item.total_quantity}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p>{loading ? "Loading…" : "Nothing sold yet today."}</p>
+            )}
+          </article>
+        </section>
       </div>
     </div>
   );

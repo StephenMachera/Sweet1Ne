@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Menu, X } from "lucide-react";
@@ -249,7 +250,6 @@ function SidebarBody({
   onNavigate,
   showToggle,
   hideHeader = false,
-  variant = "admin",
   branchName,
   basePath,
 }: {
@@ -259,7 +259,6 @@ function SidebarBody({
   onNavigate?: () => void;
   showToggle: boolean;
   hideHeader?: boolean;
-  variant?: Variant;
   branchName?: string;
   basePath: string;
 }) {
@@ -270,26 +269,22 @@ function SidebarBody({
   const unreadOrdersCount = useUnreadOrdersCount(me);
   const unreadLeadsCount = useUnreadLeadsCount(me);
 
-  const isBranch = variant === "branch";
-
-  const surface = isBranch ? "bg-navy" : "bg-ink-cool";
-  const accentBar = isBranch ? "bg-emerald" : "bg-gold";
-  const labelColour = isBranch ? "text-slate-label" : "text-paper/35";
-  const dividerColour = isBranch ? "bg-white/[0.06]" : "bg-white/10";
-  const borderColour = isBranch ? "border-white/[0.06]" : "border-white/10";
-  const activeClasses = isBranch ? "bg-emerald/15 text-emerald" : "bg-white/5 text-paper";
-  const inactiveClasses = isBranch
-    ? "text-slate-muted hover:bg-white/5 hover:text-white"
-    : "text-paper/60 hover:bg-white/5 hover:text-paper/90";
-  const subLabelColour = isBranch ? "text-slate-label" : "text-paper/45";
-  const footerName = isBranch ? "text-white/90" : "text-paper/90";
-  const footerRole = isBranch ? "text-slate-muted" : "text-paper/45";
-  const logoutClasses = isBranch
-    ? "text-slate-muted hover:bg-white/5 hover:text-white"
-    : "text-paper/60 hover:bg-white/5 hover:text-paper/90";
-  const toggleClasses = isBranch
-    ? "text-slate-muted hover:bg-white/5 hover:text-white"
-    : "text-paper/60 hover:bg-white/5 hover:text-paper";
+  // Branch used to carry its own navy/emerald palette here — now matched
+  // to the admin rail's gold/ivory one exactly (design only; the branch
+  // console's own collapse-to-icons + Sheet mobile menu behaviour, unlike
+  // admin's rail, is untouched).
+  const surface = "bg-ink-cool";
+  const accentBar = "bg-gold";
+  const labelColour = "text-paper/35";
+  const dividerColour = "bg-white/10";
+  const borderColour = "border-white/10";
+  const activeClasses = "bg-white/5 text-paper";
+  const inactiveClasses = "text-paper/60 hover:bg-white/5 hover:text-paper/90";
+  const subLabelColour = "text-paper/45";
+  const footerName = "text-paper/90";
+  const footerRole = "text-paper/45";
+  const logoutClasses = "text-paper/60 hover:bg-white/5 hover:text-paper/90";
+  const toggleClasses = "text-paper/60 hover:bg-white/5 hover:text-paper";
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -312,9 +307,16 @@ function SidebarBody({
         >
           {!collapsed && (
             <div>
-              <span className="font-display text-xl tracking-tight">Sweet1NE</span>
+              <Image
+                src="/images/brand/logo.png"
+                alt="Sweet1NE"
+                width={612}
+                height={408}
+                className="w-[5.2rem]"
+                priority
+              />
               {branchName && (
-                <p className={`mt-0.5 text-xs uppercase tracking-[0.14em] ${subLabelColour}`}>
+                <p className={`mt-1 text-xs uppercase tracking-[0.14em] ${subLabelColour}`}>
                   {branchName}
                 </p>
               )}
@@ -439,17 +441,14 @@ function BranchSidebar({
   branchName?: string;
   basePath: string;
 }) {
-  const variant: Variant = "branch";
   const { me } = useMe();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const isBranch = variant === "branch";
-  const surface = isBranch ? "bg-navy" : "bg-ink-cool";
-  const subLabelColour = isBranch ? "text-slate-label" : "text-paper/45";
-  const closeClasses = isBranch
-    ? "text-slate-muted hover:bg-white/10 hover:text-white"
-    : "text-paper/70 hover:bg-white/10 hover:text-paper";
+  // Matched to the admin rail's palette — design only, see SidebarBody.
+  const surface = "bg-ink-cool";
+  const subLabelColour = "text-paper/45";
+  const closeClasses = "text-paper/70 hover:bg-white/10 hover:text-paper";
 
   useEffect(() => {
     setCollapsed(window.localStorage.getItem(STORAGE_KEY) === "true");
@@ -478,9 +477,16 @@ function BranchSidebar({
           <div className={`flex h-full flex-col ${surface}`}>
             <div className="flex items-start justify-between px-4 pb-2 pt-5">
               <div>
-                <span className="font-display text-xl tracking-tight text-paper">Sweet1NE</span>
+                <Image
+                  src="/images/brand/logo.png"
+                  alt="Sweet1NE"
+                  width={612}
+                  height={408}
+                  className="w-[5.2rem]"
+                  priority
+                />
                 {branchName && (
-                  <p className={`mt-0.5 text-xs uppercase tracking-[0.14em] ${subLabelColour}`}>
+                  <p className={`mt-1 text-xs uppercase tracking-[0.14em] ${subLabelColour}`}>
                     {branchName}
                   </p>
                 )}
@@ -500,7 +506,6 @@ function BranchSidebar({
               onNavigate={() => setMobileOpen(false)}
               showToggle={false}
               hideHeader
-              variant={variant}
               branchName={branchName}
               basePath={basePath}
             />
@@ -518,7 +523,6 @@ function BranchSidebar({
           collapsed={collapsed}
           onToggle={toggleCollapsed}
           showToggle
-          variant={variant}
           branchName={branchName}
           basePath={basePath}
         />
