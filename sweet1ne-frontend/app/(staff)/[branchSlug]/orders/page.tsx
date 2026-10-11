@@ -11,6 +11,7 @@ import { OrderSummary } from "@/components/orders/order-summary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 type OrderItem = {
   id: string;
@@ -177,7 +178,7 @@ export default function BranchOrdersPage({
   }
 
   if (meLoading || !me || !canView) {
-    return <p className="text-sm text-slate-muted">Loading…</p>;
+    return <AdminLoading />;
   }
 
   const tableLabel = (order: Order) =>
@@ -197,7 +198,7 @@ export default function BranchOrdersPage({
     return (
       <li
         key={order.id}
-        className="overflow-hidden rounded-xl border border-slate-bg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
+        className="overflow-hidden rounded-xl border border-[var(--gold-line)] bg-[var(--panel)]"
       >
         <button
           onClick={() => setExpandedId(expanded ? null : order.id)}
@@ -205,24 +206,24 @@ export default function BranchOrdersPage({
         >
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium text-navy">{tableLabel(order)}</span>
+              <span className="font-medium text-[var(--ivory)]">{tableLabel(order)}</span>
               {order.seat_number && (
-                <span className="text-sm text-slate-muted">Seat {order.seat_number}</span>
+                <span className="text-sm text-[var(--ivory-dim)]">Seat {order.seat_number}</span>
               )}
               <span
                 className={`rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${
-                  STATUS_STYLES[order.status] ?? "bg-slate-bg text-slate-subtle"
+                  STATUS_STYLES[order.status] ?? "border border-[var(--gold-line)] text-[var(--ivory-dim)]"
                 }`}
               >
                 {order.status.replace("_", " ")}
               </span>
               {!order.placed_by_staff_id && (
-                <span className="rounded-full bg-purple-bg px-2 py-0.5 text-[11px] text-purple">
+                <span className="rounded-full border border-[var(--gold-line)] px-2 py-0.5 text-[11px] text-[var(--gold)]">
                   QR order
                 </span>
               )}
             </div>
-            <p className="mt-1 truncate text-xs text-slate-muted">
+            <p className="mt-1 truncate text-xs text-[var(--ivory-dim)]">
               {timeOf(order.created_at)}
               {order.placed_by_name ? <> · {order.placed_by_name}</> : <> · customer</>}
               {" · "}
@@ -230,20 +231,20 @@ export default function BranchOrdersPage({
             </p>
           </div>
 
-          <span className="shrink-0 font-semibold tabular-nums text-navy">
+          <span className="shrink-0 font-semibold tabular-nums text-[var(--ivory)]">
             {gbp.format(order.total_amount)}
           </span>
           <ChevronDown
             size={17}
-            className={`shrink-0 text-slate-muted transition-transform ${
+            className={`shrink-0 text-[var(--ivory-dim)] transition-transform ${
               expanded ? "rotate-180" : ""
             }`}
           />
         </button>
 
         {expanded && (
-          <div className="border-t border-slate-bg bg-slate-bg/30 px-4 py-4 sm:px-5">
-            <p className="mb-3 font-mono text-[11px] text-slate-muted">Order {order.id}</p>
+          <div className="border-t border-[var(--gold-line)] bg-[#080808] px-4 py-4 sm:px-5">
+            <p className="mb-3 font-mono text-[11px] text-[var(--ivory-dim)]">Order {order.id}</p>
 
             {editingId === order.id ? (
               <OrderLineEditor
@@ -269,18 +270,18 @@ export default function BranchOrdersPage({
 
                     return (
                       <li key={line.id} className="flex items-center gap-3 text-sm">
-                        <span className="w-6 shrink-0 tabular-nums text-slate-muted">
+                        <span className="w-6 shrink-0 tabular-nums text-[var(--ivory-dim)]">
                           {line.quantity}×
                         </span>
-                        <span className="flex-1 truncate text-body">
+                        <span className="flex-1 truncate text-[var(--ivory)]">
                           {line.menu_item_title ?? "Item"}
                           {addedLater && (
-                            <span className="ml-2 rounded-full bg-info-bg px-2 py-0.5 text-[11px] text-info">
+                            <span className="ml-2 rounded-full border border-[var(--gold-line)] px-2 py-0.5 text-[11px] text-[var(--gold)]">
                               added later
                             </span>
                           )}
                         </span>
-                        <span className="tabular-nums text-navy">
+                        <span className="tabular-nums text-[var(--ivory)]">
                           {gbp.format(line.total_price)}
                         </span>
                       </li>
@@ -299,7 +300,7 @@ export default function BranchOrdersPage({
                     <Button
                       variant="outline"
                       onClick={() => setEditingId(order.id)}
-                      className="border-slate-border text-slate-subtle"
+                      className="border-[var(--gold-line)] text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
                     >
                       <Pencil size={15} className="mr-1.5" />
                       Edit order
@@ -309,7 +310,7 @@ export default function BranchOrdersPage({
                   {canAdd && !closed && (
                     <Button
                       onClick={() => setAddingTo(order)}
-                      className="bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
+                      className="bg-[var(--gold)] text-[#0e0e0e] hover:bg-[#ead7a2]"
                     >
                       <Plus size={15} className="mr-1.5" />
                       Add items
@@ -327,8 +328,8 @@ export default function BranchOrdersPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-navy sm:text-3xl">Orders</h1>
-        <p className="mt-1 text-sm text-slate-subtle">
+        <h1 className="sm:text-3xl">Orders</h1>
+        <p className="admin-dek">
           {visible.length} {visible.length === 1 ? "order" : "orders"}
           {!seesEverything && !lookupResult && <> · yours and QR orders</>}
           {visible.length === 200 && " (showing the most recent 200)"}
@@ -353,25 +354,25 @@ export default function BranchOrdersPage({
       {/* Order lookup */}
       <form
         onSubmit={lookup}
-        className="flex flex-col gap-2 rounded-xl border border-slate-bg bg-white p-3 shadow-[0_1px_3px_rgba(0,0,0,0.06)] sm:flex-row sm:items-center"
+        className="flex flex-col gap-2 rounded-xl border border-[var(--gold-line)] bg-[var(--panel)] p-3 sm:flex-row sm:items-center"
       >
         <div className="relative flex-1">
           <Search
             size={15}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-muted"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ivory-dim)]"
           />
           <Input
             value={lookupId}
             onChange={(e) => setLookupId(e.target.value)}
             placeholder="Look up an order by number…"
-            className="h-10 border-slate-border pl-9 font-mono text-sm"
+            className="h-10 border-[var(--gold-line)] bg-[#050505] pl-9 font-mono text-sm text-[var(--ivory)]"
           />
         </div>
         <div className="flex gap-2">
           <Button
             type="submit"
             disabled={lookingUp}
-            className="h-10 flex-1 bg-navy text-white hover:bg-navy/90 sm:flex-none"
+            className="h-10 flex-1 bg-[var(--gold)] text-[#0e0e0e] hover:bg-[#ead7a2] sm:flex-none"
           >
             {lookingUp ? "Finding…" : "Find"}
           </Button>
@@ -384,7 +385,7 @@ export default function BranchOrdersPage({
                 setLookupId("");
                 setExpandedId(null);
               }}
-              className="h-10 text-slate-subtle"
+              className="h-10 text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
             >
               <X size={16} />
             </Button>
@@ -394,7 +395,7 @@ export default function BranchOrdersPage({
 
       {lookupResult ? (
         <>
-          <p className="text-sm text-slate-subtle">
+          <p className="text-sm text-[var(--ivory-dim)]">
             Showing one order — clear the search to go back.
           </p>
           <ul className="space-y-3">{renderOrder(lookupResult)}</ul>
@@ -409,8 +410,8 @@ export default function BranchOrdersPage({
                 onClick={() => setPeriod(p.key)}
                 className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
                   period === p.key
-                    ? "bg-gradient-to-br from-emerald to-emerald-dark text-white shadow-sm"
-                    : "border border-slate-border bg-white text-slate-subtle hover:text-navy"
+                    ? "bg-[var(--gold)] text-[#0e0e0e]"
+                    : "border border-[var(--gold-line)] bg-[var(--panel)] text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
                 }`}
               >
                 {p.label}
@@ -419,7 +420,7 @@ export default function BranchOrdersPage({
           </div>
 
           {/* Summary */}
-          {orders.length > 0 && <OrderSummary orders={orders} tone="branch" />}
+          {orders.length > 0 && <OrderSummary orders={orders} tone="admin" />}
 
           {/* Status pills */}
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
@@ -429,8 +430,8 @@ export default function BranchOrdersPage({
                 onClick={() => setStatus(s.key)}
                 className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm transition-colors ${
                   status === s.key
-                    ? "bg-navy text-white"
-                    : "border border-slate-border bg-white text-slate-subtle hover:text-navy"
+                    ? "bg-[var(--gold)] text-[#0e0e0e]"
+                    : "border border-[var(--gold-line)] bg-[var(--panel)] text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
                 }`}
               >
                 {s.label}
@@ -439,11 +440,11 @@ export default function BranchOrdersPage({
           </div>
 
           {loading ? (
-            <p className="text-sm text-slate-muted">Loading…</p>
+            <AdminLoading />
           ) : visible.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-border bg-white/50 px-6 py-16 text-center">
-              <ReceiptText size={26} className="mx-auto text-slate-muted" />
-              <p className="mt-3 text-sm text-slate-muted">No orders here.</p>
+            <div className="rounded-xl border border-dashed border-[var(--gold-line)] px-6 py-16 text-center">
+              <ReceiptText size={26} className="mx-auto text-[var(--ivory-dim)]" />
+              <p className="mt-3 text-sm text-[var(--ivory-dim)]">No orders here.</p>
             </div>
           ) : (
             <ul className="space-y-3">{visible.map(renderOrder)}</ul>
@@ -452,13 +453,16 @@ export default function BranchOrdersPage({
       )}
 
       <Dialog open={addingTo !== null} onOpenChange={(open) => !open && setAddingTo(null)}>
-        <DialogContent className="max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-3xl overflow-y-auto p-4 sm:p-6">
+        {/* admin-shell here too — Dialog portals to document.body, outside
+           the layout's own admin-shell, so --gold/--ivory need their own
+           scope. */}
+        <DialogContent className="admin-shell max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-3xl overflow-y-auto border border-[var(--gold-line)] bg-[var(--panel)] p-4 text-[var(--ivory)] sm:p-6">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-navy">
+            <DialogTitle className="text-xl font-semibold text-[var(--ivory)]">
               Add to {addingTo && tableLabel(addingTo)}
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-slate-subtle">
+          <p className="text-sm text-[var(--ivory-dim)]">
             These go on the same bill. Existing items can't be changed once the kitchen has
             started.
           </p>

@@ -23,7 +23,11 @@ export function OrderSummary({
   orders: Order[];
   tone: "admin" | "branch";
 }) {
-  const isBranch = tone === "branch";
+  // tone is kept on the prop for every caller — branch and admin now share
+  // the one dark look (isBranch=false resolves every ternary below to its
+  // admin/dark branch) so it's no longer read for styling.
+  void tone;
+  const isBranch = false;
 
   const card = isBranch
     ? "border-slate-bg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
