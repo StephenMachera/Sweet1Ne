@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ArrowLeft, Eye } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { MenuBrowser } from "@/components/menu/menu-browser";
+import { useCurrentBranch } from "@/lib/use-current-branch";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 export default function MenuPreviewPage({
   params,
@@ -12,7 +14,20 @@ export default function MenuPreviewPage({
   params: Promise<{ branchSlug: string }>;
 }) {
   const { branchSlug } = use(params);
-  const fetcher = useCallback((path: string) => apiFetch(`/staff/menu${path}`), []);
+  const { branch, loading } = useCurrentBranch(branchSlug);
+
+  // This branch's own items plus whatever's shared tenant-wide — the same
+  // fixed scope as Menu management, not a picker (there's only one branch
+  // to preview from here).
+  const scopeQuery = branch ? `?branch_id=${branch.id}` : "";
+  const fetcher = useCallback(
+    (path: string) => apiFetch(`/staff/menu${path}${scopeQuery}`),
+    [scopeQuery]
+  );
+
+  if (loading || !branch) {
+    return <AdminLoading />;
+  }
 
   return (
     <div className="space-y-5">
@@ -20,7 +35,7 @@ export default function MenuPreviewPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h1 className="sm:text-3xl">Customer view</h1>
-          <p className="admin-dek">What customers see when they scan a table's QR code.</p>
+          <p className="admin-dek">What customers see when they scan a table&apos;s QR code.</p>
         </div>
 
         <Link
@@ -39,7 +54,7 @@ export default function MenuPreviewPage({
           <span className="uppercase tracking-[0.14em]">Preview — ordering disabled</span>
         </div>
 
-        <MenuBrowser mode="preview" fetcher={fetcher} />
+        <MenuBrowser key={scopeQuery} mode="preview" fetcher={fetcher} />
       </div>
     </div>
   );
