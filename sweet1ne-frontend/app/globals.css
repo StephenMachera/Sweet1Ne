@@ -1595,6 +1595,57 @@ label.admin-chip:has(input:checked) span {
   border-top: 1px solid rgba(229, 226, 225, 0.12);
   background: #0a0a0a;
 }
+/* The "try a basket" money simulator under the phone preview — a code
+   promotion's own real arithmetic (offer, minimum basket), read-only. */
+.admin-code-try {
+  width: min(22rem, 100%);
+  margin: 0.65rem auto 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgba(201, 162, 74, 0.25);
+}
+.admin-code-try label {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0 0 0.6rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+}
+.admin-code-try input {
+  appearance: none;
+  width: 100%;
+  background: #050505;
+  border: 1px solid rgba(201, 162, 74, 0.35);
+  border-radius: 3px;
+  padding: 0.5rem 0.6rem;
+  color: var(--ivory);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.9rem;
+}
+.admin-code-try input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+.admin-code-try p {
+  margin: 0.15rem 0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  color: var(--ivory-dim);
+}
+.admin-code-try p.is-due {
+  color: var(--ivory);
+  border-top: 1px solid rgba(201, 162, 74, 0.25);
+  padding-top: 0.3rem;
+  margin-top: 0.35rem;
+}
+.admin-code-try p.is-note {
+  display: block;
+  color: var(--gold);
+  font-size: 0.82rem;
+}
 
 /* ── The promo card — ported from the original template's promo.css,
    verbatim, so the admin preview and every real guest surface (homepage
@@ -2247,6 +2298,23 @@ body:has(.home-page) .promo-stage {
   margin: 0;
   flex: 1 1 7.5rem;
   min-width: 7.5rem;
+}
+/* The page/link url field takes the whole row on its own line — a web
+   address needs more room than the other, shorter fields share. */
+.admin-cta-row label.admin-cta-href {
+  flex: 1 1 100%;
+}
+/* Live validity read-out under a "Custom link" button — same gold-for-
+   needs-attention, dim-ivory-for-fine convention as every other inline
+   form hint in the admin console. */
+.admin-cta-hint {
+  flex: 1 1 100%;
+  margin: -0.3rem 0 0.4rem;
+  font-size: 0.78rem;
+  color: var(--gold);
+}
+.admin-cta-hint.is-ok {
+  color: var(--ivory-dim);
 }
 .admin-ghost {
   appearance: none;

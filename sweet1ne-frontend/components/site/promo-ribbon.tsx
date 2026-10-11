@@ -8,6 +8,7 @@ import {
   liveButtons,
   buttonHref,
   buttonLabel,
+  isExternal,
   type PublicPromotion,
 } from "@/lib/promotion-blocks";
 
@@ -85,15 +86,21 @@ export function PromoRibbon() {
         </p>
         {!(promotion.kind === "code" && promotion.code) && buttons.length > 0 && (
           <div className="promo-ctas">
-            {buttons.map((btn, i) => (
-              <a
-                key={btn.id}
-                className={`book promo-cta${i === 0 ? " is-filled" : ""}`}
-                href={buttonHref(btn)}
-              >
-                {buttonLabel(btn)}
-              </a>
-            ))}
+            {buttons.map((btn, i) => {
+              const href = buttonHref(btn);
+              const external = isExternal(href);
+              return (
+                <a
+                  key={btn.id}
+                  className={`book promo-cta${i === 0 ? " is-filled" : ""}`}
+                  href={href}
+                  target={external ? "_blank" : undefined}
+                  rel={external ? "noopener" : undefined}
+                >
+                  {buttonLabel(btn)}
+                </a>
+              );
+            })}
           </div>
         )}
         <button

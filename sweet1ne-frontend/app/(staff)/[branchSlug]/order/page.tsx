@@ -352,6 +352,7 @@ export default function GuestOrderPage({
                 special_request: specialRequest || null,
                 items: lines,
                 promo_code: manualCode.trim() || codePromo?.code || null,
+                guest_id: getGuestId(),
               }),
             });
 

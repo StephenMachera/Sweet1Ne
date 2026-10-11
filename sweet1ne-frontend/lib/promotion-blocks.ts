@@ -83,11 +83,14 @@ export type PromotionBlock =
   | CtasBlock;
 
 export type PromotionCtaKind =
-  | "book" | "find" | "menu" | "events" | "contact" | "order" | "join" | "page";
+  | "book" | "find" | "menu" | "events" | "contact" | "order" | "join" | "page" | "link";
 
 // Real routes on the guest site — not invented placeholders. "join" points
 // at /events, which already carries the real newsletter sign-up form.
-// "page" has no fixed route — its href/label come from the button itself.
+// "page" has no fixed route — its href/label come from the button itself,
+// a path on this site (e.g. "/menu"). "link" is the same free-text href,
+// but for anywhere else entirely — a full https/mailto/tel address, opened
+// in a new tab (see safeLink/isExternal below).
 export const CTA_PRESETS: Record<PromotionCtaKind, { label: string; href: string }> = {
   book: { label: "Book a table", href: "/reservations" },
   find: { label: "Find Us", href: "/locations" },
@@ -97,7 +100,35 @@ export const CTA_PRESETS: Record<PromotionCtaKind, { label: string; href: string
   order: { label: "Order", href: "/order" },
   join: { label: "Join the list", href: "/events" },
   page: { label: "A page", href: "" },
+  link: { label: "Find out more", href: "" },
 };
+
+// Kinds whose href comes from the button itself, not a fixed preset route.
+export const FREE_HREF_KINDS: PromotionCtaKind[] = ["page", "link"];
+
+/** Only https/http, mailto and tel are allowed through — anything else
+ *  (javascript:, data:, a bare "example.com" with no scheme) comes back
+ *  null rather than being guessed at. Mirrors the reference build's own
+ *  PROMO.safeLink(). */
+export function safeLink(raw: string | null | undefined): string | null {
+  const value = (raw ?? "").trim();
+  if (!value) return null;
+  if (/^(mailto|tel):\S+$/i.test(value)) return value;
+  try {
+    const url = new URL(value);
+    if (url.protocol === "http:" || url.protocol === "https:") return url.toString();
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+/** True for anything that isn't a path on this site — a "link" button
+ *  always is; a "page" button only would be if it somehow held a full
+ *  address instead of a path. */
+export function isExternal(href: string): boolean {
+  return /^(https?:|mailto:|tel:)/i.test(href);
+}
 
 // One promotion can carry several buttons, each its own on/off switch —
 // mirrors Promotion.buttons (JSONB, app/models/promotion.py). The first ON
@@ -106,7 +137,7 @@ export type PromotionButton = {
   id: string;
   kind: PromotionCtaKind;
   label: string | null;
-  // Only meaningful when kind === "page" — a staff-typed URL.
+  // Only meaningful for "page" and "link" — a staff-typed URL.
   href: string | null;
   on: boolean;
 };
@@ -121,7 +152,8 @@ export function newButtonId(): string {
 
 export function defaultButton(kind: PromotionCtaKind): PromotionButton {
   const preset = CTA_PRESETS[kind];
-  return { id: newButtonId(), kind, label: kind === "page" ? "" : preset.label, href: kind === "page" ? "" : null, on: true };
+  const free = FREE_HREF_KINDS.includes(kind);
+  return { id: newButtonId(), kind, label: free ? "" : preset.label, href: free ? "" : null, on: true };
 }
 
 // Picks the next CTA kind not already used by a button, so "Add a button"
@@ -139,7 +171,7 @@ export function liveButtons(buttons: PromotionButton[] | null | undefined): Prom
 }
 
 export function buttonHref(button: PromotionButton): string {
-  if (button.kind === "page") return button.href || "";
+  if (FREE_HREF_KINDS.includes(button.kind)) return button.href || "";
   return CTA_PRESETS[button.kind].href;
 }
 

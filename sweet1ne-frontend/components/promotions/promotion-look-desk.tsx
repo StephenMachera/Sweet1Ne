@@ -93,6 +93,10 @@ type PromotionLookDeskProps = {
   // the "QR app" frame's actual destination. Null until a branch/table is
   // known yet, in which case it falls back to the public /menu page.
   phoneSrc?: string | null;
+  // Edit-mode only — the "try a basket" money simulator, rendered right
+  // under the phone's own basket dock, same spot as the reference build's
+  // .code-try.
+  phoneExtra?: ReactNode;
 };
 
 /** The Look desk — one frame per real surface a promotion can appear on
@@ -114,6 +118,7 @@ export function PromotionLookDesk({
   off,
   defaultImage,
   phoneSrc,
+  phoneExtra,
 }: PromotionLookDeskProps) {
   const dockText =
     kind === "code" && code
@@ -184,6 +189,7 @@ export function PromotionLookDesk({
           </div>
           <div className="admin-look-handset-dock">{dockText}</div>
         </div>
+        {phoneExtra}
       </Frame>
     </div>
   );

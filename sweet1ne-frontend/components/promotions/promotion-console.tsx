@@ -24,6 +24,8 @@ import {
   nextButtonKind,
   liveButtons,
   buttonLabel,
+  safeLink,
+  FREE_HREF_KINDS,
   type PromotionBlock,
   type PromotionBlockType,
   type PromotionCtaKind,
@@ -70,6 +72,9 @@ type Promotion = {
   code: string | null;
   offer: Offer;
   off: number | null;
+  min_spend: number | null;
+  max_uses: number | null;
+  once_per_guest: boolean;
   starts_at: string;
   ends_at: string | null;
   is_on: boolean;
@@ -123,6 +128,9 @@ function emptyDraft(branchId: string | null): Draft {
     code: "",
     offer: "none",
     off: null,
+    min_spend: null,
+    max_uses: null,
+    once_per_guest: false,
     starts_at: todayISO(),
     ends_at: null,
     is_on: false,
@@ -223,6 +231,75 @@ function statusNote(p: {
   return note;
 }
 
+const gbp = (n: number) => `£${n.toFixed(2)}`;
+
+/** The money math a code promotion would actually do, previewed against a
+   basket staff types in — the same arithmetic basket_discount() runs
+   server-side, just read-only here. Doesn't simulate max_uses or
+   once_per_guest (there's no real guest to check those against from the
+   admin console), only the offer and minimum-basket rule. */
+function TryBasket({
+  code,
+  offer,
+  off,
+  minSpend,
+}: {
+  code: string | null;
+  offer: Offer;
+  off: number | null;
+  minSpend: number | null;
+}) {
+  const [basket, setBasket] = useState(40);
+
+  const amount = Math.max(0, basket || 0);
+  const underMin = Boolean(minSpend && amount < minSpend);
+  const take =
+    !underMin && offer === "percent" && off
+      ? Math.min((amount * off) / 100, amount)
+      : !underMin && offer === "pounds" && off
+        ? Math.min(off, amount)
+        : 0;
+  const due = amount - take;
+
+  return (
+    <div className="admin-code-try">
+      <label>
+        Try a basket of (£)
+        <input
+          type="number"
+          min="0"
+          step="0.5"
+          value={basket}
+          onChange={(e) => setBasket(Number(e.target.value) || 0)}
+        />
+      </label>
+      <p>
+        <span>Basket</span>
+        <span>{gbp(amount)}</span>
+      </p>
+      {take > 0 && (
+        <p>
+          <span>{offer === "percent" ? `${off}% off` : "Taken off"}</span>
+          <span>−{gbp(take)}</span>
+        </p>
+      )}
+      <p className="is-due">
+        <span>Due</span>
+        <span>{gbp(due)}</span>
+      </p>
+      {!code ? (
+        <p className="is-note">Type a code to see it on the phone.</p>
+      ) : underMin && minSpend ? (
+        <p className="is-note">
+          Add {gbp(minSpend - amount)} more and {code} comes off.
+        </p>
+      ) : offer === "none" || !off ? (
+        <p className="is-note">The code is the offer — nothing comes off the basket.</p>
+      ) : null}
+    </div>
+  );
+}
+
 export function PromotionConsole({
   branches,
   tables,
@@ -308,6 +385,9 @@ export function PromotionConsole({
       code: p.code,
       offer: p.offer,
       off: p.off,
+      min_spend: p.min_spend,
+      max_uses: p.max_uses,
+      once_per_guest: p.once_per_guest,
       starts_at: p.starts_at,
       ends_at: p.ends_at,
       is_on: p.is_on,
@@ -331,6 +411,13 @@ export function PromotionConsole({
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!draft.title.trim() || !draft.starts_at) return;
+    const badLink = draft.buttons.find(
+      (b) => b.on !== false && b.kind === "link" && !safeLink(b.href),
+    );
+    if (badLink) {
+      setError(`"${buttonLabel(badLink)}" needs a full web address before it can go live.`);
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -696,6 +783,16 @@ export function PromotionConsole({
                 off={draft.off}
                 defaultImage={defaultImage}
                 phoneSrc={phoneSrc}
+                phoneExtra={
+                  draft.kind === "code" ? (
+                    <TryBasket
+                      code={draft.code}
+                      offer={draft.offer}
+                      off={draft.off}
+                      minSpend={draft.min_spend}
+                    />
+                  ) : undefined
+                }
               />
             </>
           ) : lookRow ? (
@@ -711,6 +808,16 @@ export function PromotionConsole({
                 off={lookRow.off}
                 defaultImage={defaultImage}
                 phoneSrc={phoneSrc}
+                phoneExtra={
+                  lookRow.kind === "code" ? (
+                    <TryBasket
+                      code={lookRow.code}
+                      offer={lookRow.offer}
+                      off={lookRow.off}
+                      minSpend={lookRow.min_spend}
+                    />
+                  ) : undefined
+                }
               />
             </>
           ) : (
@@ -814,8 +921,11 @@ export function PromotionConsole({
                       No buttons. The offer is words only until you add one.
                     </p>
                   )}
-                  {draft.buttons.map((btn, i) => (
-                    <div key={btn.id} className={`admin-cta-row${btn.kind === "page" ? " is-page" : ""}`}>
+                  {draft.buttons.map((btn, i) => {
+                    const isFreeHref = FREE_HREF_KINDS.includes(btn.kind);
+                    const linkValue = safeLink(btn.href);
+                    return (
+                    <div key={btn.id} className={`admin-cta-row${isFreeHref ? " is-page" : ""}`}>
                       <label className="admin-chip">
                         <input
                           type="checkbox"
@@ -841,14 +951,15 @@ export function PromotionConsole({
                             // own wording.
                             const stock = Object.values(CTA_PRESETS).map((c) => c.label);
                             const stillDefault = !btn.label || stock.includes(btn.label);
+                            const nowFree = FREE_HREF_KINDS.includes(kind);
                             patch({
                               buttons: draft.buttons.map((b, j) =>
                                 j === i
                                   ? {
                                       ...b,
                                       kind,
-                                      label: kind !== "page" && stillDefault ? null : b.label,
-                                      href: kind === "page" ? b.href ?? "" : null,
+                                      label: !nowFree && stillDefault ? null : b.label,
+                                      href: nowFree ? b.href ?? "" : null,
                                     }
                                   : b,
                               ),
@@ -863,6 +974,7 @@ export function PromotionConsole({
                           <option value="order">Order</option>
                           <option value="join">Join the list</option>
                           <option value="page">A page</option>
+                          <option value="link">Custom link</option>
                         </select>
                       </label>
                       <label>
@@ -895,6 +1007,23 @@ export function PromotionConsole({
                           />
                         </label>
                       )}
+                      {btn.kind === "link" && (
+                        <label className="admin-cta-href">
+                          Web address
+                          <input
+                            value={btn.href ?? ""}
+                            onChange={(e) =>
+                              patch({
+                                buttons: draft.buttons.map((b, j) =>
+                                  j === i ? { ...b, href: e.target.value } : b,
+                                ),
+                              })
+                            }
+                            placeholder="https://www.instagram.com/…"
+                            inputMode="url"
+                          />
+                        </label>
+                      )}
                       <button
                         type="button"
                         className="admin-ghost"
@@ -904,8 +1033,18 @@ export function PromotionConsole({
                       >
                         Remove
                       </button>
+                      {btn.kind === "link" && (
+                        <p className={`admin-cta-hint${linkValue ? " is-ok" : ""}`}>
+                          {!btn.href?.trim()
+                            ? "Add the web address."
+                            : !linkValue
+                              ? "Use a full web address, e.g. https://www.instagram.com/sweet1ne"
+                              : `Opens ${linkValue} in a new tab.`}
+                        </p>
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <p className="admin-dek">
                   The first live button is filled gold. The rest are outline.
@@ -952,6 +1091,46 @@ export function PromotionConsole({
                       />
                     </label>
                   </div>
+                  <div className="admin-row">
+                    <label>
+                      Minimum basket (£)
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={draft.min_spend ?? ""}
+                        onChange={(e) =>
+                          patch({
+                            min_spend: e.target.value ? Number(e.target.value) : null,
+                          })
+                        }
+                        placeholder="None"
+                      />
+                    </label>
+                    <label>
+                      Use limit (total)
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={draft.max_uses ?? ""}
+                        onChange={(e) =>
+                          patch({
+                            max_uses: e.target.value ? Number(e.target.value) : null,
+                          })
+                        }
+                        placeholder="No limit"
+                      />
+                    </label>
+                  </div>
+                  <label className="admin-chip">
+                    <input
+                      type="checkbox"
+                      checked={draft.once_per_guest}
+                      onChange={(e) => patch({ once_per_guest: e.target.checked })}
+                    />
+                    <span>Once per guest (by their device, not an account)</span>
+                  </label>
                 </div>
 
                 <p className="admin-kicker">Show on</p>
