@@ -25,6 +25,7 @@ DEFAULT_PERMISSIONS = [
     ("access_bar", "Access Bar Screen", "surfaces"),
     ("manage_reservations", "Manage Reservations", "operations"),
     ("manage_marketing", "Manage Marketing Campaigns", "marketing"),
+    ("manage_media", "Manage Media Library", "marketing"),
 ]
 
 
