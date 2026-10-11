@@ -4,6 +4,7 @@ import { use, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { SubscriberList } from "@/components/campaigns/marketing/subscriber-list";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 export default function BranchMarketingPage({
   params,
@@ -21,9 +22,9 @@ export default function BranchMarketingPage({
   }, [me, loading, canManage, branchSlug, router]);
 
   if (loading || !me || !canManage) {
-    return <p className="text-sm text-slate-muted">Loading…</p>;
+    return <AdminLoading />;
   }
 
   // Sending stays central — the list covers both branches.
-  return <SubscriberList tone="branch" canSendCampaigns={false} />;
+  return <SubscriberList tone="admin" canSendCampaigns={false} />;
 }

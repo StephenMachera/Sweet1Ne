@@ -4,6 +4,7 @@ import { use, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { EventList } from "@/components/events/event-list";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 export default function BranchEventsPage({
   params,
@@ -21,7 +22,7 @@ export default function BranchEventsPage({
   }, [me, loading, canManage, branchSlug, router]);
 
   if (loading || !me || !canManage) {
-    return <p className="text-sm text-slate-muted">Loading…</p>;
+    return <AdminLoading />;
   }
 
   return <EventList tone="branch" showBranchPicker={false} />;

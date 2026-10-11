@@ -4,6 +4,7 @@ import { use, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { ReservationList } from "@/components/reservations/reservation-list";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 export default function BranchReservationsPage({
   params,
@@ -21,8 +22,8 @@ export default function BranchReservationsPage({
   }, [me, loading, canManage, branchSlug, router]);
 
   if (loading || !me || !canManage) {
-    return <p className="text-sm text-slate-muted">Loading…</p>;
+    return <AdminLoading />;
   }
 
-  return <ReservationList tone="branch" />;
+  return <ReservationList tone="admin" />;
 }

@@ -4,6 +4,7 @@ import { use, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { PromoList } from "@/components/promos/promo-list";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 export default function BranchPromotionsPage({
   params,
@@ -21,8 +22,8 @@ export default function BranchPromotionsPage({
   }, [me, loading, canManage, branchSlug, router]);
 
   if (loading || !me || !canManage) {
-    return <p className="text-sm text-slate-muted">Loading…</p>;
+    return <AdminLoading />;
   }
 
-  return <PromoList tone="branch" showBranchPicker={false} />;
+  return <PromoList tone="admin" showBranchPicker={false} />;
 }
