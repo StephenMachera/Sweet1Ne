@@ -1,8 +1,9 @@
 "use client";
 
 import { use } from "react";
-import { ChefHat } from "lucide-react";
-import { StationScreen } from "@/components/station/station-screen";
+import { FloorAdminPage } from "@/components/floor/floor-admin-page";
+import { useCurrentBranch } from "@/lib/use-current-branch";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 export default function KitchenPage({
   params,
@@ -10,20 +11,11 @@ export default function KitchenPage({
   params: Promise<{ branchSlug: string }>;
 }) {
   const { branchSlug } = use(params);
+  const { branch, loading } = useCurrentBranch(branchSlug);
 
-  return (
-    <StationScreen
-      station="kitchen"
-      title="Kitchen"
-      icon={ChefHat}
-      accessPermission="access_kitchen"
-      branchSlug={branchSlug}
-      labels={{
-        arrived: "Arrived",
-        active: "Preparing",
-        activeAction: "Ready to serve",
-        done: "Ready & served",
-      }}
-    />
-  );
+  if (loading || !branch) {
+    return <AdminLoading />;
+  }
+
+  return <FloorAdminPage station="kitchen" lockedBranch={branch} basePath={`/${branchSlug}`} />;
 }

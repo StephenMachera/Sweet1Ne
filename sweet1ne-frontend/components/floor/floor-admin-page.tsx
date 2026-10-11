@@ -32,7 +32,18 @@ const CONFIG: Record<
   },
 };
 
-export function FloorAdminPage({ station }: { station: "kitchen" | "bar" }) {
+export function FloorAdminPage({
+  station,
+  lockedBranch,
+  basePath = "/admin",
+}: {
+  station: "kitchen" | "bar";
+  // Set on a branch console, where there's only ever this one branch to
+  // show — skips the branch-picker row and the cross-branch Toast grid,
+  // and pins every fetch to this branch's id instead of "every branch".
+  lockedBranch?: Branch;
+  basePath?: string;
+}) {
   const router = useRouter();
   const { me, loading: meLoading } = useMe();
   const permission = station === "kitchen" ? "access_kitchen" : "access_bar";
@@ -40,20 +51,21 @@ export function FloorAdminPage({ station }: { station: "kitchen" | "bar" }) {
   const canAdvance = hasPermission(me, "update_order_status");
 
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [branchFilter, setBranchFilter] = useState("");
+  const [branchFilter, setBranchFilter] = useState(lockedBranch?.id ?? "");
   const [view, setView] = useState<"tickets" | "eighty">("tickets");
   const [eightyCount, setEightyCount] = useState<number | null>(null);
 
   const config = CONFIG[station];
 
   useEffect(() => {
+    if (lockedBranch) return;
     apiFetch("/branches").then(setBranches).catch(() => setBranches([]));
-  }, []);
+  }, [lockedBranch]);
 
   useEffect(() => {
     if (meLoading || !me) return;
-    if (!canAccess) router.replace("/admin/dashboard");
-  }, [meLoading, me, canAccess, router]);
+    if (!canAccess) router.replace(`${basePath}/dashboard`);
+  }, [meLoading, me, canAccess, router, basePath]);
 
   useEffect(() => {
     const scopeQuery = branchFilter ? `?branch_id=${branchFilter}&include_inactive=true` : "?include_inactive=true";
@@ -78,28 +90,32 @@ export function FloorAdminPage({ station }: { station: "kitchen" | "bar" }) {
     return <AdminLoading />;
   }
 
+  const toastBranches = lockedBranch ? [lockedBranch] : branches;
+
   return (
     <>
       <div className="admin-top">
-        <div className="admin-places" role="group" aria-label="Restaurant">
-          <button
-            type="button"
-            className={branchFilter === "" ? "is-on" : undefined}
-            onClick={() => setBranchFilter("")}
-          >
-            All branches
-          </button>
-          {branches.map((b) => (
+        {!lockedBranch && (
+          <div className="admin-places" role="group" aria-label="Restaurant">
             <button
-              key={b.id}
               type="button"
-              className={branchFilter === b.id ? "is-on" : undefined}
-              onClick={() => setBranchFilter(branchFilter === b.id ? "" : b.id)}
+              className={branchFilter === "" ? "is-on" : undefined}
+              onClick={() => setBranchFilter("")}
             >
-              {b.name}
+              All branches
             </button>
-          ))}
-        </div>
+            {branches.map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                className={branchFilter === b.id ? "is-on" : undefined}
+                onClick={() => setBranchFilter(branchFilter === b.id ? "" : b.id)}
+              >
+                {b.name}
+              </button>
+            ))}
+          </div>
+        )}
         <p className="admin-who">{me?.email ?? "—"}</p>
       </div>
 
@@ -110,13 +126,17 @@ export function FloorAdminPage({ station }: { station: "kitchen" | "bar" }) {
         <article className="admin-card is-wait">
           <h2>Tickets</h2>
           <p className="admin-stat admin-hold">Live</p>
-          <p>Real orders from the floor, not Toast — every branch shown here.</p>
+          <p>
+            {lockedBranch
+              ? "Real orders from the floor, not Toast."
+              : "Real orders from the floor, not Toast — every branch shown here."}
+          </p>
           <div className="admin-acts">
-            {branches
+            {toastBranches
               .filter((b) => b.settings?.toast)
               .map((b) => (
                 <a key={b.id} className="admin-act" href={b.settings!.toast} target="_blank" rel="noreferrer">
-                  {b.name} Toast
+                  {lockedBranch ? "Toast" : `${b.name} Toast`}
                 </a>
               ))}
           </div>
@@ -126,7 +146,7 @@ export function FloorAdminPage({ station }: { station: "kitchen" | "bar" }) {
           <p className="admin-stat">{eightyCount ?? "—"}</p>
           <p>{config.eightyCopy}</p>
           <div className="admin-acts">
-            <Link className="admin-act" href="/admin/menu/manage">
+            <Link className="admin-act" href={`${basePath}/menu/manage`}>
               Menu
             </Link>
           </div>
