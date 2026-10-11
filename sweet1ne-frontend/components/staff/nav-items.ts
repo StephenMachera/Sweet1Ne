@@ -34,11 +34,10 @@ export type NavGroup = {
 };
 
 // Regrouped to the five sections in the spec: Overview · Guest site · Floor ·
-// People · System. Two items below (Media, QR Codes) don't have a page yet
-// and are gated on the closest existing permission as a placeholder — see
-// the note above each. None of that is settled backend policy, just enough
-// to keep the sidebar's filtering correct until a real permission key
-// exists for them.
+// People · System. A couple of items below are still gated on the closest
+// existing permission as a placeholder — see the note above each. None of
+// that is settled backend policy, just enough to keep the sidebar's
+// filtering correct until a real permission key exists for them.
 export const NAV_GROUPS: NavGroup[] = [
   {
     heading: "Overview",
@@ -51,10 +50,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Menu", href: "/menu/manage", icon: UtensilsCrossed, permission: "view_menu" },
       { label: "Events", href: "/events", icon: CalendarDays, permission: "manage_promotions" },
-      // Placeholder permission — no "manage_media" key exists yet. Media is
-      // shared by menu, events, promotions and marketing, so it doesn't sit
-      // cleanly under any one of their permissions.
-      { label: "Media", href: "/media", icon: Images, permission: "manage_promotions" },
+      { label: "Media", href: "/media", icon: Images, permission: "manage_media" },
       { label: "Branches", href: "/branches", icon: Building2, permission: "manage_tenant" },
       { label: "Promotions", href: "/promotions", icon: Tag, permission: "manage_promotions" },
     ],

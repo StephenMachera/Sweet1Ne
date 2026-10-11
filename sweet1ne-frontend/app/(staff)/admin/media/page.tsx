@@ -69,7 +69,7 @@ type JsonMediaEntry =
 export default function AdminMediaPage() {
   const router = useRouter();
   const { me, loading: meLoading } = useMe();
-  const canManage = hasPermission(me, "manage_promotions");
+  const canManage = hasPermission(me, "manage_media");
 
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
