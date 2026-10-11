@@ -1,8 +1,9 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Plus, ShieldCheck, Users } from "lucide-react";
+import { ShieldCheck, Users } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import {
@@ -11,9 +12,18 @@ import {
   type Permission,
   type Role,
 } from "@/components/staff/role-form";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AdminLoading } from "@/components/admin/admin-loading";
+
+// admin-shell here too — Dialog portals to document.body, outside the
+// layout's own admin-shell, so --gold/--ivory need their own scope.
+const DARK_DIALOG =
+  "admin-shell border border-[rgba(201,162,74,0.42)] bg-[#0c0c0c] text-[#e5e2e1] sm:max-w-md";
+const DIALOG_BOOK_BTN =
+  "inline-flex items-center justify-center rounded-[3px] border border-[rgba(201,162,74,0.9)] bg-transparent px-[1.15rem] py-[0.6rem] text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-[#c9a24a] hover:bg-[#c9a24a] hover:text-[#0e0e0e] disabled:opacity-50";
+const DIALOG_GHOST_BTN =
+  "px-[1.15rem] py-[0.6rem] text-[0.75rem] uppercase tracking-[0.1em] text-[rgba(229,226,225,0.68)] hover:text-[#e5e2e1]";
 
 export default function BranchRolesPage({
   params,
@@ -33,10 +43,16 @@ export default function BranchRolesPage({
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [confirmDeactivate, setConfirmDeactivate] = useState<Role | null>(null);
+  const [drawerSlot, setDrawerSlot] = useState<Element | null>(null);
 
   const canManage = hasPermission(me, "manage_roles");
   const selected = roles.find((r) => r.id === selectedId) ?? null;
   const grouped = groupByCategory(allPermissions);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reading a real DOM node from a sibling tree, only available after commit
+    setDrawerSlot(document.getElementById("admin-drawer-slot"));
+  }, []);
 
   useEffect(() => {
     if (meLoading || !me) return;
@@ -107,7 +123,7 @@ export default function BranchRolesPage({
   }
 
   if (meLoading || !me || !canManage) {
-    return <p className="text-sm text-slate-muted">Loading…</p>;
+    return <AdminLoading />;
   }
 
   const dirty =
@@ -116,38 +132,26 @@ export default function BranchRolesPage({
       selected.permissions.some((p) => !draft.has(p.key)));
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-navy sm:text-3xl">Roles &amp; Permissions</h1>
-          <p className="mt-1 text-sm text-slate-subtle">
-            {roles.length} {roles.length === 1 ? "role" : "roles"} · shared across every branch
-          </p>
-        </div>
-        <Button
-          onClick={() => setDialogOpen(true)}
-          className="bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
-        >
-          <Plus size={16} className="mr-1.5" />
-          New role
-        </Button>
-      </div>
+    <>
+      <h1>Roles &amp; Permissions</h1>
+      <p className="admin-dek">
+        {roles.length} {roles.length === 1 ? "role" : "roles"} · shared across every branch
+      </p>
 
-      <div className="rounded-xl border border-warning/25 bg-warning-bg px-4 py-3 text-sm text-warning">
+      <div className="admin-hold mb-3 text-sm">
         Roles apply to the whole company. Changing one affects staff at every branch.
       </div>
 
-      {error && (
-        <div
-          role="alert"
-          className="rounded-xl border border-danger/25 bg-danger-bg px-4 py-3 text-sm text-danger"
-        >
-          {error}
-        </div>
-      )}
+      {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
+
+      <div className="admin-tools">
+        <button type="button" className="admin-book ml-auto" onClick={() => setDialogOpen(true)}>
+          New role
+        </button>
+      </div>
 
       {loading ? (
-        <p className="text-sm text-slate-muted">Loading…</p>
+        <AdminLoading />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
           {/* Role list */}
@@ -158,28 +162,30 @@ export default function BranchRolesPage({
                 <button
                   key={role.id}
                   onClick={() => selectRole(role)}
-                  className={`w-full rounded-xl border px-4 py-3.5 text-left transition-colors ${
+                  className={`w-full rounded-[3px] border px-4 py-3.5 text-left transition-colors ${
                     active
-                      ? "border-emerald/50 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-                      : "border-slate-bg bg-white/60 hover:bg-white"
+                      ? "border-[var(--gold)] bg-[var(--panel)]"
+                      : "border-[var(--gold-line)] bg-[var(--panel-2)] hover:bg-[var(--panel)]"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span
-                      className={`font-medium ${role.is_active ? "text-navy" : "text-slate-muted"}`}
+                      className={`font-medium ${
+                        role.is_active ? "text-[var(--ivory)]" : "text-[var(--ivory-dim)]"
+                      }`}
                     >
                       {role.name}
                     </span>
                     {role.is_super_admin && (
-                      <ShieldCheck size={15} className="shrink-0 text-emerald" />
+                      <ShieldCheck size={15} className="shrink-0 text-[var(--gold)]" />
                     )}
                   </div>
-                  <div className="mt-1.5 flex items-center gap-3 text-xs text-slate-muted">
+                  <div className="mt-1.5 flex items-center gap-3 text-xs text-[var(--ivory-dim)]">
                     <span className="inline-flex items-center gap-1">
                       <Users size={12} />
                       {role.staff_count}
                     </span>
-                    {!role.is_active && <span className="text-danger">Inactive</span>}
+                    {!role.is_active && <span className="text-[var(--gold)]">Inactive</span>}
                   </div>
                 </button>
               );
@@ -187,18 +193,20 @@ export default function BranchRolesPage({
           </aside>
 
           {/* Permission matrix */}
-          <section className="overflow-hidden rounded-xl border border-slate-bg bg-white">
+          <section className="overflow-hidden rounded-[3px] border border-[var(--gold-line)] bg-[var(--panel-2)]">
             {!selected ? (
-              <p className="px-5 py-16 text-center text-sm text-slate-muted">
+              <p className="px-5 py-16 text-center text-sm text-[var(--ivory-dim)]">
                 Select a role to view its permissions.
               </p>
             ) : (
               <>
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-border px-5 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--gold-line)] px-5 py-4">
                   <div>
-                    <h2 className="font-semibold text-navy">{selected.name}</h2>
+                    <h2 className="font-display text-lg text-[var(--ivory)]">{selected.name}</h2>
                     {selected.description && (
-                      <p className="mt-0.5 text-sm text-slate-subtle">{selected.description}</p>
+                      <p className="mt-0.5 text-sm text-[var(--ivory-dim)]">
+                        {selected.description}
+                      </p>
                     )}
                   </div>
 
@@ -206,22 +214,19 @@ export default function BranchRolesPage({
                     (selected.is_active ? (
                       <button
                         onClick={() => setConfirmDeactivate(selected)}
-                        className="text-sm text-danger underline underline-offset-4"
+                        className="admin-edit"
                       >
                         Deactivate role
                       </button>
                     ) : (
-                      <button
-                        onClick={() => activate(selected)}
-                        className="text-sm text-success underline underline-offset-4"
-                      >
+                      <button onClick={() => activate(selected)} className="admin-edit">
                         Reactivate role
                       </button>
                     ))}
                 </div>
 
                 {!selected.is_active && (
-                  <div className="border-b border-slate-border bg-danger-bg px-5 py-3 text-sm text-danger">
+                  <div className="admin-hold border-b border-[var(--gold-line)] px-5 py-3 text-sm">
                     This role is inactive. Staff assigned to it can't sign in until it's
                     reactivated.
                   </div>
@@ -229,10 +234,12 @@ export default function BranchRolesPage({
 
                 {selected.is_super_admin ? (
                   <div className="flex items-start gap-3 px-5 py-6">
-                    <ShieldCheck size={18} className="mt-0.5 shrink-0 text-emerald" />
+                    <ShieldCheck size={18} className="mt-0.5 shrink-0 text-[var(--gold)]" />
                     <div className="text-sm">
-                      <p className="text-navy">This role has full access to everything.</p>
-                      <p className="mt-1 text-slate-subtle">
+                      <p className="text-[var(--ivory)]">
+                        This role has full access to everything.
+                      </p>
+                      <p className="mt-1 text-[var(--ivory-dim)]">
                         Permissions can't be edited — it automatically includes every permission,
                         including any added in future.
                       </p>
@@ -243,20 +250,20 @@ export default function BranchRolesPage({
                     <div className="space-y-5 px-5 py-5">
                       {Object.entries(grouped).map(([category, permissions]) => (
                         <div key={category}>
-                          <p className="mb-3 text-[11px] uppercase tracking-[0.14em] text-slate-muted">
+                          <p className="mb-3 text-[11px] uppercase tracking-[0.14em] text-[var(--ivory-dim)]">
                             {category}
                           </p>
                           <div className="grid gap-2.5 sm:grid-cols-2">
                             {permissions.map((p) => (
                               <label
                                 key={p.id}
-                                className="flex cursor-pointer items-center gap-3 text-sm"
+                                className="flex cursor-pointer items-center gap-3 text-sm text-[var(--ivory)]"
                               >
                                 <Checkbox
                                   checked={draft.has(p.key)}
                                   onCheckedChange={() => toggle(p.key)}
                                 />
-                                <span className="text-body">{p.display_name}</span>
+                                <span>{p.display_name}</span>
                               </label>
                             ))}
                           </div>
@@ -265,26 +272,25 @@ export default function BranchRolesPage({
                     </div>
 
                     {dirty && (
-                      <div className="flex items-center justify-between gap-3 border-t border-slate-border bg-slate-bg/50 px-5 py-3.5">
-                        <p className="text-sm text-slate-subtle">Unsaved changes</p>
+                      <div className="flex items-center justify-between gap-3 border-t border-[var(--gold-line)] bg-[var(--panel)] px-5 py-3.5">
+                        <p className="text-sm text-[var(--ivory-dim)]">Unsaved changes</p>
                         <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
+                          <button
+                            type="button"
+                            className="admin-edit"
                             onClick={() => selectRole(selected)}
                             disabled={saving}
-                            className="border-slate-border"
                           >
                             Discard
-                          </Button>
-                          <Button
-                            size="sm"
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-book"
                             onClick={savePermissions}
                             disabled={saving}
-                            className="bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
                           >
                             {saving ? "Saving…" : "Save changes"}
-                          </Button>
+                          </button>
                         </div>
                       </div>
                     )}
@@ -297,60 +303,67 @@ export default function BranchRolesPage({
       )}
 
       {/* Create role */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-navy">New role</DialogTitle>
-          </DialogHeader>
-          <RoleForm
-            allPermissions={allPermissions}
-            onCreated={(role) => {
-              setRoles((prev) => [...prev, role]);
-              selectRole(role);
-              setDialogOpen(false);
-            }}
-            onCancel={() => setDialogOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      {dialogOpen &&
+        drawerSlot &&
+        createPortal(
+          <aside className="admin-drawer-edit">
+            <h2>New role</h2>
+            <RoleForm
+              allPermissions={allPermissions}
+              tone="admin"
+              onCreated={(role) => {
+                setRoles((prev) => [...prev, role]);
+                selectRole(role);
+                setDialogOpen(false);
+              }}
+              onCancel={() => setDialogOpen(false)}
+            />
+          </aside>,
+          drawerSlot
+        )}
 
       {/* Deactivate confirmation */}
       <Dialog
         open={confirmDeactivate !== null}
         onOpenChange={(open) => !open && setConfirmDeactivate(null)}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className={DARK_DIALOG}>
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-navy">
+            <DialogTitle className="font-display text-xl text-[#e5e2e1]">
               Deactivate {confirmDeactivate?.name}?
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {confirmDeactivate && confirmDeactivate.staff_count > 0 ? (
-              <div className="rounded-lg border border-danger/25 bg-danger-bg px-4 py-3 text-sm text-danger">
+              <div className="rounded-[3px] border border-[rgba(201,162,74,0.35)] bg-[#050505] px-4 py-3 text-sm text-[#c9a24a]">
                 {confirmDeactivate.staff_count} active staff{" "}
                 {confirmDeactivate.staff_count === 1 ? "member uses" : "members use"} this role
                 across every branch. Deactivating it will immediately prevent them from signing in.
               </div>
             ) : (
-              <p className="text-sm text-slate-subtle">
+              <p className="text-sm text-[rgba(229,226,225,0.68)]">
                 No staff currently use this role, so nobody will lose access.
               </p>
             )}
             <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => setConfirmDeactivate(null)}>
+              <button
+                type="button"
+                className={DIALOG_GHOST_BTN}
+                onClick={() => setConfirmDeactivate(null)}
+              >
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
+                type="button"
+                className={DIALOG_BOOK_BTN}
                 onClick={() => confirmDeactivate && deactivate(confirmDeactivate)}
-                className="bg-danger text-white hover:bg-danger/90"
               >
                 Deactivate
-              </Button>
+              </button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
