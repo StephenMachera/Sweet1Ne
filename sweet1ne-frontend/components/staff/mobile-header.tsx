@@ -19,12 +19,14 @@ export function MobileHeader({
   onToggle,
   pageLabel,
   brandHref,
+  branchName,
   onSignOut,
 }: {
   open: boolean;
   onToggle: () => void;
   pageLabel: string;
   brandHref: string;
+  branchName?: string;
   onSignOut: () => void;
 }) {
   return (
@@ -50,6 +52,14 @@ export function MobileHeader({
             className="mx-auto w-[7.4rem]"
             priority
           />
+          {/* Which branch this staff member is scoped to — admin has no
+             equivalent (it isn't scoped to one), so this is the one
+             deliberate addition rather than a one-for-one copy. */}
+          {branchName && (
+            <p className="mt-1 text-center text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-[rgba(201,162,74,0.65)]">
+              {branchName}
+            </p>
+          )}
         </Link>
         <p className="admin-rail-now">{pageLabel}</p>
       </div>

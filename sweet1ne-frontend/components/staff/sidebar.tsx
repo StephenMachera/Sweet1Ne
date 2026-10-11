@@ -1,19 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission, type Me } from "@/lib/use-me";
 import { NAV_GROUPS } from "./nav-items";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MobileHeader } from "./mobile-header";
-
-const STORAGE_KEY = "sweet1ne_sidebar_collapsed";
 
 type Variant = "admin" | "branch";
 
@@ -132,10 +126,10 @@ function NavBadge({ count }: { count: number }) {
  * that's a fixed sidebar on desktop and a sticky top bar + slide-down menu
  * on mobile, matching the shared admin.css / admin-nav.js reference.
  *
- * `variant="branch"` never reaches this — it still renders SidebarBody /
- * Sheet below, untouched.
+ * Used for both variants now — branch passes its own basePath/branchName,
+ * admin leaves branchName unset.
  */
-function AdminRail({ basePath }: { basePath: string }) {
+function AdminRail({ basePath, branchName }: { basePath: string; branchName?: string }) {
   const { me } = useMe();
   const pathname = usePathname();
   const router = useRouter();
@@ -189,6 +183,7 @@ function AdminRail({ basePath }: { basePath: string }) {
         onToggle={() => setOpen((prev) => !prev)}
         pageLabel={pageLabel}
         brandHref={`${basePath}/dashboard`}
+        branchName={branchName}
         onSignOut={handleSignOut}
       />
 
@@ -243,180 +238,7 @@ function AdminRail({ basePath }: { basePath: string }) {
   );
 }
 
-function SidebarBody({
-  me,
-  collapsed,
-  onToggle,
-  onNavigate,
-  showToggle,
-  hideHeader = false,
-  branchName,
-  basePath,
-}: {
-  me: Me | null;
-  collapsed: boolean;
-  onToggle: () => void;
-  onNavigate?: () => void;
-  showToggle: boolean;
-  hideHeader?: boolean;
-  branchName?: string;
-  basePath: string;
-}) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const supabase = createClient();
-  const unreadInboxCount = useUnreadInboxCount(me);
-  const unreadOrdersCount = useUnreadOrdersCount(me);
-  const unreadLeadsCount = useUnreadLeadsCount(me);
-
-  // Branch used to carry its own navy/emerald palette here — now matched
-  // to the admin rail's gold/ivory one exactly (design only; the branch
-  // console's own collapse-to-icons + Sheet mobile menu behaviour, unlike
-  // admin's rail, is untouched).
-  const surface = "bg-ink-cool";
-  const accentBar = "bg-gold";
-  const labelColour = "text-paper/35";
-  const dividerColour = "bg-white/10";
-  const borderColour = "border-white/10";
-  const activeClasses = "bg-white/5 text-paper";
-  const inactiveClasses = "text-paper/60 hover:bg-white/5 hover:text-paper/90";
-  const subLabelColour = "text-paper/45";
-  const footerName = "text-paper/90";
-  const footerRole = "text-paper/45";
-  const logoutClasses = "text-paper/60 hover:bg-white/5 hover:text-paper/90";
-  const toggleClasses = "text-paper/60 hover:bg-white/5 hover:text-paper";
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
-
-  const visibleGroups = NAV_GROUPS.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => hasPermission(me, item.permission)),
-  })).filter((group) => group.items.length > 0);
-
-  return (
-    <div className={`flex h-full flex-col ${surface} text-paper`}>
-      {!hideHeader && (
-        <div
-          className={`flex items-center gap-2 px-4 pb-5 pt-6 ${
-            collapsed ? "justify-center" : "justify-between"
-          }`}
-        >
-          {!collapsed && (
-            <div>
-              <Image
-                src="/images/brand/logo.png"
-                alt="Sweet1NE"
-                width={612}
-                height={408}
-                className="w-[5.2rem]"
-                priority
-              />
-              {branchName && (
-                <p className={`mt-1 text-xs uppercase tracking-[0.14em] ${subLabelColour}`}>
-                  {branchName}
-                </p>
-              )}
-            </div>
-          )}
-          {showToggle && (
-            <button
-              onClick={onToggle}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className={`rounded p-1.5 ${toggleClasses}`}
-            >
-              <Menu size={18} />
-            </button>
-          )}
-        </div>
-      )}
-
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 pb-4">
-        {visibleGroups.map((group, groupIndex) => (
-          <div key={group.heading}>
-            {collapsed ? (
-              groupIndex > 0 && <div className={`mx-2 my-3 h-px ${dividerColour}`} />
-            ) : (
-              <p
-                className={`px-3 pb-1 pt-4 text-[11px] uppercase tracking-[0.15em] ${labelColour}`}
-              >
-                {group.heading}
-              </p>
-            )}
-
-            {group.items.map((item) => {
-              const href = `${basePath}${item.href}`;
-              const active = pathname.startsWith(href);
-              const Icon = item.icon;
-
-              const link = (
-                <Link
-                  href={href}
-                  onClick={onNavigate}
-                  className={`relative flex items-center gap-3 rounded-r-sm py-2.5 text-sm transition-colors ${
-                    collapsed ? "justify-center px-2" : "px-3"
-                  } ${active ? activeClasses : inactiveClasses}`}
-                >
-                  {active && (
-                    <span
-                      className={`absolute inset-y-1 left-0 w-[3px] rounded-full ${accentBar}`}
-                    />
-                  )}
-                  <Icon size={18} className="shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
-                  {!collapsed && item.href === "/inbox" && !!unreadInboxCount && (
-                    <NavBadge count={unreadInboxCount} />
-                  )}
-                  {!collapsed && item.href === "/orders" && !!unreadOrdersCount && (
-                    <NavBadge count={unreadOrdersCount} />
-                  )}
-                  {!collapsed && item.href === "/leads" && !!unreadLeadsCount && (
-                    <NavBadge count={unreadLeadsCount} />
-                  )}
-                </Link>
-              );
-
-              if (!collapsed) {
-                return <div key={href}>{link}</div>;
-              }
-
-              return (
-                <Tooltip key={href}>
-                  <TooltipTrigger render={link} />
-                  <TooltipContent side="right">{item.label}</TooltipContent>
-                </Tooltip>
-              );
-            })}
-          </div>
-        ))}
-      </nav>
-
-      <div className={`border-t ${borderColour} px-3 py-4`}>
-        {!collapsed && me && (
-          <div className="mb-3 px-1">
-            <p className={`truncate text-sm ${footerName}`}>{me.full_name ?? me.email}</p>
-            <p className={`truncate text-xs ${footerRole}`}>{me.role_name}</p>
-          </div>
-        )}
-        <button
-          onClick={handleLogout}
-          className={`flex w-full items-center gap-3 rounded px-3 py-2 text-sm ${logoutClasses} ${
-            collapsed ? "justify-center px-2" : ""
-          }`}
-        >
-          <LogOut size={18} className="shrink-0" />
-          {!collapsed && <span>Log out</span>}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export function Sidebar({
-  variant = "admin",
   branchName,
   basePath,
 }: {
@@ -424,109 +246,5 @@ export function Sidebar({
   branchName?: string;
   basePath: string;
 }) {
-  if (variant === "admin") {
-    return <AdminRail basePath={basePath} />;
-  }
-
-  return (
-    <BranchSidebar branchName={branchName} basePath={basePath} />
-  );
-}
-
-/** Unchanged — the branch console's Sheet + icon-collapse sidebar. */
-function BranchSidebar({
-  branchName,
-  basePath,
-}: {
-  branchName?: string;
-  basePath: string;
-}) {
-  const { me } = useMe();
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  // Matched to the admin rail's palette — design only, see SidebarBody.
-  const surface = "bg-ink-cool";
-  const subLabelColour = "text-paper/45";
-  const closeClasses = "text-paper/70 hover:bg-white/10 hover:text-paper";
-
-  useEffect(() => {
-    setCollapsed(window.localStorage.getItem(STORAGE_KEY) === "true");
-  }, []);
-
-  function toggleCollapsed() {
-    setCollapsed((prev) => {
-      const next = !prev;
-      window.localStorage.setItem(STORAGE_KEY, String(next));
-      return next;
-    });
-  }
-
-  return (
-    <TooltipProvider delay={200}>
-      <button
-        onClick={() => setMobileOpen(true)}
-        aria-label="Open menu"
-        className={`fixed left-4 top-4 z-40 rounded-md ${surface} p-2.5 text-paper md:hidden`}
-      >
-        <Menu size={20} />
-      </button>
-
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-72 border-0 p-0 [&>button]:hidden">
-          <div className={`flex h-full flex-col ${surface}`}>
-            <div className="flex items-start justify-between px-4 pb-2 pt-5">
-              <div>
-                <Image
-                  src="/images/brand/logo.png"
-                  alt="Sweet1NE"
-                  width={612}
-                  height={408}
-                  className="w-[5.2rem]"
-                  priority
-                />
-                {branchName && (
-                  <p className={`mt-1 text-xs uppercase tracking-[0.14em] ${subLabelColour}`}>
-                    {branchName}
-                  </p>
-                )}
-              </div>
-              <button
-                onClick={() => setMobileOpen(false)}
-                aria-label="Close menu"
-                className={`rounded-md p-2.5 ${closeClasses}`}
-              >
-                <X size={24} />
-              </button>
-            </div>
-            <SidebarBody
-              me={me}
-              collapsed={false}
-              onToggle={() => {}}
-              onNavigate={() => setMobileOpen(false)}
-              showToggle={false}
-              hideHeader
-              branchName={branchName}
-              basePath={basePath}
-            />
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      <aside
-        className={`hidden h-screen shrink-0 transition-[width] duration-200 md:block ${
-          collapsed ? "w-16" : "w-64"
-        }`}
-      >
-        <SidebarBody
-          me={me}
-          collapsed={collapsed}
-          onToggle={toggleCollapsed}
-          showToggle
-          branchName={branchName}
-          basePath={basePath}
-        />
-      </aside>
-    </TooltipProvider>
-  );
+  return <AdminRail basePath={basePath} branchName={branchName} />;
 }

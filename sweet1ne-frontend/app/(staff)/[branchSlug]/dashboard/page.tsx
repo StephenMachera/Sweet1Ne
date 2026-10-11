@@ -80,7 +80,7 @@ export default function BranchDashboardPage() {
 
   if (meLoading || !allowed) {
     return (
-      <div className="admin-shell flex min-h-[60vh] items-center justify-center bg-[var(--bg)]">
+      <div className="flex min-h-[60vh] items-center justify-center">
         <AdminLoading />
       </div>
     );
@@ -95,7 +95,7 @@ export default function BranchDashboardPage() {
   });
 
   return (
-    <div className="admin-shell admin-stage">
+    <>
       <h1>Today</h1>
       <p className="admin-dek">
         {today}
@@ -209,6 +209,6 @@ export default function BranchDashboardPage() {
           </article>
         </section>
       </div>
-    </div>
+    </>
   );
 }
