@@ -2,9 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export type Promo = {
   id: string;
@@ -69,15 +66,9 @@ export function PromoForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isBranch = tone === "branch";
-  const primary = isBranch
-    ? "bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
-    : "bg-gold text-ink hover:bg-gold/90";
-  const border = isBranch ? "border-slate-border" : "border-ink/15";
-  const muted = isBranch ? "text-slate-muted" : "text-ink-muted";
-  const errorBox = isBranch
-    ? "border border-danger/25 bg-danger-bg text-danger"
-    : "border border-ember/25 bg-ember-soft text-ember";
+  // tone is kept on the prop for every caller — branch and admin now share
+  // the one .admin-form look, so it's no longer read here.
+  void tone;
 
   useEffect(() => {
     Promise.all([
@@ -127,8 +118,7 @@ export function PromoForm({
     }
   }
 
-  if (!isBranch) {
-    return (
+  return (
       <form onSubmit={handleSubmit} className="admin-form">
         <fieldset disabled={saving} className="contents">
           {error && (
@@ -308,258 +298,5 @@ export function PromoForm({
           </div>
         </fieldset>
       </form>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <fieldset disabled={saving} className="space-y-5">
-        {error && <div role="alert" className={`rounded-lg px-4 py-3 text-sm ${errorBox}`}>{error}</div>}
-
-        <div className="space-y-1">
-          <Label htmlFor="p-title">Name</Label>
-          <Input
-            id="p-title"
-            required
-            placeholder="e.g. Clearing the fridge"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className={border}
-          />
-          <p className={`text-xs ${muted}`}>Customers see this on the menu.</p>
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor="p-desc">Description</Label>
-          <Input
-            id="p-desc"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className={border}
-          />
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor="p-code">Code</Label>
-          <Input
-            id="p-code"
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="Leave blank to always apply"
-            autoComplete="off"
-            className={border}
-          />
-          <p className={`text-xs ${muted}`}>Set one and this only applies when a guest types it in.</p>
-        </div>
-
-        {branches && !promo && (
-          <div className="space-y-1">
-            <Label htmlFor="p-branch">Branch</Label>
-            <select
-              id="p-branch"
-              value={branchId}
-              onChange={(e) => setBranchId(e.target.value)}
-              className={`h-10 w-full rounded-lg border bg-white px-3 text-sm ${border}`}
-            >
-              <option value="">All branches</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Target */}
-        <div className={`space-y-3 rounded-lg border p-4 ${border}`}>
-          <Label>What does this apply to?</Label>
-
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setTargetType("item")}
-              className={`flex-1 rounded-lg px-3 py-2 text-sm ${
-                targetType === "item"
-                  ? isBranch
-                    ? "bg-emerald/15 text-emerald-dark"
-                    : "bg-gold-soft text-[#8a6a28]"
-                  : `border ${border} ${muted}`
-              }`}
-            >
-              One item
-            </button>
-            <button
-              type="button"
-              onClick={() => setTargetType("sub_category")}
-              className={`flex-1 rounded-lg px-3 py-2 text-sm ${
-                targetType === "sub_category"
-                  ? isBranch
-                    ? "bg-emerald/15 text-emerald-dark"
-                    : "bg-gold-soft text-[#8a6a28]"
-                  : `border ${border} ${muted}`
-              }`}
-            >
-              A sub-category
-            </button>
-            <button
-              type="button"
-              onClick={() => setTargetType("category")}
-              className={`flex-1 rounded-lg px-3 py-2 text-sm ${
-                targetType === "category"
-                  ? isBranch
-                    ? "bg-emerald/15 text-emerald-dark"
-                    : "bg-gold-soft text-[#8a6a28]"
-                  : `border ${border} ${muted}`
-              }`}
-            >
-              A whole category
-            </button>
-          </div>
-
-          {targetType === "item" ? (
-            <select
-              value={itemId}
-              onChange={(e) => setItemId(e.target.value)}
-              className={`h-10 w-full rounded-lg border bg-white px-3 text-sm ${border}`}
-            >
-              <option value="">Choose an item…</option>
-              {items.map((i) => (
-                <option key={i.id} value={i.id}>
-                  {i.title}
-                </option>
-              ))}
-            </select>
-          ) : targetType === "sub_category" ? (
-            <select
-              value={subCategoryId}
-              onChange={(e) => setSubCategoryId(e.target.value)}
-              className={`h-10 w-full rounded-lg border bg-white px-3 text-sm ${border}`}
-            >
-              <option value="">Choose a sub-category…</option>
-              {subCategories.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className={`h-10 w-full rounded-lg border bg-white px-3 text-sm ${border}`}
-            >
-              <option value="">Choose a category…</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-
-        {/* Discount */}
-        <div className={`space-y-3 rounded-lg border p-4 ${border}`}>
-          <Label>How much off?</Label>
-
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setDiscountType("percentage")}
-              className={`flex-1 rounded-lg px-3 py-2 text-sm ${
-                discountType === "percentage"
-                  ? isBranch
-                    ? "bg-emerald/15 text-emerald-dark"
-                    : "bg-gold-soft text-[#8a6a28]"
-                  : `border ${border} ${muted}`
-              }`}
-            >
-              Percentage off
-            </button>
-            <button
-              type="button"
-              onClick={() => setDiscountType("fixed_price")}
-              className={`flex-1 rounded-lg px-3 py-2 text-sm ${
-                discountType === "fixed_price"
-                  ? isBranch
-                    ? "bg-emerald/15 text-emerald-dark"
-                    : "bg-gold-soft text-[#8a6a28]"
-                  : `border ${border} ${muted}`
-              }`}
-            >
-              Set a new price
-            </button>
-          </div>
-
-          {discountType === "percentage" ? (
-            <div className="space-y-1">
-              <Label htmlFor="p-percent">Percent off</Label>
-              <Input
-                id="p-percent"
-                type="number"
-                min="1"
-                max="100"
-                value={percent}
-                onChange={(e) => setPercent(e.target.value)}
-                className={border}
-              />
-            </div>
-          ) : (
-            <div className="space-y-1">
-              <Label htmlFor="p-price">Promotional price (£)</Label>
-              <Input
-                id="p-price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={fixedPrice}
-                onChange={(e) => setFixedPrice(e.target.value)}
-                className={border}
-              />
-              <p className={`text-xs ${muted}`}>
-                Overrides any percentage discounts on the same item.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Window */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1">
-            <Label htmlFor="p-start">Starts</Label>
-            <Input
-              id="p-start"
-              type="datetime-local"
-              value={startsAt}
-              onChange={(e) => setStartsAt(e.target.value)}
-              onClick={(e) => e.currentTarget.showPicker?.()}
-              className={border}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="p-end">Ends</Label>
-            <Input
-              id="p-end"
-              type="datetime-local"
-              value={endsAt}
-              onChange={(e) => setEndsAt(e.target.value)}
-              onClick={(e) => e.currentTarget.showPicker?.()}
-              className={border}
-            />
-          </div>
-        </div>
-        <p className={`-mt-2 text-xs ${muted}`}>Leave either blank for no limit.</p>
-
-        <div className="flex gap-3 pt-1">
-          <Button type="submit" disabled={saving} className={primary}>
-            {saving ? "Saving…" : promo ? "Save changes" : "Create promotion"}
-          </Button>
-          <Button type="button" variant="ghost" onClick={onCancel}>
-            Cancel
-          </Button>
-        </div>
-      </fieldset>
-    </form>
   );
 }

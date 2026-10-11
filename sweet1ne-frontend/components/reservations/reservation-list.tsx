@@ -100,34 +100,24 @@ export function ReservationList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const isBranch = tone === "branch";
+  // tone is kept on the prop for every caller — branch and admin now share
+  // the one dark look below, so it's no longer read for styling.
+  void tone;
+  const isBranch = false;
 
-  const card = isBranch
-    ? "border-slate-bg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-    : "border-[var(--gold-line)] bg-[var(--panel)]";
-  const text = isBranch ? "text-navy" : "text-[var(--ivory)]";
-  const muted = isBranch ? "text-slate-muted" : "text-[var(--ivory-dim)]";
-  const subtle = isBranch ? "text-slate-subtle" : "text-[var(--ivory-dim)]";
-  const accept = isBranch
-    ? "bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
-    : "admin-book";
-  const decline = isBranch
-    ? "bg-danger-bg text-danger hover:bg-danger/15"
-    : "admin-edit";
+  const card = "border-[var(--gold-line)] bg-[var(--panel)]";
+  const text = "text-[var(--ivory)]";
+  const muted = "text-[var(--ivory-dim)]";
+  const subtle = "text-[var(--ivory-dim)]";
+  const accept = "admin-book";
+  const decline = "admin-edit";
 
-  const statusStyles: Record<string, string> = isBranch
-    ? {
-        pending: "bg-warning-bg text-warning",
-        confirmed: "bg-success-bg text-success",
-        declined: "bg-danger-bg text-danger",
-        cancelled: "bg-slate-bg text-slate-subtle",
-      }
-    : {
-        pending: "border border-[var(--gold-line)] text-[var(--gold)]",
-        confirmed: "bg-[var(--gold)] text-[#0e0e0e]",
-        declined: "text-[var(--ivory-dim)] line-through",
-        cancelled: "text-[var(--ivory-dim)]",
-      };
+  const statusStyles: Record<string, string> = {
+    pending: "border border-[var(--gold-line)] text-[var(--gold)]",
+    confirmed: "bg-[var(--gold)] text-[#0e0e0e]",
+    declined: "text-[var(--ivory-dim)] line-through",
+    cancelled: "text-[var(--ivory-dim)]",
+  };
 
   const load = useCallback(() => {
     const params = new URLSearchParams();

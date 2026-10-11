@@ -94,7 +94,11 @@ export function SubscriberList({
     setDrawerSlot(document.getElementById("admin-drawer-slot"));
   }, []);
 
-  const isBranch = tone === "branch";
+  // tone is kept on the prop for every caller — branch and admin now share
+  // the one dark look (isBranch=false resolves every ternary below to its
+  // admin/dark branch) so it's no longer read for styling.
+  void tone;
+  const isBranch = false;
 
   const card = isBranch
     ? "border-slate-bg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
@@ -677,7 +681,8 @@ function StatCard({
   tone: "admin" | "branch";
   accent: "primary" | "info" | "success" | "muted";
 }) {
-  const isBranch = tone === "branch";
+  void tone;
+  const isBranch = false;
 
   const accents = isBranch
     ? {
