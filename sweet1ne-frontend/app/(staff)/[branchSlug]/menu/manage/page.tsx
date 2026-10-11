@@ -1,17 +1,15 @@
 "use client";
 
 import { use, useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { CategoryManager } from "@/components/menu/category-manager";
 import { MenuItemForm } from "@/components/menu/menu-item-form";
 import type { MainCategory, MenuItem, SubCategory } from "@/components/menu/menu-browser";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
 
@@ -37,8 +35,14 @@ export default function MenuManagePage({
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<MenuItem | undefined>();
   const [confirmDelete, setConfirmDelete] = useState<MenuItem | null>(null);
+  const [drawerSlot, setDrawerSlot] = useState<Element | null>(null);
 
   const canEdit = hasPermission(me, "edit_menu");
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reading a real DOM node from a sibling tree, only available after commit
+    setDrawerSlot(document.getElementById("admin-drawer-slot"));
+  }, []);
 
   const load = useCallback(() => {
     return Promise.all([
@@ -79,19 +83,22 @@ export default function MenuManagePage({
 
   async function toggleAvailability(item: MenuItem) {
     setError(null);
+    const next = { ...item, is_available: !item.is_available };
+    setItems((prev) => prev.map((i) => (i.id === item.id ? next : i)));
     try {
       const updated = await apiFetch(`/staff/menu/menu-items/${item.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ is_available: !item.is_available }),
+        body: JSON.stringify({ is_available: next.is_available }),
       });
       setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
     } catch (err) {
+      setItems((prev) => prev.map((i) => (i.id === item.id ? item : i)));
       setError(err instanceof Error ? err.message : "Couldn't update availability.");
     }
   }
 
   if (meLoading || !me || !canEdit) {
-    return <p className="text-sm text-slate-muted">Loading…</p>;
+    return <AdminLoading />;
   }
 
   const subById = new Map(subs.map((s) => [s.id, s]));
@@ -120,98 +127,66 @@ export default function MenuManagePage({
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-semibold text-navy max-md:hidden">Menu</h1>
-          <p className="mt-1 text-sm text-slate-subtle">
-            {items.length} item{items.length === 1 ? "" : "s"} across {mains.length}{" "}
-            categor{mains.length === 1 ? "y" : "ies"}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href={`/${branchSlug}/menu/preview`}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-border bg-white px-3.5 text-sm text-slate-subtle transition-colors hover:text-navy"
-          >
-            <Eye size={15} />
-            Preview as customer
-          </Link>
-          {tab === "items" && (
-            <Button
-              onClick={() => {
-                setEditing(undefined);
-                setFormOpen(true);
-              }}
-              className="bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
-            >
-              <Plus size={16} className="mr-1.5" />
-              Add item
-            </Button>
-          )}
-        </div>
+    <>
+      <div className="admin-top">
+        <p className="admin-who">{me?.email ?? "—"}</p>
       </div>
 
-      {error && (
-        <div
-          role="alert"
-          className="rounded-xl border border-danger/25 bg-danger-bg px-4 py-3 text-sm text-danger"
-        >
-          {error}
-        </div>
-      )}
+      <h1>Menu</h1>
+      <p className="admin-dek">
+        {items.length} item{items.length === 1 ? "" : "s"} across {mains.length}{" "}
+        categor{mains.length === 1 ? "y" : "ies"}
+      </p>
 
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-slate-border">
+      {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
+
+      <div className="admin-tools">
+        <Link href={`/${branchSlug}/menu/preview`} className="admin-book">
+          Preview as customer
+        </Link>
+        {tab === "items" && (
+          <button
+            type="button"
+            className="admin-book ml-auto"
+            onClick={() => {
+              setEditing(undefined);
+              setFormOpen(true);
+            }}
+          >
+            Add item
+          </button>
+        )}
+      </div>
+
+      <div className="admin-cats" role="group" aria-label="View">
         {TABS.map((t) => (
           <button
             key={t.key}
+            type="button"
+            className={tab === t.key ? "is-on" : undefined}
             onClick={() => setTab(t.key)}
-            className={`relative px-4 py-2.5 text-sm transition-colors ${
-              tab === t.key
-                ? "font-medium text-emerald-dark"
-                : "text-slate-muted hover:text-navy"
-            }`}
           >
-            {t.label}
-            <span className="ml-1.5 text-xs text-slate-muted">{t.count}</span>
-            {tab === t.key && (
-              <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-emerald" />
-            )}
+            {t.label} {t.count}
           </button>
         ))}
       </div>
 
       {tab === "mains" && (
-        <CategoryManager tone="branch" level="main" mains={mains} subs={subs} onChanged={load} />
+        <CategoryManager tone="admin" level="main" mains={mains} subs={subs} onChanged={load} />
       )}
       {tab === "subs" && (
-        <CategoryManager tone="branch" level="sub" mains={mains} subs={subs} onChanged={load} />
+        <CategoryManager tone="admin" level="sub" mains={mains} subs={subs} onChanged={load} />
       )}
 
       {tab === "items" && (
         <>
-          {/* Filters */}
-          <div className="flex flex-wrap gap-3">
-            <div className="relative min-w-[200px] flex-1">
-              <Search
-                size={15}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-muted"
-              />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search items…"
-                className="h-10 border-slate-border bg-white pl-9"
-              />
-            </div>
-            <select
-              value={mainFilter}
-              onChange={(e) => setMainFilter(e.target.value)}
-              className="h-10 rounded-lg border border-slate-border bg-white px-3 text-sm"
-            >
+          <div className="admin-tools">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search items…"
+            />
+            <select value={mainFilter} onChange={(e) => setMainFilter(e.target.value)}>
               <option value="">All categories</option>
               {mains.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -222,176 +197,149 @@ export default function MenuManagePage({
           </div>
 
           {loading ? (
-            <p className="text-sm text-slate-muted">Loading…</p>
+            <AdminLoading />
           ) : visibleItems.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-border bg-white/50 px-6 py-16 text-center">
-              <p className="text-sm text-slate-muted">
-                {items.length === 0
-                  ? "No items yet. Add your first one to get started."
-                  : "No items match these filters."}
-              </p>
-            </div>
+            <p className="admin-empty">
+              {items.length === 0
+                ? "No items yet. Add your first one to get started."
+                : "No items match these filters."}
+            </p>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-slate-bg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-              <div className="hidden border-b border-slate-border bg-slate-bg/50 px-5 py-3 text-[11px] uppercase tracking-[0.12em] text-slate-muted md:grid md:grid-cols-[1.6fr_1fr_100px_110px_90px] md:gap-4">
-                <span>Item</span>
-                <span>Category</span>
-                <span className="text-right">Price</span>
-                <span>Availability</span>
-                <span className="text-right">Actions</span>
-              </div>
+            <div className="admin-data-panel">
+              <table className="admin-sheet">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Availability</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleItems.map((item) => {
+                    const sub = subById.get(item.sub_category_id);
+                    const main = sub ? mainById.get(sub.main_category_id) : undefined;
 
-              <ul className="divide-y divide-slate-bg">
-                {visibleItems.map((item) => {
-                  const sub = subById.get(item.sub_category_id);
-                  const main = sub ? mainById.get(sub.main_category_id) : undefined;
-
-                  return (
-                    <li
-                      key={item.id}
-                      className="px-5 py-3.5 md:grid md:grid-cols-[1.6fr_1fr_100px_110px_90px] md:items-center md:gap-4"
-                    >
-                      <div className="flex items-center gap-3">
-                        {item.picture ? (
-                          <img
-                            src={item.picture}
-                            alt=""
-                            className="h-10 w-10 shrink-0 rounded-lg object-cover"
-                          />
-                        ) : (
-                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-bg text-[10px] text-slate-muted">
-                            —
-                          </span>
-                        )}
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-navy">{item.title}</p>
-                          {item.description && (
-                            <p className="truncate text-xs text-slate-muted">{item.description}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1.5 max-md:mt-2 max-md:pl-13">
-                        {main && (
-                          <span className="rounded-full bg-purple-bg px-2 py-0.5 text-xs text-purple">
-                            {main.name}
-                          </span>
-                        )}
-                        {sub && (
-                          <span className="rounded-full bg-info-bg px-2 py-0.5 text-xs text-info">
-                            {sub.name}
-                          </span>
-                        )}
-                      </div>
-
-                      <span className="text-sm font-medium tabular-nums text-navy max-md:mt-2 max-md:block md:text-right">
-                        {gbp.format(item.price)}
-                      </span>
-
-                      <div className="max-md:mt-2">
-                        <button
-                          onClick={() => toggleAvailability(item)}
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium transition-opacity hover:opacity-80 ${
-                            item.is_available
-                              ? "bg-success-bg text-success"
-                              : "bg-slate-bg text-slate-subtle"
-                          }`}
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              item.is_available ? "bg-success" : "bg-slate-muted"
-                            }`}
-                          />
-                          {item.is_available ? "Available" : "Off menu"}
-                        </button>
-                      </div>
-
-                      <div className="flex gap-1 max-md:mt-3 md:justify-end">
-                        <button
-                          onClick={() => {
-                            setEditing(item);
-                            setFormOpen(true);
-                          }}
-                          aria-label="Edit"
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-muted hover:bg-info-bg hover:text-info"
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <button
-                          onClick={() => setConfirmDelete(item)}
-                          aria-label="Remove"
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-muted hover:bg-danger-bg hover:text-danger"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                    return (
+                      <tr key={item.id}>
+                        <td>
+                          <div className="flex items-center gap-3">
+                            {item.picture ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={item.picture}
+                                alt=""
+                                className="h-10 w-10 shrink-0 rounded object-cover"
+                              />
+                            ) : (
+                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-[var(--gold-line)] text-[10px] text-[var(--ivory-dim)]">
+                                —
+                              </span>
+                            )}
+                            <div className="min-w-0">
+                              <p className="admin-name truncate">{item.title}</p>
+                              {item.description && (
+                                <p className="admin-muted truncate text-xs">{item.description}</p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="admin-muted">
+                          {main?.name}
+                          {sub ? ` · ${sub.name}` : ""}
+                        </td>
+                        <td className="admin-price">{gbp.format(item.price)}</td>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() => toggleAvailability(item)}
+                            className={item.is_available ? "admin-edit" : "admin-edit"}
+                          >
+                            {item.is_available ? "Available" : "Off menu"}
+                          </button>
+                        </td>
+                        <td>
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              className="admin-edit"
+                              onClick={() => {
+                                setEditing(item);
+                                setFormOpen(true);
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="admin-edit"
+                              onClick={() => setConfirmDelete(item)}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </>
       )}
 
-      {/* Item form */}
-      <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-navy">
-              {editing ? "Edit item" : "Add item"}
-            </DialogTitle>
-          </DialogHeader>
-          <MenuItemForm
-            tone="branch"
-            item={editing}
-            mains={mains}
-            subs={subs}
-            onSaved={(saved) => {
-              setItems((prev) =>
-                editing ? prev.map((i) => (i.id === saved.id ? saved : i)) : [...prev, saved]
-              );
-              setFormOpen(false);
-              setEditing(undefined);
-            }}
-            onCancel={() => {
-              setFormOpen(false);
-              setEditing(undefined);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
+      {formOpen &&
+        drawerSlot &&
+        createPortal(
+          <aside className="admin-drawer-edit">
+            <h2>{editing ? "Edit item" : "Add item"}</h2>
+            <MenuItemForm
+              tone="admin"
+              item={editing}
+              mains={mains}
+              subs={subs}
+              onSaved={(saved) => {
+                setItems((prev) =>
+                  editing ? prev.map((i) => (i.id === saved.id ? saved : i)) : [...prev, saved]
+                );
+                setFormOpen(false);
+                setEditing(undefined);
+              }}
+              onCancel={() => {
+                setFormOpen(false);
+                setEditing(undefined);
+              }}
+            />
+          </aside>,
+          drawerSlot
+        )}
 
-      {/* Delete confirmation */}
-      <Dialog
-        open={confirmDelete !== null}
-        onOpenChange={(open) => !open && setConfirmDelete(null)}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-navy">
-              Remove {confirmDelete?.title}?
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-slate-subtle">
+      {confirmDelete &&
+        drawerSlot &&
+        createPortal(
+          <aside className="admin-drawer-edit">
+            <h2>Remove {confirmDelete.title}?</h2>
+            <p className="admin-dek">
               This takes the item off the menu. Past orders that included it stay intact, and you
               can put it back at any time.
             </p>
             <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => setConfirmDelete(null)}>
+              <button type="button" className="admin-book" onClick={() => setConfirmDelete(null)}>
                 Cancel
-              </Button>
-              <Button
-                onClick={() => confirmDelete && remove(confirmDelete)}
-                className="bg-danger text-white hover:bg-danger/90"
+              </button>
+              <button
+                type="button"
+                className="admin-book"
+                onClick={() => remove(confirmDelete)}
               >
                 Remove
-              </Button>
+              </button>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </aside>,
+          drawerSlot
+        )}
+    </>
   );
 }

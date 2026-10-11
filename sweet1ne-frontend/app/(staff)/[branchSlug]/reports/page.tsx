@@ -4,6 +4,7 @@ import { use, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { ReportView } from "@/components/reports/report-view";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 export default function BranchReportsPage({
   params,
@@ -21,7 +22,7 @@ export default function BranchReportsPage({
   }, [me, loading, canView, branchSlug, router]);
 
   if (loading || !me || !canView) {
-    return <p className="text-sm text-slate-muted">Loading…</p>;
+    return <AdminLoading />;
   }
 
   return (
@@ -29,17 +30,18 @@ export default function BranchReportsPage({
       title="Reports"
       showBranchComparison={false}
       palette={{
-        accent: "#10B981",
-        accentSoft: "#D1FAE5",
-        text: "text-navy",
-        muted: "text-slate-muted",
-        card: "bg-white",
-        border: "border-slate-bg",
-        activeTab: "bg-gradient-to-br from-emerald to-emerald-dark text-white",
-        inactiveTab: "border border-slate-border bg-white text-slate-subtle hover:text-navy",
-        positive: "text-success",
-        negative: "text-danger",
-        series: ["#10B981", "#2563EB", "#CA8A04", "#7C3AED", "#DC2626", "#16A34A"],
+        accent: "#c9a24a",
+        accentSoft: "rgba(201,162,74,0.12)",
+        text: "text-[var(--ivory)]",
+        muted: "text-[var(--ivory-dim)]",
+        card: "bg-[var(--panel-2)]",
+        border: "border-[var(--gold-line)]",
+        activeTab: "bg-[var(--gold)] text-[#0e0e0e]",
+        inactiveTab:
+          "border border-[var(--gold-line)] bg-[var(--panel)] text-[var(--ivory-dim)] hover:text-[var(--ivory)]",
+        positive: "text-[var(--gold)]",
+        negative: "text-[var(--ivory-dim)]",
+        series: ["#c9a24a", "#7c9473", "#4a8f91", "#8a7bab", "#b8724a", "#a15c78"],
       }}
     />
   );

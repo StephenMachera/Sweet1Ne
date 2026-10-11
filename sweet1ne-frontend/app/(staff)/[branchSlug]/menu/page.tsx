@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { MenuBrowser, type CartLine } from "@/components/menu/menu-browser";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 type Table = { id: string; number: number; region: string | null; seats: number };
 
@@ -64,18 +63,14 @@ export default function BranchMenuPage({
   }
 
   if (meLoading || !me || !canView || canEdit) {
-    return <p className="text-sm text-slate-muted">Loading…</p>;
+    return <AdminLoading />;
   }
 
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-3xl font-semibold text-navy max-md:hidden">Menu</h1>
-        {canOrder && (
-          <p className="mt-1 text-sm text-slate-subtle">
-            Pick a table, add items, then send the order.
-          </p>
-        )}
+        <h1 className="max-md:hidden">Menu</h1>
+        {canOrder && <p className="admin-dek">Pick a table, add items, then send the order.</p>}
       </div>
 
       {confirmation && (
@@ -90,15 +85,10 @@ export default function BranchMenuPage({
         onSubmitOrder={canOrder ? submitOrder : undefined}
         headerSlot={
           canOrder ? (
-            <div className="grid gap-3 rounded-xl border border-slate-bg bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] sm:grid-cols-3">
-              <div className="space-y-1">
-                <Label htmlFor="table">Table</Label>
-                <select
-                  id="table"
-                  value={tableId}
-                  onChange={(e) => setTableId(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-slate-border bg-white px-3 text-sm"
-                >
+            <div className="admin-form grid gap-3 sm:grid-cols-3">
+              <label>
+                Table
+                <select id="table" value={tableId} onChange={(e) => setTableId(e.target.value)}>
                   <option value="">Choose a table…</option>
                   {tables.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -107,27 +97,25 @@ export default function BranchMenuPage({
                     </option>
                   ))}
                 </select>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="seat">Seat (optional)</Label>
-                <Input
+              </label>
+              <label>
+                Seat (optional)
+                <input
                   id="seat"
                   type="number"
                   min="1"
                   value={seatNumber}
                   onChange={(e) => setSeatNumber(e.target.value)}
-                  className="h-10 border-slate-border"
                 />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="request">Special request</Label>
-                <Input
+              </label>
+              <label>
+                Special request
+                <input
                   id="request"
                   value={specialRequest}
                   onChange={(e) => setSpecialRequest(e.target.value)}
-                  className="h-10 border-slate-border"
                 />
-              </div>
+              </label>
             </div>
           ) : null
         }
