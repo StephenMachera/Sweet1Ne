@@ -87,6 +87,9 @@ export default function BranchLayout({
       <main className="min-w-0">
         <div className="admin-stage">{children}</div>
       </main>
+      {/* Same portal target as /admin — pages editing something (tables,
+          menu items, etc.) mount an .admin-drawer-edit here. */}
+      <div id="admin-drawer-slot" />
     </div>
   );
 }

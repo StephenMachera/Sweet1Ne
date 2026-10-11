@@ -197,7 +197,7 @@ function BranchEventForm({ event, branches, onSaved, onCancel }: BranchProps) {
         <div className="space-y-2">
           <Label htmlFor="e-image">Image</Label>
           {imageUrl ? (
-            <div className="relative overflow-hidden rounded-xl border border-slate-border">
+            <div className="relative overflow-hidden rounded-xl border border-[var(--gold-line)]">
               <img src={imageUrl} alt="" className="h-40 w-full object-cover" />
               <button
                 type="button"
@@ -210,7 +210,7 @@ function BranchEventForm({ event, branches, onSaved, onCancel }: BranchProps) {
           ) : (
             <label
               htmlFor="e-image"
-              className="flex h-32 cursor-pointer items-center justify-center rounded-xl border border-dashed border-slate-border text-sm text-slate-muted"
+              className="flex h-32 cursor-pointer items-center justify-center rounded-xl border border-dashed border-[var(--gold-line)] text-sm text-[var(--ivory-dim)]"
             >
               {uploading ? "Uploading…" : "Click to upload an image"}
             </label>
@@ -222,7 +222,7 @@ function BranchEventForm({ event, branches, onSaved, onCancel }: BranchProps) {
             onChange={uploadImage}
             className="hidden"
           />
-          <p className="text-xs text-slate-muted">
+          <p className="text-xs text-[var(--ivory-dim)]">
             Appears on the website and in the popup. Landscape works best.
           </p>
         </div>
@@ -235,14 +235,14 @@ function BranchEventForm({ event, branches, onSaved, onCancel }: BranchProps) {
             placeholder="e.g. Sax & Mood Brunch"
             value={title}
             onChange={(e) => changeTitle(e.target.value)}
-            className="border-slate-border"
+            className="border-[var(--gold-line)] bg-[#050505] text-[var(--ivory)]"
           />
         </div>
 
         <div className="space-y-1">
           <Label htmlFor="e-slug">Web address</Label>
           <div className="flex items-center gap-2">
-            <span className="shrink-0 text-sm text-slate-muted">/events/</span>
+            <span className="shrink-0 text-sm text-[var(--ivory-dim)]">/events/</span>
             <Input
               id="e-slug"
               required
@@ -251,7 +251,7 @@ function BranchEventForm({ event, branches, onSaved, onCancel }: BranchProps) {
                 setSlugTouched(true);
                 setSlug(slugify(e.target.value));
               }}
-              className="font-mono border-slate-border"
+              className="font-mono border-[var(--gold-line)] bg-[#050505] text-[var(--ivory)]"
             />
           </div>
         </div>
@@ -263,7 +263,7 @@ function BranchEventForm({ event, branches, onSaved, onCancel }: BranchProps) {
             placeholder="One line — shown under the title"
             value={tagline}
             onChange={(e) => setTagline(e.target.value)}
-            className="border-slate-border"
+            className="border-[var(--gold-line)] bg-[#050505] text-[var(--ivory)]"
           />
         </div>
 
@@ -275,7 +275,7 @@ function BranchEventForm({ event, branches, onSaved, onCancel }: BranchProps) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="The full details. Leave a blank line between paragraphs."
-            className="w-full rounded-lg border border-slate-border bg-white px-3 py-2.5 text-sm"
+            className="w-full rounded-lg border border-[var(--gold-line)] bg-[#050505] text-[var(--ivory)] px-3 py-2.5 text-sm"
           />
         </div>
 
@@ -289,7 +289,7 @@ function BranchEventForm({ event, branches, onSaved, onCancel }: BranchProps) {
               value={startsAt}
               onChange={(e) => setStartsAt(e.target.value)}
               onClick={(e) => e.currentTarget.showPicker?.()}
-              className="border-slate-border"
+              className="border-[var(--gold-line)] bg-[#050505] text-[var(--ivory)]"
             />
           </div>
           <div className="space-y-1">
@@ -300,9 +300,9 @@ function BranchEventForm({ event, branches, onSaved, onCancel }: BranchProps) {
               value={endsAt}
               onChange={(e) => setEndsAt(e.target.value)}
               onClick={(e) => e.currentTarget.showPicker?.()}
-              className="border-slate-border"
+              className="border-[var(--gold-line)] bg-[#050505] text-[var(--ivory)]"
             />
-            <p className="text-xs text-slate-muted">Optional.</p>
+            <p className="text-xs text-[var(--ivory-dim)]">Optional.</p>
           </div>
         </div>
 
@@ -313,7 +313,7 @@ function BranchEventForm({ event, branches, onSaved, onCancel }: BranchProps) {
             placeholder="e.g. £25 per person, Free entry, Booking required"
             value={priceNote}
             onChange={(e) => setPriceNote(e.target.value)}
-            className="border-slate-border"
+            className="border-[var(--gold-line)] bg-[#050505] text-[var(--ivory)]"
           />
         </div>
 
@@ -324,7 +324,7 @@ function BranchEventForm({ event, branches, onSaved, onCancel }: BranchProps) {
               id="e-branch"
               value={branchId}
               onChange={(e) => setBranchId(e.target.value)}
-              className="h-10 w-full rounded-lg border border-slate-border bg-white px-3 text-sm"
+              className="h-10 w-full rounded-lg border border-[var(--gold-line)] bg-[#050505] text-[var(--ivory)] px-3 text-sm"
             >
               <option value="">Both branches</option>
               {branches.map((b) => (
@@ -336,16 +336,16 @@ function BranchEventForm({ event, branches, onSaved, onCancel }: BranchProps) {
           </div>
         )}
 
-        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-border p-4">
+        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-[var(--gold-line)] p-4">
           <input
             type="checkbox"
             checked={isFeatured}
             onChange={(e) => setIsFeatured(e.target.checked)}
-            className="mt-0.5 h-4 w-4 accent-[#10b981]"
+            className="mt-0.5 h-4 w-4 accent-[var(--gold)]"
           />
           <span className="text-sm">
-            <span className="text-navy">Announce this on the website</span>
-            <span className="mt-0.5 block text-xs text-slate-muted">
+            <span className="text-[var(--ivory)]">Announce this on the website</span>
+            <span className="mt-0.5 block text-xs text-[var(--ivory-dim)]">
               Shows a popup to visitors. Only the soonest announced event appears, so several can
               be ticked without competing.
             </span>
@@ -356,11 +356,16 @@ function BranchEventForm({ event, branches, onSaved, onCancel }: BranchProps) {
           <Button
             type="submit"
             disabled={saving || uploading}
-            className="bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
+            className="bg-[var(--gold)] text-[#0e0e0e] hover:bg-[#ead7a2]"
           >
             {saving ? "Saving…" : event ? "Save changes" : "Create event"}
           </Button>
-          <Button type="button" variant="ghost" onClick={onCancel}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onCancel}
+            className="text-[var(--ivory-dim)] hover:bg-white/5 hover:text-[var(--ivory)]"
+          >
             Cancel
           </Button>
         </div>

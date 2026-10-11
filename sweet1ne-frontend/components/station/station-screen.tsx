@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { useStationRealtime } from "@/lib/use-station-realtime";
 import { useAnnouncer, SoundControls } from "@/components/kitchen/announcer";
+import { AdminLoading } from "@/components/admin/admin-loading";
 
 type StationItem = {
   id: string;
@@ -47,7 +48,7 @@ function minutesSince(iso: string) {
 function urgency(minutes: number) {
   if (minutes >= 20) return { ring: "ring-2 ring-danger", text: "text-danger" };
   if (minutes >= 10) return { ring: "ring-2 ring-warning", text: "text-warning" };
-  return { ring: "", text: "text-slate-muted" };
+  return { ring: "", text: "text-[var(--ivory-dim)]" };
 }
 
 export function StationScreen({
@@ -169,8 +170,8 @@ export function StationScreen({
 
   if (meLoading || !me || !canAccess) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-bg">
-        <p className="text-sm text-slate-muted">Loading…</p>
+      <div className="admin-shell flex min-h-screen items-center justify-center bg-[var(--bg)]">
+        <AdminLoading />
       </div>
     );
   }
@@ -189,16 +190,16 @@ export function StationScreen({
   const done = orders.filter((o) => ["ready", "served"].includes(stationStatus(o)));
 
   return (
-    <div className="min-h-screen bg-slate-bg">
+    <div className="admin-shell min-h-screen bg-[var(--bg)] font-body text-[var(--ivory)]">
       {/* Slim header — no sidebar on a station screen */}
-      <header className="sticky top-0 z-20 border-b border-slate-border bg-white">
+      <header className="sticky top-0 z-20 border-b border-[var(--gold-line)] bg-[var(--panel)]">
         <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-white">
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--gold-line)] text-[var(--gold)]">
             <Icon size={19} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="font-display text-lg leading-tight text-navy">{title}</p>
-            <p className="truncate text-xs text-slate-muted">
+            <p className="font-display text-lg leading-tight text-[var(--ivory)]">{title}</p>
+            <p className="truncate text-xs text-[var(--ivory-dim)]">
               {me.full_name ?? me.email} · {branchSlug}
             </p>
           </div>
@@ -213,7 +214,7 @@ export function StationScreen({
           <button
             onClick={logout}
             aria-label="Log out"
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-border text-slate-muted hover:text-navy"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--gold-line)] text-[var(--ivory-dim)] hover:text-[var(--gold)]"
           >
             <LogOut size={17} />
           </button>
@@ -231,7 +232,7 @@ export function StationScreen({
         )}
 
         {loading ? (
-          <p className="text-sm text-slate-muted">Loading orders…</p>
+          <p className="text-sm text-[var(--ivory-dim)]">Loading orders…</p>
         ) : (
           <div className="grid gap-5 lg:grid-cols-3">
             <Column title={labels.arrived} count={arrived.length} accent="bg-warning">
@@ -277,17 +278,17 @@ export function StationScreen({
               {done.length === 0 ? (
                 <Empty text="Nothing ready yet." />
               ) : (
-                <div className="overflow-hidden rounded-xl border border-slate-bg bg-white">
-                  <ul className="divide-y divide-slate-bg">
+                <div className="overflow-hidden rounded-xl border border-[var(--gold-line)] bg-[var(--panel)]">
+                  <ul className="divide-y divide-[var(--gold-line)]">
                     {done.map((order) => {
                       const isServed = stationStatus(order) === "served";
                       return (
                         <li key={order.order_id} className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <span className="flex-1 text-sm font-medium text-navy">
+                            <span className="flex-1 text-sm font-medium text-[var(--ivory)]">
                               Table {order.table_number ?? "—"}
                               {order.seat_number && (
-                                <span className="ml-1.5 text-xs font-normal text-slate-muted">
+                                <span className="ml-1.5 text-xs font-normal text-[var(--ivory-dim)]">
                                   seat {order.seat_number}
                                 </span>
                               )}
@@ -295,7 +296,7 @@ export function StationScreen({
                             <span
                               className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                                 isServed
-                                  ? "bg-slate-bg text-slate-subtle"
+                                  ? "bg-white/5 text-[var(--ivory-dim)]"
                                   : "bg-success-bg text-success"
                               }`}
                             >
@@ -303,7 +304,7 @@ export function StationScreen({
                             </span>
                           </div>
 
-                          <p className="mt-1 truncate text-xs text-slate-muted">
+                          <p className="mt-1 truncate text-xs text-[var(--ivory-dim)]">
                             {order.items
                               .map((i) => `${i.quantity}× ${i.menu_item_title}`)
                               .join(", ")}
@@ -314,14 +315,14 @@ export function StationScreen({
                               <button
                                 onClick={() => advance(order, "served")}
                                 disabled={busy === order.order_id}
-                                className="rounded-lg bg-emerald px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60"
+                                className="rounded-lg bg-[var(--gold)] px-3 py-1.5 text-xs font-medium text-[#0e0e0e] disabled:opacity-60"
                               >
                                 Mark collected
                               </button>
                             )}
                             <button
                               onClick={() => window.print()}
-                              className="flex items-center gap-1.5 rounded-lg border border-slate-border px-3 py-1.5 text-xs text-slate-muted"
+                              className="flex items-center gap-1.5 rounded-lg border border-[var(--gold-line)] px-3 py-1.5 text-xs text-[var(--ivory-dim)]"
                             >
                               <Printer size={13} />
                               Print
@@ -358,8 +359,10 @@ function Column({
     <section>
       <div className="mb-3 flex items-center gap-2">
         <span className={`h-2 w-2 rounded-full ${accent}`} />
-        <h2 className="font-semibold text-navy">{title}</h2>
-        <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-subtle">{count}</span>
+        <h2 className="font-semibold text-[var(--ivory)]">{title}</h2>
+        <span className="rounded-full border border-[var(--gold-line)] px-2 py-0.5 text-xs text-[var(--ivory-dim)]">
+          {count}
+        </span>
       </div>
       <div className="space-y-3">{children}</div>
     </section>
@@ -368,8 +371,8 @@ function Column({
 
 function Empty({ text }: { text: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-border bg-white/50 px-4 py-10 text-center">
-      <p className="text-sm text-slate-muted">{text}</p>
+    <div className="rounded-xl border border-dashed border-[var(--gold-line)] bg-white/[0.02] px-4 py-10 text-center">
+      <p className="text-sm text-[var(--ivory-dim)]">{text}</p>
     </div>
   );
 }
@@ -389,11 +392,11 @@ function OrderCard({
   const { ring, text } = urgency(waited);
 
   return (
-    <div className={`rounded-xl border border-slate-bg bg-white p-4 ${ring}`}>
+    <div className={`rounded-xl border border-[var(--gold-line)] bg-[var(--panel)] p-4 ${ring}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-display text-xl text-navy">Table {order.table_number ?? "—"}</p>
-          <p className="mt-0.5 text-xs text-slate-muted">
+          <p className="font-display text-xl text-[var(--ivory)]">Table {order.table_number ?? "—"}</p>
+          <p className="mt-0.5 text-xs text-[var(--ivory-dim)]">
             {order.region && `${order.region} · `}
             {order.seat_number && `Seat ${order.seat_number} · `}
             {order.placed_by_name ?? "customer"}
@@ -417,10 +420,12 @@ function OrderCard({
       <ul className="mt-3 space-y-1.5">
         {order.items.map((item) => (
           <li key={item.id} className="flex items-baseline gap-3">
-            <span className="w-7 shrink-0 text-lg font-semibold tabular-nums text-navy">
+            <span className="w-7 shrink-0 text-lg font-semibold tabular-nums text-[var(--ivory)]">
               {item.quantity}×
             </span>
-            <span className="flex-1 text-[15px] text-body">{item.menu_item_title ?? "Item"}</span>
+            <span className="flex-1 text-[15px] text-[var(--ivory-dim)]">
+              {item.menu_item_title ?? "Item"}
+            </span>
           </li>
         ))}
       </ul>
@@ -437,7 +442,7 @@ function OrderCard({
             <button
               onClick={action.onClick}
               disabled={busy}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-emerald to-emerald-dark py-3.5 text-sm font-semibold text-white disabled:opacity-60"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--gold)] py-3.5 text-sm font-semibold text-[#0e0e0e] disabled:opacity-60"
             >
               <Check size={16} />
               {busy ? "Working…" : action.label}
@@ -448,7 +453,7 @@ function OrderCard({
               onClick={onUndo}
               disabled={busy}
               aria-label="Move back"
-              className="flex h-[46px] w-[46px] items-center justify-center rounded-xl border border-slate-border text-slate-muted disabled:opacity-60"
+              className="flex h-[46px] w-[46px] items-center justify-center rounded-xl border border-[var(--gold-line)] text-[var(--ivory-dim)] disabled:opacity-60"
             >
               <Undo2 size={17} />
             </button>

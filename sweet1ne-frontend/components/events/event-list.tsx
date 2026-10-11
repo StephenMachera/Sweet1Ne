@@ -51,20 +51,19 @@ export function EventList({
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Event | undefined>();
 
-  const isBranch = tone === "branch";
-
-  const card = isBranch
-    ? "border-slate-bg bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-    : "border-ink/8 bg-white shadow-[0_1px_3px_rgba(20,24,28,0.04)]";
-  const text = isBranch ? "text-navy" : "text-ink";
-  const muted = isBranch ? "text-slate-muted" : "text-ink-muted";
-  const subtle = isBranch ? "text-slate-subtle" : "text-ink-muted";
-  const primary = isBranch
-    ? "bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
-    : "bg-gold text-ink hover:bg-gold/90";
-  const liveBadge = isBranch ? "bg-success-bg text-success" : "bg-sage-soft text-sage";
-  const upcomingBadge = isBranch ? "bg-info-bg text-info" : "bg-teal-soft text-teal";
-  const pastBadge = isBranch ? "bg-slate-bg text-slate-subtle" : "bg-ink/5 text-ink-muted";
+  // Matched to the admin console's gold/ivory palette — design only, same
+  // simpler upload-based form either way (admin's events page uses its own
+  // unrelated block-composer, which this component was never asked to
+  // become; tone just names this card/colour set now).
+  void tone;
+  const card = "border-[var(--gold-line)] bg-gradient-to-b from-[var(--panel)] to-[#0a0a0a] shadow-[0_12px_40px_rgba(0,0,0,0.35)]";
+  const text = "text-[var(--ivory)]";
+  const muted = "text-[var(--ivory-dim)]";
+  const subtle = "text-[var(--ivory-dim)]";
+  const primary = "bg-[var(--gold)] text-[#0e0e0e] hover:bg-[#ead7a2]";
+  const liveBadge = "bg-[var(--gold)] text-[#0e0e0e]";
+  const upcomingBadge = "border border-[var(--gold-line)] text-[var(--gold)]";
+  const pastBadge = "border border-[var(--gold-line)] text-[var(--ivory-dim)]";
 
   const load = useCallback(
     () =>
@@ -113,11 +112,7 @@ export function EventList({
               className="h-24 w-24 shrink-0 rounded-lg object-cover sm:h-28 sm:w-40"
             />
           ) : (
-            <div
-              className={`flex h-24 w-24 shrink-0 items-center justify-center rounded-lg sm:h-28 sm:w-40 ${
-                isBranch ? "bg-slate-bg" : "bg-ink/5"
-              }`}
-            >
+            <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg bg-white/5 sm:h-28 sm:w-40">
               <CalendarDays size={22} strokeWidth={1} className={muted} />
             </div>
           )}
@@ -133,11 +128,7 @@ export function EventList({
                   </span>
                 )}
                 {event.is_featured && event.is_published && state !== "past" && (
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                      isBranch ? "bg-purple-bg text-purple" : "bg-violet-soft text-violet"
-                    }`}
-                  >
+                  <span className="rounded-full border border-[var(--gold-line)] px-2 py-0.5 text-[11px] font-medium text-[var(--gold)]">
                     Announced
                   </span>
                 )}
@@ -174,7 +165,7 @@ export function EventList({
                   setFormOpen(true);
                 }}
                 className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs ${muted} ${
-                  isBranch ? "hover:bg-slate-bg" : "hover:bg-ink/5"
+                  "hover:bg-white/5"
                 }`}
               >
                 <Pencil size={14} />
@@ -184,7 +175,7 @@ export function EventList({
               <button
                 onClick={() => togglePublished(event)}
                 className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs ${muted} ${
-                  isBranch ? "hover:bg-slate-bg" : "hover:bg-ink/5"
+                  "hover:bg-white/5"
                 }`}
               >
                 {event.is_published ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -197,7 +188,7 @@ export function EventList({
                   target="_blank"
                   rel="noreferrer"
                   className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs ${muted} ${
-                    isBranch ? "hover:bg-slate-bg" : "hover:bg-ink/5"
+                    "hover:bg-white/5"
                   }`}
                 >
                   <ExternalLink size={14} />
@@ -235,11 +226,7 @@ export function EventList({
       {error && (
         <div
           role="alert"
-          className={`rounded-xl px-4 py-3 text-sm ${
-            isBranch
-              ? "border border-danger/25 bg-danger-bg text-danger"
-              : "border border-ember/25 bg-ember-soft text-ember"
-          }`}
+          className="rounded-xl border border-danger/25 bg-danger-bg px-4 py-3 text-sm text-danger"
         >
           {error}
         </div>
@@ -248,11 +235,7 @@ export function EventList({
       {loading ? (
         <p className={`text-sm ${muted}`}>Loading…</p>
       ) : events.length === 0 ? (
-        <div
-          className={`rounded-xl border border-dashed px-6 py-16 text-center ${
-            isBranch ? "border-slate-border" : "border-ink/15"
-          }`}
-        >
+        <div className="rounded-xl border border-dashed border-[var(--gold-line)] px-6 py-16 text-center">
           <CalendarDays size={26} strokeWidth={1} className={`mx-auto ${muted}`} />
           <p className={`mt-3 text-sm ${muted}`}>
             No events yet. Create one and it&apos;ll appear on the website.
@@ -274,7 +257,10 @@ export function EventList({
       )}
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        {/* admin-shell here too — Dialog portals to document.body, outside
+           the layout's own admin-shell, so the --gold/--ivory custom
+           properties this form's colours depend on need their own scope. */}
+        <DialogContent className="admin-shell max-h-[90vh] overflow-y-auto border border-[var(--gold-line)] bg-[var(--panel)] text-[var(--ivory)] sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className={`text-xl font-semibold ${text}`}>
               {editing ? "Edit event" : "New event"}
