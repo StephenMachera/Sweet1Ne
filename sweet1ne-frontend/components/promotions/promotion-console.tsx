@@ -1120,14 +1120,6 @@ export function PromotionConsole({
             </button>
           </div>
 
-          <p className="admin-dek">
-            Same offer, three seats — each in its own place. Opening page:
-            full card, centred above the room words. Quiet line: short line
-            under the header. QR app: the same words on the table phone.
-            Gold means that seat is on. Buttons are yours: add them, take
-            them off, or switch each one on or off.
-          </p>
-
           {formOpen ? (
             <>
               <p className="admin-dek">{statusNote(draft, true)}</p>
