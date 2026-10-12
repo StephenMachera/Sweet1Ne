@@ -561,6 +561,11 @@ export function PromotionConsole({
       );
       setLookId(saved.id);
       closeForm();
+      // codesReport is its own fetched snapshot, not derived from
+      // `promotions` — a saved code (added or edited from the Codes tab)
+      // needs its own explicit refresh too, or it'd stay stale until the
+      // next view/branch-filter change triggers a refetch.
+      if (codesReport) loadCodesReport();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save that.");
     } finally {
@@ -868,7 +873,16 @@ export function PromotionConsole({
                                   type="button"
                                   aria-label="On"
                                   className={`admin-toggle${c.status === "live" ? " is-on" : ""}`}
-                                  onClick={() => full && toggleOn(full)}
+                                  onClick={async () => {
+                                    if (!full) return;
+                                    // codesReport is its own fetched snapshot, not
+                                    // derived from `promotions` — toggleOn only
+                                    // updates the latter, so without this the row
+                                    // (and the KPIs/notes above it) stay stale
+                                    // until the next view/branch-filter change.
+                                    await toggleOn(full);
+                                    loadCodesReport();
+                                  }}
                                 />
                               </td>
                               <td>
