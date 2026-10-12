@@ -164,7 +164,7 @@ class TestPromosForItem:
         category_id = uuid.uuid4()
         promo = make_promo(target_type="category", target_main_category_id=category_id)
 
-        matched = promos_for_item([promo], uuid.uuid4(), category_id)
+        matched = promos_for_item([promo], uuid.uuid4(), (None, category_id))
 
         assert matched == [promo]
 
@@ -192,6 +192,8 @@ class TestPromosForItem:
             target_type="category", target_main_category_id=category_id, title="Category"
         )
 
-        matched = promos_for_item([item_promo, category_promo], item_id, category_id)
+        matched = promos_for_item(
+            [item_promo, category_promo], item_id, (None, category_id)
+        )
 
         assert len(matched) == 2
