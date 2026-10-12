@@ -48,7 +48,11 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     heading: "Guest site",
     items: [
-      { label: "Menu", href: "/menu/manage", icon: UtensilsCrossed, permission: "view_menu" },
+      // edit_menu, not view_menu — /menu/manage's own gate needs edit_menu
+      // to actually load; a view_menu-only holder gets "Customer view"
+      // below instead, which is the page they can really use.
+      { label: "Menu", href: "/menu/manage", icon: UtensilsCrossed, permission: "edit_menu" },
+      { label: "Customer view", href: "/menu/preview", icon: UtensilsCrossed, permission: "view_menu" },
       { label: "Events", href: "/events", icon: CalendarDays, permission: "manage_promotions" },
       { label: "Media", href: "/media", icon: Images, permission: "manage_media" },
       { label: "Branches", href: "/branches", icon: Building2, permission: "manage_tenant" },
@@ -71,10 +75,9 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     heading: "People",
     items: [
-      // Placeholder permission — Inbox and Leads are both new; neither has
-      // a permission key of its own yet, so both sit on manage_marketing
-      // for now.
-      { label: "Inbox", href: "/inbox", icon: Inbox, permission: "manage_marketing" },
+      { label: "Inbox", href: "/inbox", icon: Inbox, permission: "manage_inbox" },
+      // Placeholder permission — Leads is new and has no permission key of
+      // its own yet, so it sits on manage_marketing for now.
       { label: "Leads", href: "/leads", icon: UserSearch, permission: "manage_marketing" },
       { label: "Marketing", href: "/marketing", icon: Mail, permission: "manage_marketing" },
       { label: "Staff", href: "/staff", icon: Users, permission: "manage_staff" },

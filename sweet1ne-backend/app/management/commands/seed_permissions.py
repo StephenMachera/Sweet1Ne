@@ -26,6 +26,7 @@ DEFAULT_PERMISSIONS = [
     ("manage_reservations", "Manage Reservations", "operations"),
     ("manage_marketing", "Manage Marketing Campaigns", "marketing"),
     ("manage_media", "Manage Media Library", "marketing"),
+    ("manage_inbox", "Manage Inbox", "marketing"),
 ]
 
 

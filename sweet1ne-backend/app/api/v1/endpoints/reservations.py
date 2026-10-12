@@ -205,13 +205,20 @@ async def create_reservation(
 def list_reservations(
     status: str | None = None,
     upcoming_only: bool = True,
-    staff: CurrentStaff = Depends(require_permission("manage_reservations")),
+    staff: CurrentStaff = Depends(require_permission("manage_reservations", "manage_inbox")),
     db: Session = Depends(get_db),
 ):
     statement = select(Reservation).where(Reservation.tenant_id == staff.tenant_id)
 
     if staff.branch_id is not None:
         statement = statement.where(Reservation.branch_id == staff.branch_id)
+
+    # manage_inbox on its own only ever sees enquiries (Inbox's own rows) —
+    # real table/private bookings stay visible only to manage_reservations,
+    # same inner-narrowing pattern as the station endpoints' own permission
+    # check.
+    if not (staff.is_super_admin or "manage_reservations" in staff.permissions):
+        statement = statement.where(Reservation.reservation_type == "enquiry")
 
     if status:
         statement = statement.where(Reservation.status == status)
@@ -238,12 +245,22 @@ def list_reservations(
     return [_to_out(db, r) for r in reservations]
 
 
+def _require_reservation_access(staff: CurrentStaff, reservation: Reservation) -> None:
+    """manage_inbox on its own only ever reaches enquiries — a real
+    table/private booking needs manage_reservations, same as the list
+    endpoint's own narrowing."""
+    if reservation.reservation_type != "enquiry" and not (
+        staff.is_super_admin or "manage_reservations" in staff.permissions
+    ):
+        raise HTTPException(status_code=403, detail="Not allowed to handle this reservation")
+
+
 @router.patch("/reservations/{reservation_id}", response_model=ReservationOut)
 async def decide_reservation(
     reservation_id: uuid.UUID,
     payload: ReservationDecision,
     background: BackgroundTasks,
-    staff: CurrentStaff = Depends(require_permission("manage_reservations")),
+    staff: CurrentStaff = Depends(require_permission("manage_reservations", "manage_inbox")),
     db: Session = Depends(get_db),
 ):
     """Confirm or decline — either way the customer hears back. An enquiry
@@ -257,6 +274,7 @@ async def decide_reservation(
         raise HTTPException(status_code=404, detail="Reservation not found")
     if staff.branch_id is not None and str(reservation.branch_id) != staff.branch_id:
         raise HTTPException(status_code=403, detail="Not allowed to handle this reservation")
+    _require_reservation_access(staff, reservation)
 
     reservation.status = payload.status
     reservation.staff_message = payload.staff_message
@@ -330,7 +348,7 @@ async def decide_reservation(
 def mark_reservation_read(
     reservation_id: uuid.UUID,
     payload: ReservationReadIn,
-    staff: CurrentStaff = Depends(require_permission("manage_reservations")),
+    staff: CurrentStaff = Depends(require_permission("manage_reservations", "manage_inbox")),
     db: Session = Depends(get_db),
 ):
     """Separate from deciding a reservation — opening or un-reading a row
@@ -341,6 +359,7 @@ def mark_reservation_read(
         raise HTTPException(status_code=404, detail="Reservation not found")
     if staff.branch_id is not None and str(reservation.branch_id) != staff.branch_id:
         raise HTTPException(status_code=403, detail="Not allowed to handle this reservation")
+    _require_reservation_access(staff, reservation)
 
     reservation.is_read = payload.is_read
     db.commit()
@@ -351,7 +370,7 @@ def mark_reservation_read(
 @router.delete("/reservations/{reservation_id}", status_code=204)
 def delete_reservation(
     reservation_id: uuid.UUID,
-    staff: CurrentStaff = Depends(require_permission("manage_reservations")),
+    staff: CurrentStaff = Depends(require_permission("manage_reservations", "manage_inbox")),
     db: Session = Depends(get_db),
 ):
     """For obvious spam — a real declined/cancelled booking stays on record
@@ -361,6 +380,7 @@ def delete_reservation(
         raise HTTPException(status_code=404, detail="Reservation not found")
     if staff.branch_id is not None and str(reservation.branch_id) != staff.branch_id:
         raise HTTPException(status_code=403, detail="Not allowed to remove this")
+    _require_reservation_access(staff, reservation)
 
     db.delete(reservation)
     db.commit()

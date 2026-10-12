@@ -58,7 +58,7 @@ function statusOf(row: Enquiry): { key: "open" | "replied" | "done"; text: strin
 export default function AdminInboxPage() {
   const router = useRouter();
   const { me, loading: meLoading } = useMe();
-  const canManage = hasPermission(me, "manage_marketing");
+  const canManage = hasPermission(me, "manage_inbox");
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchFilter, setBranchFilter] = useState("");
