@@ -52,7 +52,6 @@ export const NAV_GROUPS: NavGroup[] = [
       // to actually load; a view_menu-only holder gets "Customer view"
       // below instead, which is the page they can really use.
       { label: "Menu", href: "/menu/manage", icon: UtensilsCrossed, permission: "edit_menu" },
-      { label: "Customer view", href: "/menu/preview", icon: UtensilsCrossed, permission: "view_menu" },
       { label: "Events", href: "/events", icon: CalendarDays, permission: "manage_promotions" },
       { label: "Media", href: "/media", icon: Images, permission: "manage_media" },
       { label: "Branches", href: "/branches", icon: Building2, permission: "manage_tenant" },
