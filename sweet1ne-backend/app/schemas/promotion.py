@@ -147,3 +147,67 @@ class PublicPromotionOut(BaseModel):
     @classmethod
     def _buttons_default(cls, v: Any) -> Any:
         return v if v is not None else []
+
+
+# ---- Codes report (GET /promotions/codes-report) — real numbers off real
+# Order rows, not a localStorage simulation. ----
+
+class CodeBranchOut(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
+class CodeKpisOut(BaseModel):
+    live: int
+    uses_7d: int
+    taken_off_7d: float
+    avg_basket_7d: float | None
+    on_phone: int
+
+
+class CodeDayBarOut(BaseModel):
+    date: date
+    by_branch: dict[str, int]
+
+
+class CodeTopRowOut(BaseModel):
+    code: str
+    uses: int
+    taken_off: float
+
+
+class CodeRowOut(BaseModel):
+    id: uuid.UUID
+    title: str
+    code: str
+    offer: str
+    off: float | None
+    min_spend: float | None
+    max_uses: int | None
+    once_per_guest: bool
+    uses: int
+    surfaces: dict[str, Any]
+    ends_at: date | None
+    is_on: bool
+    status: str
+
+
+class CodeUseRowOut(BaseModel):
+    at: datetime
+    code: str
+    branch_name: str
+    table_number: int | None
+    basket: float
+    taken_off: float
+    due: float
+    guest_label: str
+
+
+class CodesReportOut(BaseModel):
+    kpis: CodeKpisOut
+    branches: list[CodeBranchOut]
+    bars: list[CodeDayBarOut]
+    top: list[CodeTopRowOut]
+    notes: list[str]
+    codes: list[CodeRowOut]
+    recent_uses: list[CodeUseRowOut]

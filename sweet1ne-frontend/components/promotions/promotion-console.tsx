@@ -91,6 +91,51 @@ type Promotion = {
 
 type Draft = Omit<Promotion, "id" | "created_at" | "updated_at">;
 
+type CodeKpis = {
+  live: number;
+  uses_7d: number;
+  taken_off_7d: number;
+  avg_basket_7d: number | null;
+  on_phone: number;
+};
+type CodeBranch = { id: string; name: string };
+type CodeDayBar = { date: string; by_branch: Record<string, number> };
+type CodeTopRow = { code: string; uses: number; taken_off: number };
+type CodeRow = {
+  id: string;
+  title: string;
+  code: string;
+  offer: Offer;
+  off: number | null;
+  min_spend: number | null;
+  max_uses: number | null;
+  once_per_guest: boolean;
+  uses: number;
+  surfaces: Surfaces;
+  ends_at: string | null;
+  is_on: boolean;
+  status: "live" | "ended" | "scheduled" | "draft";
+};
+type CodeUseRow = {
+  at: string;
+  code: string;
+  branch_name: string;
+  table_number: number | null;
+  basket: number;
+  taken_off: number;
+  due: number;
+  guest_label: string;
+};
+type CodesReport = {
+  kpis: CodeKpis;
+  branches: CodeBranch[];
+  bars: CodeDayBar[];
+  top: CodeTopRow[];
+  notes: string[];
+  codes: CodeRow[];
+  recent_uses: CodeUseRow[];
+};
+
 const KINDS: { id: Kind; label: string; hint: string; surfaces: Surfaces }[] = [
   {
     id: "notice",
@@ -300,6 +345,57 @@ function TryBasket({
   );
 }
 
+const BAR_COLORS = ["var(--gold)", "rgba(229, 226, 225, 0.55)", "rgba(122, 92, 142, 0.7)"];
+
+/** One stacked column per day, one colour per branch — real counts, no
+   simulated data. Scales to however many branches are actually in scope
+   (narrows to one column's worth of colour when a single branch is
+   picked), rather than assuming exactly two the way the reference build's
+   own Lewisham/Chingford-only chart did. */
+function CodeBars({ bars, branches }: { bars: CodeDayBar[]; branches: CodeBranch[] }) {
+  const top = Math.max(1, ...bars.map((d) => Object.values(d.by_branch).reduce((n, v) => n + v, 0)));
+
+  return (
+    <>
+      <div className="admin-code-bars" role="img" aria-label="Code uses per day">
+        {bars.map((day, i) => {
+          const total = Object.values(day.by_branch).reduce((n, v) => n + v, 0);
+          return (
+            <div
+              key={day.date}
+              className={`admin-code-day${i === bars.length - 1 ? " is-today" : ""}`}
+              title={`${day.date}: ${total} ${total === 1 ? "use" : "uses"}`}
+            >
+              {branches.map((b, bi) => (
+                <i
+                  key={b.id}
+                  style={{
+                    height: `${((day.by_branch[b.id] ?? 0) / top) * 100}%`,
+                    background: BAR_COLORS[bi % BAR_COLORS.length],
+                  }}
+                />
+              ))}
+            </div>
+          );
+        })}
+      </div>
+      <div className="admin-code-axis">
+        <span>{bars[0]?.date}</span>
+        <span>Today</span>
+      </div>
+      {branches.length > 1 && (
+        <div className="admin-code-key">
+          {branches.map((b, i) => (
+            <span key={b.id} style={{ "--dot-color": BAR_COLORS[i % BAR_COLORS.length] } as React.CSSProperties}>
+              {b.name}
+            </span>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 export function PromotionConsole({
   branches,
   tables,
@@ -322,13 +418,17 @@ export function PromotionConsole({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [view, setView] = useState<"board" | "look">("look");
+  const [view, setView] = useState<"board" | "look" | "codes">("look");
   const [placeFilter, setPlaceFilter] = useState("");
   const [stateFilter, setStateFilter] = useState<
     "all" | "live" | "draft" | "ended"
   >("all");
   const [query, setQuery] = useState("");
   const [lookId, setLookId] = useState("");
+
+  const [codesReport, setCodesReport] = useState<CodesReport | null>(null);
+  const [codesLoading, setCodesLoading] = useState(true);
+  const [codesQuery, setCodesQuery] = useState("");
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -361,13 +461,27 @@ export function PromotionConsole({
     load();
   }, [load]);
 
+  const loadCodesReport = useCallback(() => {
+    const query = placeFilter ? `?branch_id=${placeFilter}` : "";
+    return apiFetch(`/promotions/codes-report${query}`)
+      .then(setCodesReport)
+      .catch(() => setCodesReport(null))
+      .finally(() => setCodesLoading(false));
+  }, [placeFilter]);
+
+  useEffect(() => {
+    if (view === "codes") loadCodesReport();
+  }, [view, loadCodesReport]);
+
   function patch(fields: Partial<Draft>) {
     setDraft((d) => ({ ...d, ...fields }));
   }
 
-  function openAdd() {
+  function openAdd(kind: Kind = "notice") {
     setEditingId(null);
-    setDraft(emptyDraft(placeFilter || null));
+    const base = emptyDraft(placeFilter || null);
+    const defs = KINDS.find((k) => k.id === kind)?.surfaces ?? base.surfaces;
+    setDraft({ ...base, kind, surfaces: { ...defs } });
     setFormOpen(true);
     setView("look");
   }
@@ -617,9 +731,261 @@ export function PromotionConsole({
         >
           Board
         </button>
+        <button
+          type="button"
+          className={view === "codes" ? "is-on" : undefined}
+          onClick={() => setView("codes")}
+        >
+          Codes
+        </button>
       </div>
 
-      {view === "board" ? (
+      {view === "codes" ? (
+        <>
+          {codesLoading || !codesReport ? (
+            <AdminLoading />
+          ) : (
+            <>
+              <div className="admin-kpi-strip is-six" aria-label="Codes summary">
+                <div>
+                  <span className="admin-kpi-n">{codesReport.kpis.live}</span>
+                  <span className="admin-kpi-l">Codes live</span>
+                </div>
+                <div>
+                  <span className="admin-kpi-n">{codesReport.kpis.uses_7d}</span>
+                  <span className="admin-kpi-l">Uses · 7 days</span>
+                </div>
+                <div>
+                  <span className="admin-kpi-n">{gbp(codesReport.kpis.taken_off_7d)}</span>
+                  <span className="admin-kpi-l">Taken off · 7 days</span>
+                </div>
+                <div>
+                  <span className="admin-kpi-n">
+                    {codesReport.kpis.avg_basket_7d != null ? gbp(codesReport.kpis.avg_basket_7d) : "—"}
+                  </span>
+                  <span className="admin-kpi-l">Avg basket with code</span>
+                </div>
+                <div>
+                  <span className="admin-kpi-n">{codesReport.kpis.on_phone}</span>
+                  <span className="admin-kpi-l">On the QR app</span>
+                </div>
+                <div>
+                  <span className="admin-kpi-n">{codesReport.codes.length}</span>
+                  <span className="admin-kpi-l">Codes total</span>
+                </div>
+              </div>
+
+              <section className="admin-code-dash" aria-label="Codes dashboard">
+                <article className="admin-card">
+                  <h2>Code uses · last 14 days</h2>
+                  <CodeBars bars={codesReport.bars} branches={codesReport.branches} />
+                </article>
+                <article className="admin-card">
+                  <h2>Top codes · 30 days</h2>
+                  <ol className="admin-code-list">
+                    {codesReport.top.length === 0 ? (
+                      <li>No codes used yet.</li>
+                    ) : (
+                      codesReport.top.map((t) => (
+                        <li key={t.code}>
+                          <span className="admin-code-tag">{t.code}</span>
+                          <span>
+                            <strong>{t.uses}</strong> {t.uses === 1 ? "use" : "uses"} · {gbp(t.taken_off)} off
+                          </span>
+                        </li>
+                      ))
+                    )}
+                  </ol>
+                </article>
+                <article className="admin-card">
+                  <h2>Needs a look</h2>
+                  <ul className="admin-code-list is-notes">
+                    {codesReport.notes.map((n, i) => (
+                      <li key={i}>{n}</li>
+                    ))}
+                  </ul>
+                </article>
+              </section>
+
+              <div className="admin-tools">
+                <input
+                  type="search"
+                  placeholder="Search title or code"
+                  value={codesQuery}
+                  onChange={(e) => setCodesQuery(e.target.value)}
+                />
+                <button type="button" className="admin-book" onClick={() => openAdd("code")}>
+                  Add a code
+                </button>
+                {phoneSrc && (
+                  <a className="admin-edit" href={phoneSrc} target="_blank" rel="noopener">
+                    Open the table phone
+                  </a>
+                )}
+              </div>
+
+              {(() => {
+                const q = codesQuery.trim().toLowerCase();
+                const codeRows = codesReport.codes.filter(
+                  (c) => !q || `${c.title} ${c.code}`.toLowerCase().includes(q),
+                );
+                return codeRows.length === 0 ? (
+                  <p className="admin-empty">
+                    No codes yet. Add one when management sets a real offer.
+                  </p>
+                ) : (
+                  <div className="admin-data-panel">
+                    <table className="admin-sheet">
+                      <thead>
+                        <tr>
+                          <th>On</th>
+                          <th>Promotion</th>
+                          <th>Code</th>
+                          <th>Takes off</th>
+                          <th>Rules</th>
+                          <th>Uses</th>
+                          <th>Shows</th>
+                          <th>Ends</th>
+                          <th>Status</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {codeRows.map((c) => {
+                          const rules: string[] = [];
+                          if (c.min_spend) rules.push(`Min ${gbp(c.min_spend)}`);
+                          if (c.max_uses) rules.push(`${c.max_uses} uses`);
+                          if (c.once_per_guest) rules.push("Once each");
+                          const shows: string[] = [];
+                          if (c.surfaces.enter) shows.push("Opening");
+                          if (c.surfaces.ribbon) shows.push("Line");
+                          if (c.surfaces.phone) shows.push("QR");
+                          const full = promotions.find((p) => p.id === c.id);
+                          return (
+                            <tr key={c.id} className={c.status !== "live" ? "is-off" : undefined}>
+                              <td>
+                                <button
+                                  type="button"
+                                  aria-label="On"
+                                  className={`admin-toggle${c.status === "live" ? " is-on" : ""}`}
+                                  onClick={() => full && toggleOn(full)}
+                                />
+                              </td>
+                              <td>
+                                <span className="admin-name">{c.title}</span>
+                              </td>
+                              <td>
+                                {c.code ? (
+                                  <span className="admin-code-tag">{c.code}</span>
+                                ) : (
+                                  <span className="admin-muted">No code</span>
+                                )}
+                              </td>
+                              <td className="admin-muted">
+                                {c.offer === "percent" && c.off
+                                  ? `${c.off}% off`
+                                  : c.offer === "pounds" && c.off
+                                    ? `${gbp(c.off)} off`
+                                    : "The code is the offer"}
+                              </td>
+                              <td className="admin-muted">{rules.length ? rules.join(" · ") : "—"}</td>
+                              <td className="admin-price">
+                                {c.max_uses ? `${c.uses} / ${c.max_uses}` : c.uses}
+                              </td>
+                              <td className="admin-muted">{shows.length ? shows.join(" · ") : "—"}</td>
+                              <td className="admin-muted">
+                                {c.ends_at
+                                  ? new Date(`${c.ends_at}T12:00:00`).toLocaleDateString("en-GB", {
+                                      day: "numeric",
+                                      month: "short",
+                                    })
+                                  : "Open"}
+                              </td>
+                              <td>
+                                <span
+                                  className={`admin-status${c.status === "live" ? " is-ok" : c.status === "scheduled" ? " is-wait" : ""}`}
+                                >
+                                  {c.status === "live"
+                                    ? "Live"
+                                    : c.status === "ended"
+                                      ? "Ended"
+                                      : c.status === "scheduled"
+                                        ? "Scheduled"
+                                        : "Draft"}
+                                </span>
+                              </td>
+                              <td className="admin-row-acts">
+                                <button
+                                  type="button"
+                                  className="admin-edit"
+                                  onClick={() => full && openEdit(full)}
+                                >
+                                  Edit
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+
+              <h2 className="admin-code-h">Recent code uses</h2>
+              {codesReport.recent_uses.length === 0 ? (
+                <p className="admin-empty">
+                  No code uses yet. They appear here when a table holds its order with a code.
+                </p>
+              ) : (
+                <div className="admin-data-panel">
+                  <table className="admin-sheet">
+                    <thead>
+                      <tr>
+                        <th>When</th>
+                        <th>Code</th>
+                        <th>Where</th>
+                        <th>Basket</th>
+                        <th>Taken off</th>
+                        <th>Due</th>
+                        <th>Guest</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {codesReport.recent_uses.map((u, i) => (
+                        <tr key={i}>
+                          <td className="admin-muted">
+                            {new Date(u.at).toLocaleString("en-GB", {
+                              day: "numeric",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </td>
+                          <td>
+                            <span className="admin-code-tag">{u.code}</span>
+                          </td>
+                          <td className="admin-muted">
+                            {u.branch_name}
+                            {u.table_number ? ` · Table ${u.table_number}` : ""}
+                          </td>
+                          <td className="admin-price">{u.basket ? gbp(u.basket) : "—"}</td>
+                          <td className="admin-price">{u.taken_off ? `−${gbp(u.taken_off)}` : "—"}</td>
+                          <td className="admin-price">{u.basket ? gbp(u.due) : "—"}</td>
+                          <td className="admin-muted">{u.guest_label}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <p className="admin-code-foot">
+                A use is counted when a table holds its order on the QR app with a code on it.
+              </p>
+            </>
+          )}
+        </>
+      ) : view === "board" ? (
         <>
           <div className="admin-cats" role="group" aria-label="Status">
             {(["all", "live", "draft", "ended"] as const).map((s) => (
@@ -647,7 +1013,7 @@ export function PromotionConsole({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <button type="button" className="admin-book" onClick={openAdd}>
+            <button type="button" className="admin-book" onClick={() => openAdd()}>
               Add promotion
             </button>
           </div>
@@ -749,7 +1115,7 @@ export function PromotionConsole({
                 ))}
               </select>
             </label>
-            <button type="button" className="admin-book" onClick={openAdd}>
+            <button type="button" className="admin-book" onClick={() => openAdd()}>
               Add promotion
             </button>
           </div>

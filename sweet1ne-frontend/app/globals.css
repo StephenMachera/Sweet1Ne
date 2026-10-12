@@ -1647,6 +1647,116 @@ label.admin-chip:has(input:checked) span {
   font-size: 0.82rem;
 }
 
+/* The Codes dashboard — three cards (bar chart, top codes, needs-a-look),
+   same width split as the rest of the admin console's multi-card rows. */
+.admin-code-dash {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.85rem;
+  margin: 0 0 1.4rem;
+}
+@media (max-width: 1100px) {
+  .admin-code-dash {
+    grid-template-columns: 1fr;
+  }
+}
+.admin-code-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 6.6rem;
+  margin: 0.4rem 0 0.35rem;
+  border-bottom: 1px solid var(--gold-line);
+}
+.admin-code-day {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column-reverse;
+  min-width: 0;
+}
+.admin-code-day i {
+  display: block;
+  width: 100%;
+}
+.admin-code-day.is-today {
+  outline: 1px dashed var(--gold-line);
+  outline-offset: 2px;
+}
+.admin-code-axis,
+.admin-code-key {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+}
+.admin-code-key {
+  justify-content: flex-start;
+  margin-top: 0.35rem;
+  gap: 1rem;
+}
+.admin-code-key span::before {
+  content: "";
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.35rem;
+  vertical-align: -0.05rem;
+  background: var(--dot-color, var(--gold));
+}
+.admin-code-list {
+  list-style: none;
+  margin: 0.3rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.admin-code-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  align-items: baseline;
+  font-size: 0.9rem;
+  color: var(--ivory-dim);
+}
+.admin-code-list li strong {
+  color: var(--ivory);
+  font-weight: 500;
+}
+.admin-code-list.is-notes li {
+  display: block;
+  line-height: 1.45;
+}
+.admin-code-list.is-notes li::before {
+  content: "•";
+  color: var(--gold);
+  margin-right: 0.45rem;
+}
+.admin-code-tag {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border: 1px dashed rgba(201, 162, 74, 0.6);
+  color: var(--gold);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+}
+.admin-code-h {
+  margin: 1.8rem 0 0.7rem;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.15rem;
+  color: var(--ivory);
+}
+.admin-code-foot {
+  margin: 0.9rem 0 0;
+  font-size: 0.82rem;
+  color: var(--ivory-dim);
+}
+
 /* ── The promo card — ported from the original template's promo.css,
    verbatim, so the admin preview and every real guest surface (homepage
    popup, header ribbon, table phone) render from the exact same rules.
