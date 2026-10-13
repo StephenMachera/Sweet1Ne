@@ -13,13 +13,16 @@ declare global {
   }
 }
 
-// The 8 October films are too large for the git repo (90MB+, GitHub flags
-// anything over 50MB) — they live in the Supabase storage bucket instead,
-// served through its own CDN with byte-range support for iPhone playback.
+// Too large for the git repo (90MB+, GitHub flags anything over 50MB) —
+// they live in the Supabase storage bucket instead, served through its own
+// CDN with byte-range support for iPhone playback.
 const CDN_BASE =
   "https://xqstowkptzyttfibyjhs.supabase.co/storage/v1/object/public/sweet1ne-storage/site/homepage";
-const DESK_SRC = `${CDN_BASE}/film-chingford.mp4?v=ching1`;
-const PHONE_SRC = `${CDN_BASE}/film-chingford-mobile.mp4?v=ching1`;
+// v=web2 — the 13 October re-cut (only ~0:04–0:16 changed, same 64.3s
+// loop). Bumped from ching1 so the CDN/browser don't keep serving the old
+// cut under the same URL.
+const DESK_SRC = `${CDN_BASE}/film-chingford.mp4?v=web2`;
+const PHONE_SRC = `${CDN_BASE}/film-chingford-mobile.mp4?v=web2`;
 const POSTER = `${CDN_BASE}/poster-chingford-1080.jpg`;
 
 /** The curtain intro + the film it reveals — one component, ported as
