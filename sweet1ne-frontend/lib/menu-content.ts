@@ -55,6 +55,7 @@ export type PublicMenuData = {
 };
 
 const PHOTO = "/images/homepage-gallery/menu";
+const FOOD = "/images/homepage-gallery/food";
 
 const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
 
@@ -62,15 +63,28 @@ const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" 
  *  non-dish photography — the same static photos the template shipped
  *  with. A category that doesn't match any of these just lists plainly,
  *  same as "Sides" or "Kids" always did. */
-const CURATED: { test: RegExp; mark: string; markPosition: string; bleed?: { src: string; alt: string }; shots?: string[] }[] = [
-  { test: /starter/i, mark: `${PHOTO}/photo-starters.jpg`, markPosition: "48% 38%" },
-  { test: /main/i, mark: `${PHOTO}/photo-mains.jpg`, markPosition: "50% 48%" },
+const CURATED: { test: RegExp; mark?: string; markPosition?: string; bleed?: { src: string; alt: string }; shots?: string[] }[] = [
+  {
+    test: /starter/i,
+    mark: `${PHOTO}/photo-starters.jpg`,
+    markPosition: "48% 38%",
+    bleed: { src: `${FOOD}/food-croquettes-plating.jpg`, alt: "Chef garnishing croquettes with edible flowers" },
+  },
+  // 14 October pack: the old lamb-on-mash photo is retired everywhere —
+  // this is the glazed lamb cutlets that replaced it.
+  { test: /main/i, mark: `${FOOD}/food-glazed-lamb.jpg`, markPosition: "55% 62%" },
   { test: /pasta/i, mark: `${PHOTO}/photo-pasta-prawns.jpg`, markPosition: "50% 46%" },
   {
     test: /seafood|boil/i,
     mark: `${PHOTO}/photo-seafood.jpg`,
     markPosition: "48% 55%",
     bleed: { src: `${PHOTO}/photo-boil-table.jpg`, alt: "Sweet1ne loaded seafood boil" },
+  },
+  // No mark — "Sides & sauces" has no disc in the course rail (matches
+  // courses[].nav: false in the menu pack), only the new full-width photo.
+  {
+    test: /side/i,
+    bleed: { src: `${FOOD}/food-oxtail-mac-pour.jpg`, alt: "Gravy poured over cheesy oxtail mac" },
   },
   { test: /dessert/i, mark: `${PHOTO}/photo-desserts.jpg`, markPosition: "40% 58%" },
   {
