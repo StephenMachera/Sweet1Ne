@@ -32,6 +32,9 @@ const TILES: Tile[] = [
           "/images/homepage-gallery/order/emblem-aways.jpg",
       "/images/homepage-gallery/menu/photo-starters.jpg",
       "/images/homepage-gallery/web-2560x1440/07-seafood.jpg",
+      "/images/homepage-gallery/food/food-oxtail-mac-pull.jpg",
+      "/images/homepage-gallery/food/food-beef-suya.jpg",
+      "/images/homepage-gallery/food/food-croquettes-above.jpg",
     ],
   },
   {
@@ -51,6 +54,8 @@ const TILES: Tile[] = [
     frames: [
       "/images/homepage-gallery/menu/photo-chef.jpg",
       "/images/homepage-gallery/menu/photo-boil-lemon.jpg",
+      "/images/homepage-gallery/food/food-croquettes-plating.jpg",
+      "/images/homepage-gallery/food/food-oxtail-mac-pour.jpg",
     ],
   },
   {
@@ -60,7 +65,7 @@ const TILES: Tile[] = [
     frames: [
       "/images/homepage-gallery/story/collage-share.jpg",
       "/images/homepage-gallery/menu/photo-boil-table.jpg",
-      "/images/homepage-gallery/web-2560x1440/02-lamb-chops.jpg",
+      "/images/homepage-gallery/food/food-glazed-lamb.jpg",
     ],
   },
 ];
