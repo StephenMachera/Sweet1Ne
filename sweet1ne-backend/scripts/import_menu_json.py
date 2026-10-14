@@ -201,7 +201,13 @@ def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, passwor
     existing_media = imp.get("/media")
     existing_media_by_label = {m["label"]: m["src"] for m in existing_media}
 
-    unique_files = sorted({f for i in items for f in i.get("files", [])})
+    courses = data.get("courses", [])
+    course_by_cat = {c["cat"]: c for c in courses}
+
+    unique_files = sorted(
+        {f for i in items for f in i.get("files", [])}
+        | {c["file"] for c in courses if c.get("file")}
+    )
     media_urls: dict[str, str] = {}
     print(f"Photos: {len(unique_files)} referenced by the menu…")
     for rel_path in unique_files:
@@ -235,6 +241,19 @@ def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, passwor
         if len(existing_mains) > before:
             created_categories += 1
         touched_main_ids.add(main["id"])
+
+        # The round course disc (admin's Mains/Starters/… picture) — the
+        # course's own "file" in the pack, same upload/reuse pass as every
+        # item photo above. Only patched when it's actually changed, same
+        # as every other field diff in this script.
+        course = course_by_cat.get(cat_name)
+        course_file = course.get("file") if course else None
+        if course_file and course_file in media_urls:
+            new_picture = media_urls[course_file]
+            if main.get("picture") != new_picture:
+                imp.patch_json(f"/staff/menu/main-categories/{main['id']}", {"picture": new_picture})
+                main["picture"] = new_picture
+                print(f"  ~ {display_name} course picture -> {Path(course_file).name}")
 
         for item in cat_items:
             sub_name = item.get("sub") or "General"
