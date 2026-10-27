@@ -20,7 +20,7 @@ export default function AdminMarketingPage() {
   // not the Campaigns tab — same restriction the old /campaigns route had.
   const isUnscoped = me?.branch_id === null;
 
-  const [view, setView] = useState<"campaigns" | "list">("campaigns");
+  const [view, setView] = useState<"campaigns" | "list">("list");
   const [placeFilter, setPlaceFilter] = useState("");
   const [branches, setBranches] = useState<Branch[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -95,6 +95,13 @@ export default function AdminMarketingPage() {
       </section>
 
       <div className="admin-cats" role="group" aria-label="View">
+        <button
+          type="button"
+          className={effectiveView === "list" ? "is-on" : undefined}
+          onClick={() => setView("list")}
+        >
+          The list
+        </button>
         {isUnscoped && (
           <button
             type="button"
@@ -104,13 +111,6 @@ export default function AdminMarketingPage() {
             Campaigns
           </button>
         )}
-        <button
-          type="button"
-          className={effectiveView === "list" ? "is-on" : undefined}
-          onClick={() => setView("list")}
-        >
-          The list
-        </button>
       </div>
 
       {effectiveView === "list" ? (
