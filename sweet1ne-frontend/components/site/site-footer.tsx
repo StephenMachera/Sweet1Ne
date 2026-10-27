@@ -2,13 +2,13 @@ import Link from "next/link";
 import { SOCIAL_LINKS } from "@/lib/site-content";
 import { FacebookIcon, InstagramIcon, TikTokIcon } from "./social-icons";
 
-const SOCIALS = [
+export const SOCIALS = [
   { href: SOCIAL_LINKS.instagram, label: "Instagram", Icon: InstagramIcon },
   { href: SOCIAL_LINKS.facebook, label: "Facebook", Icon: FacebookIcon },
   { href: SOCIAL_LINKS.tiktok, label: "TikTok", Icon: TikTokIcon },
 ];
 
-const LEGAL = [
+export const LEGAL = [
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
   // Findable if you know to look, invisible if you don't.

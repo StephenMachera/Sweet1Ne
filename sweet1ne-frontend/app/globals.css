@@ -3622,3 +3622,177 @@ body:has(.home-page) .promo-stage {
 .admin-need-list li:last-child {
   border-bottom: 0;
 }
+
+/* ===== Thank-you page ===== */
+.ty-root {
+  --gold: #f6d24c; /* swap for your gold token if you have one */
+  --gold-line: color-mix(in srgb, var(--gold) 28%, transparent);
+  position: relative;
+  overflow: hidden;
+  background: #0e0e0e;
+  color: #e5e2e1;
+  padding: 112px 0 120px;
+  text-align: center;
+  font-family: var(--font-body, 'Hanken Grotesk'), system-ui, sans-serif;
+}
+@media (max-width: 640px) { .ty-root { padding: 72px 0 80px; } }
+
+.ty-inner {
+  position: relative;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.ty-display { font-family: var(--font-display, 'Bodoni Moda'), Georgia, serif; font-weight: 400; }
+
+/* soft lights standing in for a blurred venue photo */
+.ty-veil { position: absolute; inset: 0; background: rgba(14, 14, 14, 0.5); pointer-events: none; }
+.ty-lights, .ty-embers { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.ty-bokeh {
+  position: absolute; left: var(--l); top: var(--tp);
+  width: var(--w); height: var(--w); border-radius: 50%;
+  background: var(--gold); opacity: var(--o); filter: blur(56px);
+  animation: ty-float var(--t) ease-in-out infinite alternate;
+}
+.ty-bokeh:nth-child(1) { --l: -6%; --tp: 8%;  --w: 360px; --o: .16; --t: 19s; }
+.ty-bokeh:nth-child(2) { --l: 18%; --tp: 62%; --w: 240px; --o: .10; --t: 23s; }
+.ty-bokeh:nth-child(3) { --l: 44%; --tp: -14%; --w: 300px; --o: .12; --t: 21s; }
+.ty-bokeh:nth-child(4) { --l: 68%; --tp: 54%; --w: 380px; --o: .14; --t: 25s; }
+.ty-bokeh:nth-child(5) { --l: 84%; --tp: 6%;  --w: 260px; --o: .12; --t: 18s; }
+.ty-bokeh:nth-child(6) { --l: 52%; --tp: 78%; --w: 200px; --o: .09; --t: 22s; }
+
+/* embers */
+.ty-ember {
+  position: absolute; bottom: -12px; left: var(--x);
+  width: var(--s); height: var(--s); border-radius: 50%;
+  background: var(--gold); opacity: 0;
+  animation: ty-drift var(--t) linear var(--d) infinite;
+}
+.ty-ember:nth-child(1)  { --x: 6%;  --s: 3px; --d: 0s;   --t: 15s; }
+.ty-ember:nth-child(2)  { --x: 14%; --s: 2px; --d: 3s;   --t: 12s; }
+.ty-ember:nth-child(3)  { --x: 22%; --s: 4px; --d: 7s;   --t: 17s; }
+.ty-ember:nth-child(4)  { --x: 31%; --s: 2px; --d: 1.5s; --t: 13s; }
+.ty-ember:nth-child(5)  { --x: 40%; --s: 3px; --d: 9s;   --t: 16s; }
+.ty-ember:nth-child(6)  { --x: 48%; --s: 2px; --d: 5s;   --t: 14s; }
+.ty-ember:nth-child(7)  { --x: 57%; --s: 4px; --d: 2s;   --t: 18s; }
+.ty-ember:nth-child(8)  { --x: 66%; --s: 2px; --d: 8s;   --t: 12s; }
+.ty-ember:nth-child(9)  { --x: 74%; --s: 3px; --d: 4s;   --t: 15s; }
+.ty-ember:nth-child(10) { --x: 82%; --s: 2px; --d: 10s;  --t: 13s; }
+.ty-ember:nth-child(11) { --x: 90%; --s: 3px; --d: 6s;   --t: 17s; }
+.ty-ember:nth-child(12) { --x: 96%; --s: 2px; --d: 11s;  --t: 14s; }
+
+/* tick */
+.ty-tick { display: block; margin: 0 0 40px; animation: ty-bob 5.5s ease-in-out 2.6s infinite alternate; }
+.ty-tline { stroke: var(--gold); fill: none; }
+.ty-tfill { transform-box: fill-box; transform-origin: center; animation: ty-pop .8s cubic-bezier(.2,.9,.3,1.2) .1s both; }
+.ty-tring { stroke-dasharray: 404; animation: ty-draw404 1.5s cubic-bezier(.4,0,.2,1) .3s both; }
+.ty-tcheck { stroke-dasharray: 100; animation: ty-draw100 .8s ease-out 1.5s both; }
+.ty-tpulse { transform-box: fill-box; transform-origin: center; animation: ty-ripple 3.4s ease-out 2.6s infinite; }
+
+/* text */
+.ty-title {
+  margin: 0 0 32px;
+  font-size: clamp(52px, 10vw, 128px);
+  line-height: 1.02; letter-spacing: .02em; text-transform: uppercase;
+  color: #e5e2e1;
+}
+.ty-mask { display: block; overflow: hidden; padding-bottom: .14em; margin-bottom: -.14em; }
+.ty-mask > span { display: block; animation: ty-rise 1.1s cubic-bezier(.2,.7,.1,1) .55s both; }
+.ty-body {
+  margin: 0 0 36px; max-width: 56ch;
+  font-size: 20px; line-height: 1.6; color: #e5e2e1;
+  animation: ty-fade-up .9s ease-out 1.2s both;
+}
+
+/* animated buttons: colour wipe, sliding arrow, light streak */
+.ty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
+.ty-btn {
+  position: relative; isolation: isolate; overflow: hidden;
+  display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+  min-width: 176px; padding: 16px 32px; border-radius: 4px;
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  text-decoration: none; border: 1px solid var(--gold);
+  animation: ty-fade-up .9s ease-out both;
+  transition: color .5s ease-out, border-color .5s ease-out;
+}
+.ty-b1 { animation-delay: 1.4s; }
+.ty-b2 { animation-delay: 1.55s; }
+.ty-btn::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .55s cubic-bezier(.2,.7,.1,1);
+}
+.ty-btn:hover::before, .ty-btn:focus-visible::before { transform: scaleX(1); }
+.ty-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
+.ty-arr { flex: none; transition: transform .5s cubic-bezier(.2,.7,.1,1); }
+
+.ty-btn-primary { background: var(--gold); color: #131313; }
+.ty-btn-primary::before { background: #e5e2e1; }
+.ty-btn-primary:hover .ty-arr { transform: translateX(-6px); }
+.ty-btn-primary::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: -70%; width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.5), transparent);
+  transform: skewX(-20deg);
+  animation: ty-shine 5s ease-in-out 3.2s infinite;
+  pointer-events: none;
+}
+.ty-btn-ghost { background: transparent; color: #e5e2e1; border-color: var(--gold-line); }
+.ty-btn-ghost::before { background: var(--gold); }
+.ty-btn-ghost:hover { color: #131313; border-color: var(--gold); }
+.ty-btn-ghost:hover .ty-arr { transform: translateX(6px); }
+
+@keyframes ty-rise    { from { transform: translateY(105%); } }
+@keyframes ty-fade-up { from { opacity: 0; transform: translateY(14px); } }
+@keyframes ty-draw404 { from { stroke-dashoffset: 404; } }
+@keyframes ty-draw100 { from { stroke-dashoffset: 100; } }
+@keyframes ty-ripple  { 0% { transform: scale(1); opacity: .5; } 100% { transform: scale(1.5); opacity: 0; } }
+@keyframes ty-pop     { from { transform: scale(.4); opacity: 0; } }
+@keyframes ty-bob     { to { transform: translateY(-8px); } }
+@keyframes ty-float   { to { transform: translate(48px, -36px); } }
+@keyframes ty-drift   { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: .85; } 100% { transform: translateY(-680px); opacity: 0; } }
+@keyframes ty-shine   { 0%, 60% { left: -70%; } 100% { left: 140%; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ty-root *, .ty-root *::before, .ty-root *::after { animation: none !important; transition: none !important; }
+  .ty-ember { display: none; }
+}
+/* ===== Thank-you curtain ===== */
+.ty-curtain { --ty-fh: 560px; } /* the script below replaces this with the footer's real height */
+
+/* the page sits on top and the footer is fixed behind it */
+.ty-stage {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  margin-bottom: var(--ty-fh);
+  background: #0e0e0e;
+  border-bottom: 1px solid color-mix(in srgb, var(--gold, #f6d24c) 28%, transparent);
+}
+.ty-stage > .ty-root {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ty-cfoot {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--ty-fh);
+  z-index: 1;
+  background: #0a0a0a;
+}
+
+/* no curtain on phones, small tablets, or when the footer is taller than the window */
+@media (max-width: 900px) {
+  .ty-stage { margin-bottom: 0; min-height: 0; }
+  .ty-cfoot { position: relative; height: auto; }
+}
+.ty-curtain[data-flat="true"] .ty-stage { margin-bottom: 0; min-height: 0; }
+.ty-curtain[data-flat="true"] .ty-cfoot { position: relative; height: auto; }
