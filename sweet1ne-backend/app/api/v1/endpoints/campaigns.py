@@ -13,6 +13,7 @@ from app.db.session import SessionLocal, get_db
 from app.models.campigns import Campaign
 from app.models.newsletter_subscriber import NewsletterSubscriber
 from app.models.reservation import Reservation
+from app.models.campaign_recipient import CampaignRecipient
 
 from app.services.email.campaign_renderer import render_campaign
 from app.services.email.client import send_email
@@ -208,6 +209,8 @@ def duplicate_campaign(
         subject=original.subject,
         preheader=original.preheader,
         blocks=original.blocks,
+        background=original.background,
+        background_animated=original.background_animated,
         audience=original.audience,
         channels=original.channels,
         map_id=original.map_id,
@@ -256,6 +259,8 @@ def preview_campaign(
             blocks=payload.blocks,
             recipient_email="preview@example.com",
             site_url=settings.FRONTEND_URL,
+            background=payload.background,
+            background_animated=payload.background_animated,
         )
     )
 
@@ -278,6 +283,8 @@ async def send_test(
         blocks=campaign.blocks,
         recipient_email=payload.email,
         site_url=settings.FRONTEND_URL,
+        background=campaign.background,
+        background_animated=campaign.background_animated,
     )
 
     background.add_task(
@@ -289,12 +296,17 @@ async def send_test(
     )
 
 
+
+
 async def _send_to_list(campaign_id: uuid.UUID, tenant_id: uuid.UUID) -> None:
     """Sends the campaign, one recipient at a time.
 
     Runs on its own session because the request's session is closed by the
     time this executes. Each recipient gets their own render, since the
     unsubscribe link is personal to them.
+
+    Every send is also written to campaign_recipients, keyed by Resend's
+    email ID, so webhook events can be matched back to the campaign.
     """
     db = SessionLocal()
     try:
@@ -321,19 +333,41 @@ async def _send_to_list(campaign_id: uuid.UUID, tenant_id: uuid.UUID) -> None:
                 blocks=campaign.blocks,
                 recipient_email=subscriber.email,
                 site_url=settings.FRONTEND_URL,
+                background=campaign.background,
+                background_animated=campaign.background_animated,
             )
 
-            ok = await send_email(
+            
+            email_id = await send_email(
                 to=subscriber.email,
                 subject=campaign.subject,
                 html=html,
                 reply_to=settings.EMAIL_REPLY_TO,
+                campaign_id=str(campaign.id),         
             )
 
-            if ok:
+            if email_id:
                 sent += 1
             else:
                 failed += 1
+
+            # one notebook row per recipient, sent or failed.
+            db.add(
+                CampaignRecipient(
+                    tenant_id=tenant_id,
+                    campaign_id=campaign.id,
+                    subscriber_id=subscriber.id,
+                    email=subscriber.email,
+                    resend_email_id=email_id,          # None if it failed
+                    status="sent" if email_id else "failed",
+                    sent_at=datetime.now(timezone.utc),
+                )
+            )
+
+            # save progress every 20 emails so a crash doesn't lose
+            # the IDs of emails that were already sent.
+            if (sent + failed) % 20 == 0:
+                db.commit()
 
             await asyncio.sleep(SEND_DELAY_SECONDS)
 
@@ -344,7 +378,6 @@ async def _send_to_list(campaign_id: uuid.UUID, tenant_id: uuid.UUID) -> None:
         db.commit()
     finally:
         db.close()
-
 
 @router.post("/{campaign_id}/send", response_model=CampaignOut)
 def send_campaign(

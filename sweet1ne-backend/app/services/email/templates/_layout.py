@@ -62,7 +62,8 @@ def wrap(*, title: str, body: str, preheader: str | None = None,
          unsubscribe_email: str | None = None, show_header: bool = True,
          footer_override: str | None = None,
          head_extra: str = "",
-         background: str = BACKGROUND, surface: str = SURFACE, hairline: str = HAIRLINE) -> str:
+         background: str = BACKGROUND, surface: str = SURFACE, hairline: str = HAIRLINE,
+         background_class: str = "") -> str:
     """Puts a body between the header and footer.
 
     show_header=False for campaigns — they carry their own "logo" block
@@ -74,7 +75,11 @@ def wrap(*, title: str, body: str, preheader: str | None = None,
     chrome colours and footer row without touching what every other email
     (reservations, the newsletter welcome, enquiry replies) still gets by
     default — campaigns use this to match the admin editor's own preview
-    palette exactly, nothing else does."""
+    palette exactly, nothing else does. background_class names a CSS class
+    (defined in the caller's own head_extra) applied to the page background
+    only, alongside its inline background-color — used for an animated
+    gradient on clients that support it, while every other client just
+    keeps showing the plain inline color as a static fallback."""
     preheader_block = ""
     if preheader:
         # Hidden text that inboxes show beside the subject line.
@@ -83,6 +88,7 @@ def wrap(*, title: str, body: str, preheader: str | None = None,
 
     footer_html = footer_override if footer_override is not None else footer(unsubscribe_email=unsubscribe_email)
     border_style = f"border:1px solid {hairline};" if hairline else ""
+    class_attr = f' class="{background_class}"' if background_class else ""
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -92,11 +98,11 @@ def wrap(*, title: str, body: str, preheader: str | None = None,
     <title>{title}</title>
     {head_extra}
   </head>
-  <body style="margin:0;padding:0;background-color:{background};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+  <body{class_attr} bgcolor="{background}" style="margin:0;padding:0;background-color:{background};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
     {preheader_block}
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:{background};padding:36px 16px;">
-      <tr><td align="center">
-        <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;background-color:{surface};{border_style}">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"{class_attr} bgcolor="{background}" style="background-color:{background};padding:36px 16px;">
+      <tr><td align="center" bgcolor="{background}">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" bgcolor="{surface}" style="width:100%;max-width:560px;background-color:{surface};{border_style}">
 {header() if show_header else ""}
 {body}
 {footer_html}

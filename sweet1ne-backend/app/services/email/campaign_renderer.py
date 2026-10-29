@@ -10,6 +10,7 @@ The marketer controls content and order. The styling is fixed here, which is
 what stops a campaign looking nothing like Sweet1NE.
 """
 
+import colorsys
 from html import escape
 from typing import Any
 
@@ -20,7 +21,9 @@ from app.services.email.templates._layout import wrap
 # .admin-shell's --gold/--ivory/--ivory-dim) — kept local to campaigns
 # rather than imported from _layout's shared palette, so a reservation
 # confirmation, the newsletter welcome mail or an enquiry reply keep their
-# own look unaffected by this.
+# own look unaffected by this. This is also the *default* palette — a
+# campaign/template with its own "background" picks a different one, see
+# _resolve_palette below.
 GOLD = "#c9a24a"
 IVORY = "#e5e2e1"
 IVORY_DIM = "rgba(229, 226, 225, 0.68)"
@@ -28,6 +31,130 @@ MUTED = "rgba(229, 226, 225, 0.68)"
 SURFACE = "#0c0c0c"
 BACKGROUND = "#050505"
 HAIRLINE_FAINT = "rgba(201, 162, 74, 0.28)"
+
+_DARK_PALETTE: dict[str, str] = {
+    "background": BACKGROUND,
+    "surface": SURFACE,
+    "ivory": IVORY,
+    "ivory_dim": IVORY_DIM,
+    "muted": MUTED,
+    "hairline": HAIRLINE_FAINT,
+    "gold": GOLD,
+}
+
+
+def _hex_to_rgb(value: str) -> tuple[int, int, int] | None:
+    value = value.strip().lstrip("#")
+    if len(value) != 6:
+        return None
+    try:
+        return (int(value[0:2], 16), int(value[2:4], 16), int(value[4:6], 16))
+    except ValueError:
+        return None
+
+
+def _relative_luminance(rgb: tuple[int, int, int]) -> float:
+    r, g, b = (c / 255 for c in rgb)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _resolve_palette(background: str | None) -> dict[str, str]:
+    """The admin's color picker only ever sets one hex — the campaign's
+    chosen page background. Everything else here (surface, body text, the
+    hairline, even gold's own contrast) is derived from that single value,
+    so "Light" or "Red" or "Blue" each still reads as one coherent email
+    rather than a random patch of color dropped onto an otherwise
+    untouched dark page. No background set at all keeps today's look
+    exactly as it's always been."""
+    if not background:
+        return _DARK_PALETTE
+
+    rgb = _hex_to_rgb(background)
+    if rgb is None:
+        return _DARK_PALETTE
+
+    if _relative_luminance(rgb) > 0.5:
+        # A light page needs dark text and a darker gold — the usual ivory
+        # and #c9a24a would both wash out against anything pale.
+        return {
+            "background": background,
+            "surface": "#ffffff",
+            "ivory": "#1a1a1a",
+            "ivory_dim": "rgba(26, 26, 26, 0.68)",
+            "muted": "rgba(26, 26, 26, 0.58)",
+            "hairline": "rgba(26, 26, 26, 0.16)",
+            "gold": "#9c7730",
+        }
+
+    # A dark, colored page (a deep red, a navy) keeps the same ivory text
+    # and gold accent the default theme uses — only the background/surface
+    # itself changes.
+    return {
+        "background": background,
+        "surface": background,
+        "ivory": IVORY,
+        "ivory_dim": IVORY_DIM,
+        "muted": MUTED,
+        "hairline": "rgba(229, 226, 225, 0.22)",
+        "gold": GOLD,
+    }
+
+
+def _lighten(rgb: tuple[int, int, int], amount: float) -> str:
+    """amount in [-1, 1] — positive moves lightness toward white by that
+    fraction of the remaining headroom, negative moves it toward black by
+    that fraction of the current lightness. Relative rather than a flat
+    +/-, so a color that's already near-black or near-white shifts subtly
+    instead of flattening straight to black/white — same hue and
+    saturation throughout, so the result reads as a shimmer of the chosen
+    color, not a shift to a different one."""
+    r, g, b = (c / 255 for c in rgb)
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
+    l = l + (1 - l) * amount if amount >= 0 else l * (1 + amount)
+    l = max(0.0, min(1.0, l))
+    r2, g2, b2 = colorsys.hls_to_rgb(h, l, s)
+    return "#{:02x}{:02x}{:02x}".format(round(r2 * 255), round(g2 * 255), round(b2 * 255))
+
+
+_ANIMATED_BG_CLASS = "sweet1ne-bg-animated"
+
+
+def _animated_background_style(background: str | None) -> tuple[str, str]:
+    """A slow, shimmering gradient across lighter/darker shades of the
+    same chosen color — not a hard color-swap, so it stays recognisably
+    "that" background rather than flashing between unrelated hues. Degrades
+    safely: clients that ignore the <style> block or CSS animations just
+    keep showing the plain inline background-color _resolve_palette already
+    sets, since that's never removed, only layered under this.
+
+    Returns (css, class_name) — class_name is "" when there's nothing to
+    animate (no background chosen, or an unparseable one), meaning the
+    caller should skip adding a class entirely."""
+    if not background:
+        return "", ""
+
+    rgb = _hex_to_rgb(background)
+    if rgb is None:
+        return "", ""
+
+    stop_a = background
+    stop_b = _lighten(rgb, 0.35)
+    stop_c = _lighten(rgb, -0.35)
+
+    css = f"""<style>
+  @keyframes {_ANIMATED_BG_CLASS} {{
+    0% {{ background-position: 0% 50%; }}
+    50% {{ background-position: 100% 50%; }}
+    100% {{ background-position: 0% 50%; }}
+  }}
+  .{_ANIMATED_BG_CLASS} {{
+    background-image: linear-gradient(120deg, {stop_a}, {stop_b}, {stop_c}, {stop_a}) !important;
+    background-size: 300% 300% !important;
+    animation: {_ANIMATED_BG_CLASS} 12s ease infinite;
+  }}
+</style>"""
+    return css, _ANIMATED_BG_CLASS
+
 
 RESPONSIVE_STYLES = """<style>
   @media only screen and (max-width: 480px) {
@@ -75,7 +202,7 @@ def _heading_size_px(raw: Any) -> int:
     return max(_HEADING_SIZE_MIN, min(_HEADING_SIZE_MAX, size))
 
 
-def _heading(block: dict[str, Any]) -> str:
+def _heading(block: dict[str, Any], palette: dict[str, str]) -> str:
     text = escape(block.get("text", ""))
     if not text:
         return ""
@@ -89,16 +216,17 @@ def _heading(block: dict[str, Any]) -> str:
     spacing = round(max(-0.6, min(0, (size - 20) * -0.0375)), 2)
 
     align = block.get("align", "left")
+    color = escape(block.get("color") or palette["ivory"])
 
     return f"""
           <tr><td class="campaign-pad" style="padding:10px 40px 18px;">
-            <h2 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:{size}px;font-weight:400;line-height:1.18;letter-spacing:{spacing}px;color:{IVORY};text-align:{align};">
+            <h2 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:{size}px;font-weight:400;line-height:1.18;letter-spacing:{spacing}px;color:{color};text-align:{align};">
               {text}
             </h2>
           </td></tr>"""
 
 
-def _paragraph(block: dict[str, Any]) -> str:
+def _paragraph(block: dict[str, Any], palette: dict[str, str]) -> str:
     # Blank lines become separate paragraphs — the marketer types normally
     # and gets sensible spacing.
     paragraphs = [p.strip() for p in block.get("text", "").split("\n\n") if p.strip()]
@@ -106,9 +234,10 @@ def _paragraph(block: dict[str, Any]) -> str:
         return ""
 
     align = block.get("align", "left")
+    color = escape(block.get("color") or palette["ivory_dim"])
 
     body = "".join(
-        f"""<p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:{IVORY_DIM};text-align:{align};">{escape(p)}</p>"""
+        f"""<p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:{color};text-align:{align};">{escape(p)}</p>"""
         for p in paragraphs
     )
 
@@ -116,7 +245,7 @@ def _paragraph(block: dict[str, Any]) -> str:
           <tr><td class="campaign-pad" style="padding:0 40px 14px;">{body}</td></tr>"""
 
 
-def _eyebrow(block: dict[str, Any]) -> str:
+def _eyebrow(block: dict[str, Any], palette: dict[str, str]) -> str:
     """Small caps line — the design system's label-caps, in email form."""
     text = escape(block.get("text", ""))
     if not text:
@@ -126,13 +255,13 @@ def _eyebrow(block: dict[str, Any]) -> str:
 
     return f"""
           <tr><td class="campaign-pad" style="padding:6px 40px 4px;">
-            <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:{GOLD};text-align:{align};">
+            <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:{palette["gold"]};text-align:{align};">
               {text}
             </p>
           </td></tr>"""
 
 
-def _image(block: dict[str, Any]) -> str:
+def _image(block: dict[str, Any], _palette: dict[str, str]) -> str:
     url = escape(block.get("url", ""))
     alt = escape(block.get("alt", ""))
     if not url:
@@ -164,18 +293,27 @@ def _image(block: dict[str, Any]) -> str:
           </td></tr>"""
 
 
-def _button(block: dict[str, Any]) -> str:
+def _button(block: dict[str, Any], palette: dict[str, str]) -> str:
     label = escape(block.get("label", ""))
     url = escape(block.get("url", ""))
     align = block.get("align", "left")
     if not label or not url:
         return ""
 
+    # No background set keeps the usual outline look (transparent fill,
+    # border matching the text color); setting one switches to a filled
+    # button instead, with the border matching the fill so it doesn't show
+    # a mismatched outline around it.
+    text_color = escape(block.get("color") or palette["gold"])
+    background = escape(block.get("background") or "")
+    border_color = background or text_color
+    bg_style = f"background-color:{background};" if background else ""
+
     return f"""
           <tr><td class="campaign-cta-row" style="padding:8px 40px 28px;" align="{align}">
             <table class="campaign-cta-button-wrap" role="presentation" cellpadding="0" cellspacing="0" border="0">
               <tr><td>
-                <a class="campaign-cta-link" href="{url}" style="display:inline-block;padding:14px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:{GOLD};text-decoration:none;border:1px solid {GOLD};border-radius:6px;">
+                <a class="campaign-cta-link" href="{url}" style="display:inline-block;padding:14px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:{text_color};text-decoration:none;border:1px solid {border_color};border-radius:6px;{bg_style}">
                   {label}
                 </a>
               </td></tr>
@@ -183,7 +321,7 @@ def _button(block: dict[str, Any]) -> str:
           </td></tr>"""
 
 
-def _quote(block: dict[str, Any]) -> str:
+def _quote(block: dict[str, Any], palette: dict[str, str]) -> str:
     """A pulled line, marked by a gold rule rather than quotation marks —
     the same treatment the website's story section uses."""
     text = escape(block.get("text", ""))
@@ -194,9 +332,9 @@ def _quote(block: dict[str, Any]) -> str:
           <tr><td class="campaign-pad" style="padding:8px 40px 26px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td width="2" style="background-color:{GOLD};"></td>
+                <td width="2" style="background-color:{palette["gold"]};"></td>
                 <td style="padding-left:20px;">
-                  <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:400;line-height:1.4;color:{IVORY};">
+                  <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:400;line-height:1.4;color:{palette["ivory"]};">
                     {text}
                   </p>
                 </td>
@@ -205,7 +343,7 @@ def _quote(block: dict[str, Any]) -> str:
           </td></tr>"""
 
 
-def _logo(block: dict[str, Any]) -> str:
+def _logo(block: dict[str, Any], palette: dict[str, str]) -> str:
     """Campaigns skip the fixed chrome header (see _layout.wrap's
     show_header) precisely so this block can be the logo instead — real
     size and position control, first thing in the email, same as the
@@ -214,19 +352,40 @@ def _logo(block: dict[str, Any]) -> str:
     rather than baked into the wrapper."""
     width = {"s": "56", "m": "90", "l": "140"}.get(block.get("size", "m"), "90")
     align = "center" if block.get("align", "center") == "center" else "left"
+    chosen_color = block.get("color")
+    color = escape(chosen_color or palette["gold"])
 
-    if settings.EMAIL_LOGO_URL:
+    if settings.EMAIL_LOGO_URL and chosen_color:
+        # Recolors the real logo file by using it as a CSS mask and filling
+        # the shape with the chosen color, rather than just showing it
+        # as-is — a plain <img> can't be recolored by CSS at all. The box is
+        # a square sized to the logo's width with mask-size:contain, which
+        # scales the real file to fit without stretching regardless of its
+        # actual aspect ratio, so this doesn't need to know the logo file's
+        # real proportions. Renders correctly in the admin's own preview
+        # and in mask-aware clients (Gmail, Apple/iOS Mail); clients that
+        # ignore CSS masking (Outlook's Word engine) just fall back to
+        # showing the original, uncoloured logo rather than breaking.
+        logo_url = escape(settings.EMAIL_LOGO_URL)
+        mark = (
+            f"""<span style="display:inline-block;width:{width}px;height:{width}px;"""
+            f"""background-color:{color};-webkit-mask-image:url('{logo_url}');"""
+            f"""mask-image:url('{logo_url}');-webkit-mask-size:contain;mask-size:contain;"""
+            f"""-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;"""
+            f"""-webkit-mask-position:center;mask-position:center;"></span>"""
+        )
+    elif settings.EMAIL_LOGO_URL:
         mark = f"""<img src="{escape(settings.EMAIL_LOGO_URL)}" alt="Sweet1NE" width="{width}"
                  style="display:inline-block;width:{width}px;height:auto;border:0;" />"""
     else:
-        mark = f"""<span style="font-family:Georgia,'Times New Roman',serif;font-size:22px;color:{GOLD};">Sweet1NE</span>"""
+        mark = f"""<span style="font-family:Georgia,'Times New Roman',serif;font-size:22px;color:{color};">Sweet1NE</span>"""
 
     # A short centered line, same accent the admin preview's own <hr>
     # renders under the logo — not a full-width border like before. Stays
     # centered regardless of the logo's own alignment, matching the
     # preview (its <hr> keeps margin:auto even when the image shifts left).
     rule = f"""<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:10px auto 0;">
-              <tr><td width="35" height="1" style="background-color:{GOLD};line-height:1px;font-size:1px;">&nbsp;</td></tr>
+              <tr><td width="35" height="1" style="background-color:{color};line-height:1px;font-size:1px;">&nbsp;</td></tr>
             </table>"""
 
     return f"""
@@ -236,7 +395,7 @@ def _logo(block: dict[str, Any]) -> str:
           </td></tr>"""
 
 
-def _note(block: dict[str, Any]) -> str:
+def _note(block: dict[str, Any], palette: dict[str, str]) -> str:
     """A smaller aside — a booking note or fine print, not the main copy."""
     text = escape(block.get("text", ""))
     if not text:
@@ -244,26 +403,33 @@ def _note(block: dict[str, Any]) -> str:
 
     return f"""
           <tr><td class="campaign-pad" style="padding:0 40px 14px;">
-            <p style="margin:0;font-size:13px;line-height:1.6;color:{MUTED};">{text}</p>
+            <p style="margin:0;font-size:13px;line-height:1.6;color:{palette["muted"]};">{text}</p>
           </td></tr>"""
 
 
-def _slogan(block: dict[str, Any]) -> str:
+def _slogan(block: dict[str, Any], palette: dict[str, str]) -> str:
     """The site's italic tagline, same treatment it gets everywhere else."""
     text = escape(block.get("text", "") or "Always in the mood for you.")
 
     return f"""
           <tr><td class="campaign-pad" style="padding:10px 40px 4px;text-align:center;">
-            <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:17px;color:{IVORY};">
+            <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:17px;color:{palette["ivory"]};">
               {text}
             </p>
           </td></tr>"""
 
 
-def _ctas(block: dict[str, Any]) -> str:
+def _ctas(block: dict[str, Any], palette: dict[str, str]) -> str:
     """One or more buttons in a row — each item resolves the same way a
-    single _button block would, just several side by side."""
+    single _button block would, just several side by side. One text/
+    background color pair for the whole block, applied to every button in
+    the row, rather than per-item — matching how the "Buttons" editor only
+    offers one color picker, not one per button."""
     items = block.get("items", [])
+    text_color = escape(block.get("color") or palette["gold"])
+    background = escape(block.get("background") or "")
+    border_color = background or text_color
+    bg_style = f"background-color:{background};" if background else ""
     buttons = []
     for item in items:
         kind = item.get("kind", "url")
@@ -280,7 +446,7 @@ def _ctas(block: dict[str, Any]) -> str:
             f"""<td class="campaign-cta-cell" style="padding:0 8px 0 0;">
                   <table class="campaign-cta-button-wrap" role="presentation" cellpadding="0" cellspacing="0" border="0">
                     <tr><td>
-                      <a class="campaign-cta-link" href="{escape(href)}" style="display:inline-block;padding:14px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:{GOLD};text-decoration:none;border:1px solid {GOLD};border-radius:6px;">
+                      <a class="campaign-cta-link" href="{escape(href)}" style="display:inline-block;padding:14px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:{text_color};text-decoration:none;border:1px solid {border_color};border-radius:6px;{bg_style}">
                         {escape(label)}
                       </a>
                     </td></tr>
@@ -297,22 +463,22 @@ def _ctas(block: dict[str, Any]) -> str:
           </td></tr>"""
 
 
-def _divider(_block: dict[str, Any]) -> str:
+def _divider(_block: dict[str, Any], palette: dict[str, str]) -> str:
     return f"""
           <tr><td class="campaign-pad" style="padding:6px 40px 26px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-              <tr><td height="1" style="background-color:{HAIRLINE_FAINT};line-height:1px;font-size:1px;">&nbsp;</td></tr>
+              <tr><td height="1" style="background-color:{palette["hairline"]};line-height:1px;font-size:1px;">&nbsp;</td></tr>
             </table>
           </td></tr>"""
 
 
-def _spacer(_block: dict[str, Any]) -> str:
+def _spacer(_block: dict[str, Any], _palette: dict[str, str]) -> str:
     return """
           <tr><td style="padding:14px 0;">&nbsp;</td></tr>"""
 
 
-def _campaign_footer(recipient_email: str) -> str:
-    """Matches the admin editor's preview footer exactly — no business
+def _campaign_footer(recipient_email: str, palette: dict[str, str]) -> str:
+    """Matches the admin editor's own preview footer exactly — no business
     name/address line and no divider above it, since the preview shows
     neither (its .admin-foot is plain text with top margin, no border).
     "Unsubscribe" stays a real, working link (every marketing email needs
@@ -322,10 +488,10 @@ def _campaign_footer(recipient_email: str) -> str:
     privacy_url = f"{settings.FRONTEND_URL}/privacy"
     return f"""
           <tr><td class="campaign-pad" style="padding:24px 40px;">
-            <p style="margin:0;font-size:12px;line-height:1.6;color:{MUTED};">
+            <p style="margin:0;font-size:12px;line-height:1.6;color:{palette["muted"]};">
               You asked to hear from Sweet1NE.
-              <a href="{unsubscribe_url}" style="color:{MUTED};text-decoration:underline;">Unsubscribe</a> any time.
-              <a href="{privacy_url}" style="color:{MUTED};text-decoration:underline;">Privacy</a> &middot; info@sweet1ne.com
+              <a href="{unsubscribe_url}" style="color:{palette["muted"]};text-decoration:underline;">Unsubscribe</a> any time.
+              <a href="{privacy_url}" style="color:{palette["muted"]};text-decoration:underline;">Privacy</a> &middot; info@sweet1ne.com
             </p>
           </td></tr>"""
 
@@ -354,11 +520,21 @@ def render_campaign(
     blocks: list[dict[str, Any]],
     recipient_email: str,
     site_url: str = "",
+    background: str | None = None,
+    background_animated: bool = False,
 ) -> str:
     """The full email. recipient_email is only used for the unsubscribe link,
-    which every marketing email must carry."""
+    which every marketing email must carry. background is the campaign's
+    own chosen page color (from its color picker) — None keeps the usual
+    dark Sweet1NE look; any hex re-derives the whole palette (surface, body
+    text, gold's own contrast) around it, see _resolve_palette.
+    background_animated turns that same color into a slow shimmering
+    gradient instead of a flat fill — ignored when no background is set,
+    since there's nothing to animate."""
+    palette = _resolve_palette(background)
+
     body = "".join(
-        RENDERERS[block["type"]](block)
+        RENDERERS[block["type"]](block, palette)
         for block in blocks
         if block.get("type") in RENDERERS
     )
@@ -373,15 +549,20 @@ def render_campaign(
     # email falls back to the automatic one rather than going unbranded.
     has_logo_block = any(b.get("type") == "logo" for b in blocks)
 
+    animated_css, animated_class = (
+        _animated_background_style(background) if background_animated else ("", "")
+    )
+
     return wrap(
         title=escape(subject),
         body=body,
         preheader=escape(preheader) if preheader else None,
         unsubscribe_email=recipient_email,
         show_header=not has_logo_block,
-        footer_override=_campaign_footer(recipient_email),
-        head_extra=RESPONSIVE_STYLES,
-        background=BACKGROUND,
-        surface=SURFACE,
+        footer_override=_campaign_footer(recipient_email, palette),
+        head_extra=RESPONSIVE_STYLES + animated_css,
+        background=palette["background"],
+        surface=palette["surface"],
         hairline="",
+        background_class=animated_class,
     )

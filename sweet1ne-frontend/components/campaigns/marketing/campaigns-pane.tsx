@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Copy, ImageIcon, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Copy, ImageIcon, Plus, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useMediaLibrary, mediaThumb } from "@/lib/use-media-library";
@@ -38,6 +38,8 @@ type Campaign = {
   subject: string;
   preheader?: string | null;
   blocks?: Block[];
+  background?: string | null;
+  background_animated?: boolean;
   status: string;
   audience: string;
   channels: Channels;
@@ -87,6 +89,21 @@ type PreviewDraft = {
   subject: string;
   preheader: string | null;
   blocks: Block[];
+  background?: string | null;
+  background_animated?: boolean;
+};
+
+// GET /email-templates — tenant-scoped, same shape as a Campaign minus the
+// sending-specific fields.
+type EmailTemplate = {
+  id: string;
+  name: string;
+  description: string;
+  subject: string;
+  preheader: string | null;
+  blocks: Block[];
+  background?: string | null;
+  background_animated?: boolean;
 };
 
 type CampaignCtaKind = "book" | "menu" | "order";
@@ -231,17 +248,16 @@ const BLOCK_KINDS: {
  * rather than tucked into a side drawer. The preview uses the same backend
  * renderer as the actual send.
  */
+type CampaignsView = "campaigns" | "new" | "templates";
+
 export function CampaignsPane() {
+  const [subView, setSubView] = useState<CampaignsView>("campaigns");
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<Campaign | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  // True once the admin has explicitly closed the desk — suppresses the
-  // "show the first campaign" fallback below until they pick one again, so
-  // Close actually closes instead of silently reopening campaigns[0].
-  const [manuallyClosed, setManuallyClosed] = useState(false);
   const [previewDraft, setPreviewDraft] = useState<PreviewDraft | null>(null);
   const [audienceCounts, setAudienceCounts] = useState<Record<
     string,
@@ -253,6 +269,19 @@ export function CampaignsPane() {
   // alone can't tell "New" from "Edit" the way the reference build's
   // in-memory draft could.
   const [isNewDraft, setIsNewDraft] = useState(false);
+
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
+  // Which template's own "Create campaign" button is mid-flight — scoped to
+  // one card instead of the whole tab, so the rest of the grid stays usable.
+  const [usingTemplateId, setUsingTemplateId] = useState<string | null>(null);
+  // The template composer — "new" for the blank card, an existing template
+  // when "Preview" opens it for editing, null when the grid itself shows.
+  // Unlike campaigns there's no draft row for a brand new one until "Save
+  // template" — editing an existing one PATCHes it directly instead.
+  const [templateDraft, setTemplateDraft] = useState<EmailTemplate | "new" | null>(
+    null,
+  );
 
   const load = useCallback(
     () =>
@@ -271,23 +300,34 @@ export function CampaignsPane() {
     [],
   );
 
+  // Not built on the backend yet — this quietly falls back to an empty
+  // grid (just the blank card) until GET /email-templates exists, rather
+  // than breaking the tab.
+  const loadTemplates = useCallback(
+    () =>
+      apiFetch("/email-templates")
+        .then(setTemplates)
+        .catch(() => setTemplates([]))
+        .finally(() => setTemplatesLoading(false)),
+    [],
+  );
+
   useEffect(() => {
     load();
     loadAudienceCounts();
-  }, [load, loadAudienceCounts]);
+    loadTemplates();
+  }, [load, loadAudienceCounts, loadTemplates]);
 
-  // The first campaign shows by default, same as the reference build — the
-  // look is meant to be visible right away, not only after a click. Derived
-  // at render time rather than synced via an effect, since it's just a
-  // fallback over campaigns that are already in state — unless the admin
-  // just closed it, in which case that fallback is suppressed.
-  const activeId =
-    editingId ?? (manuallyClosed ? null : (campaigns[0]?.id ?? null));
+  // Now purely "whichever campaign is being edited" — the old fallback to
+  // campaigns[0] made sense when the composer sat permanently alongside the
+  // table; now it's its own tab, so it has nothing to show until the admin
+  // explicitly picks "New campaign" or Edits a row.
+  const activeId = editingId;
 
   function select(id: string) {
-    setManuallyClosed(false);
     setIsNewDraft(false);
     setEditingId(id);
+    setSubView("new");
   }
 
   async function createDraft() {
@@ -303,13 +343,56 @@ export function CampaignsPane() {
         }),
       });
       setCampaigns((prev) => [draft, ...prev]);
-      setManuallyClosed(false);
       setIsNewDraft(true);
       setEditingId(draft.id);
+      setSubView("new");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't create that.");
     } finally {
       setCreating(false);
+    }
+  }
+
+  // Shared by the card's "Create campaign" button and the composer's own
+  // one — the composer calls this with whatever's currently on screen,
+  // saved or not, same as how its "Send a test" works.
+  async function createCampaignFrom(content: {
+    name: string;
+    subject: string;
+    preheader: string | null;
+    blocks: Block[];
+    background?: string | null;
+    background_animated?: boolean;
+  }) {
+    const draft = await apiFetch("/campaigns", {
+      method: "POST",
+      body: JSON.stringify({
+        name: content.name,
+        subject: content.subject,
+        preheader: content.preheader,
+        blocks: content.blocks,
+        background: content.background ?? null,
+        background_animated: content.background_animated ?? false,
+      }),
+    });
+    setCampaigns((prev) => [draft, ...prev]);
+    setIsNewDraft(true);
+    setEditingId(draft.id);
+    setTemplateDraft(null);
+    setSubView("new");
+  }
+
+  async function applyTemplate(template: EmailTemplate) {
+    setUsingTemplateId(template.id);
+    setError(null);
+    try {
+      await createCampaignFrom(template);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Couldn't start that campaign.",
+      );
+    } finally {
+      setUsingTemplateId(null);
     }
   }
 
@@ -331,8 +414,8 @@ export function CampaignsPane() {
     try {
       await apiFetch(`/campaigns/${deleting.id}`, { method: "DELETE" });
       setCampaigns((prev) => prev.filter((c) => c.id !== deleting.id));
-      // Otherwise the desk keeps trying to load a campaign that no longer
-      // exists and shows nothing but an error.
+      // Otherwise a stale editingId points at a campaign that no longer
+      // exists, next time "New campaign" happens to land back on "new".
       if (deleting.id === activeId) {
         setEditingId(null);
         setPreviewDraft(null);
@@ -348,120 +431,207 @@ export function CampaignsPane() {
     <>
       {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
 
-      <div className="admin-tools">
+      <div className="admin-cats" role="group" aria-label="Campaigns view">
         <button
           type="button"
-          className="admin-book"
+          className={subView === "campaigns" ? "is-on" : undefined}
+          onClick={() => setSubView("campaigns")}
+        >
+          Campaigns
+        </button>
+        <button
+          type="button"
+          className={subView === "new" ? "is-on" : undefined}
           onClick={createDraft}
           disabled={creating}
         >
           {creating ? "Creating…" : "New campaign"}
         </button>
+        <button
+          type="button"
+          className={subView === "templates" ? "is-on" : undefined}
+          onClick={() => setSubView("templates")}
+        >
+          Email templates
+        </button>
       </div>
 
-      {loading ? (
-        <AdminLoading />
-      ) : campaigns.length === 0 ? (
-        <p className="admin-empty">
-          No campaigns yet. New campaign uses this look — logo first, then the
-          letter.
-        </p>
-      ) : (
-        <div className="admin-data-panel">
-          <table className="admin-sheet">
-            <thead>
-              <tr>
-                <th>Subject</th>
-                <th>ID</th>
-                <th>Audience</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {campaigns.map((campaign) => (
-                <CampaignRow
-                  key={campaign.id}
-                  campaign={campaign}
-                  audienceCount={audienceCounts?.[campaign.audience] ?? null}
-                  onEdit={() => select(campaign.id)}
-                  onDuplicate={() => duplicate(campaign)}
-                  onDelete={
-                    campaign.status === "draft"
-                      ? () => setDeleting(campaign)
-                      : undefined
-                  }
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <Dialog
-        open={deleting !== null}
-        onOpenChange={(open) => !open && setDeleting(null)}
-      >
-        <DialogContent className={DARK_DIALOG}>
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl text-[#e5e2e1]">
-              Delete this draft?
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <p className="text-sm text-[rgba(229,226,225,0.68)]">
-              &ldquo;{deleting?.subject || "This draft"}&rdquo; will be gone for
-              good.
+      {subView === "campaigns" && (
+        <>
+          {loading ? (
+            <AdminLoading />
+          ) : campaigns.length === 0 ? (
+            <p className="admin-empty">
+              No campaigns yet. New campaign uses this look — logo first, then
+              the letter.
             </p>
-
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                className={DIALOG_GHOST_BTN}
-                onClick={() => setDeleting(null)}
-              >
-                Keep it
-              </button>
-              <button
-                type="button"
-                className={DIALOG_BOOK_BTN}
-                onClick={confirmDelete}
-              >
-                Delete
-              </button>
+          ) : (
+            <div className="admin-data-panel">
+              <table className="admin-sheet">
+                <thead>
+                  <tr>
+                    <th>Subject</th>
+                    <th>ID</th>
+                    <th>Audience</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {campaigns.map((campaign) => (
+                    <CampaignRow
+                      key={campaign.id}
+                      campaign={campaign}
+                      audienceCount={audienceCounts?.[campaign.audience] ?? null}
+                      onEdit={() => select(campaign.id)}
+                      onDuplicate={() => duplicate(campaign)}
+                      onDelete={
+                        campaign.status === "draft"
+                          ? () => setDeleting(campaign)
+                          : undefined
+                      }
+                    />
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          )}
 
-      {/* The look — always visible alongside the table, matching the
-          reference build's own two-column camp-desk, rather than tucked
-          away in a side drawer. */}
-      {activeId && (
-        <div className="admin-camp-desk">
-          <MailStagePreview draft={previewDraft} />
-          <CampaignEditor
-            key={activeId}
-            id={activeId}
-            isNew={isNewDraft}
-            audienceCounts={audienceCounts}
-            onClose={() => {
-              setEditingId(null);
-              setManuallyClosed(true);
-              setPreviewDraft(null);
-            }}
-            onDraftChange={setPreviewDraft}
-            onSaved={(updated) => {
-              setCampaigns((prev) =>
-                prev.map((c) => (c.id === updated.id ? updated : c)),
-              );
-              setIsNewDraft(false);
-              loadAudienceCounts();
-            }}
-          />
-        </div>
+          <Dialog
+            open={deleting !== null}
+            onOpenChange={(open) => !open && setDeleting(null)}
+          >
+            <DialogContent className={DARK_DIALOG}>
+              <DialogHeader>
+                <DialogTitle className="font-display text-xl text-[#e5e2e1]">
+                  Delete this draft?
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <p className="text-sm text-[rgba(229,226,225,0.68)]">
+                  &ldquo;{deleting?.subject || "This draft"}&rdquo; will be gone
+                  for good.
+                </p>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    className={DIALOG_GHOST_BTN}
+                    onClick={() => setDeleting(null)}
+                  >
+                    Keep it
+                  </button>
+                  <button
+                    type="button"
+                    className={DIALOG_BOOK_BTN}
+                    onClick={confirmDelete}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </>
       )}
+
+      {subView === "new" &&
+        (activeId ? (
+          <div className="admin-camp-desk">
+            <MailStagePreview draft={previewDraft} />
+            <CampaignEditor
+              key={activeId}
+              id={activeId}
+              isNew={isNewDraft}
+              audienceCounts={audienceCounts}
+              onClose={() => {
+                setEditingId(null);
+                setPreviewDraft(null);
+                setSubView("campaigns");
+              }}
+              onDraftChange={setPreviewDraft}
+              onSaved={(updated) => {
+                setCampaigns((prev) =>
+                  prev.map((c) => (c.id === updated.id ? updated : c)),
+                );
+                setIsNewDraft(false);
+                loadAudienceCounts();
+              }}
+            />
+          </div>
+        ) : (
+          <p className="admin-empty">
+            {creating ? "Creating…" : 'Click "New campaign" to start one.'}
+          </p>
+        ))}
+
+      {subView === "templates" &&
+        (templateDraft ? (
+          <div className="admin-camp-desk">
+            <MailStagePreview draft={previewDraft} />
+            <TemplateComposer
+              key={templateDraft === "new" ? "new" : templateDraft.id}
+              template={templateDraft === "new" ? null : templateDraft}
+              onClose={() => {
+                setTemplateDraft(null);
+                setPreviewDraft(null);
+              }}
+              onDraftChange={setPreviewDraft}
+              onSaved={(template) => {
+                setTemplates((prev) =>
+                  prev.some((t) => t.id === template.id)
+                    ? prev.map((t) => (t.id === template.id ? template : t))
+                    : [template, ...prev],
+                );
+                setTemplateDraft(null);
+                setPreviewDraft(null);
+              }}
+              onCreateCampaign={createCampaignFrom}
+            />
+          </div>
+        ) : templatesLoading ? (
+          <AdminLoading />
+        ) : (
+          <div className="admin-tpl-grid">
+            {templates.map((template) => (
+              <div key={template.id} className="admin-tpl-card">
+                <TemplateThumb template={template} />
+                <span className="admin-tpl-name">{template.name}</span>
+                <div className="admin-tpl-overlay">
+                  <h3>{template.name}</h3>
+                  <p>{template.description}</p>
+                  <div className="admin-tpl-actions">
+                    <button
+                      type="button"
+                      onClick={() => setTemplateDraft(template)}
+                    >
+                      Preview
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyTemplate(template)}
+                      disabled={usingTemplateId === template.id}
+                    >
+                      {usingTemplateId === template.id
+                        ? "Starting…"
+                        : "Create campaign"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              className="admin-tpl-card is-blank"
+              onClick={() => setTemplateDraft("new")}
+            >
+              <Plus className="admin-tpl-mark" aria-hidden="true" />
+              Create a custom template
+            </button>
+          </div>
+        ))}
     </>
   );
 }
@@ -543,6 +713,73 @@ function CampaignRow({
   );
 }
 
+// A real email is ~600px wide — the thumbnail renders it at that intrinsic
+// size, then CSS-scales the whole iframe down to whatever the card
+// actually measures, so what's shown is the genuine render, just shrunk,
+// not a separate lo-fi mockup.
+const THUMB_WIDTH = 600;
+
+function TemplateThumb({ template }: { template: EmailTemplate }) {
+  const [html, setHtml] = useState("");
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.3);
+
+  useEffect(() => {
+    let current = true;
+    apiFetch("/campaigns/preview", {
+      method: "POST",
+      body: JSON.stringify({
+        name: template.name,
+        subject: template.subject,
+        preheader: template.preheader,
+        blocks: previewBlocks(template.blocks),
+        background: template.background ?? null,
+        background_animated: template.background_animated ?? false,
+      }),
+    })
+      .then(({ html: rendered }: { html: string }) => {
+        if (current) setHtml(rendered);
+      })
+      .catch(() => {
+        // A failed render just leaves the card blank-faced — the name
+        // caption and overlay still work fine without it.
+      });
+    return () => {
+      current = false;
+    };
+  }, [template]);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const measure = () => {
+      if (el.offsetWidth) setScale(el.offsetWidth / THUMB_WIDTH);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div ref={wrapRef} className="admin-tpl-thumb">
+      {html && (
+        <iframe
+          title={`${template.name} preview`}
+          srcDoc={html}
+          tabIndex={-1}
+          aria-hidden="true"
+          style={{
+            width: THUMB_WIDTH,
+            height: THUMB_WIDTH * 1.4,
+            transform: `scale(${scale})`,
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 /** Uses the real email renderer, so the live preview cannot drift from
    the HTML sent to recipients. */
 function MailStagePreview({ draft }: { draft: PreviewDraft | null }) {
@@ -565,6 +802,8 @@ function MailStagePreview({ draft }: { draft: PreviewDraft | null }) {
           subject: draft.subject,
           preheader: draft.preheader,
           blocks: previewBlocks(draft.blocks),
+          background: draft.background ?? null,
+          background_animated: draft.background_animated ?? false,
         }),
       })
         .then(({ html: rendered }: { html: string }) => {
@@ -632,6 +871,13 @@ function CampaignEditor({
   const [subject, setSubject] = useState("");
   const [preheader, setPreheader] = useState("");
   const [blocks, setBlocks] = useState<Block[]>([]);
+  // The whole email's own page color — not a block, applies to the entire
+  // template at once (body background, surface, and derived text/accent
+  // colors). "" means "use the default dark look".
+  const [background, setBackground] = useState("");
+  // A slow shimmering gradient across shades of that same color instead
+  // of a flat fill — meaningless without a background chosen.
+  const [backgroundAnimated, setBackgroundAnimated] = useState(false);
   // Which layout row reads gold — purely a "you're looking at this one"
   // marker, same as the reference build's own selection concept. Every
   // block's fields stay visible regardless of which is selected.
@@ -667,6 +913,8 @@ function CampaignEditor({
         setSubject(c.subject);
         setPreheader(c.preheader ?? "");
         setBlocks(c.blocks ?? []);
+        setBackground(c.background ?? "");
+        setBackgroundAnimated(c.background_animated ?? false);
         setAudience(c.audience ?? "active");
         setChannels(c.channels ?? {});
         setMapId(c.map_id ?? "");
@@ -682,8 +930,23 @@ function CampaignEditor({
   // Mirrors the live edit buffer up to the parent on every change, so the
   // preview beside it renders exactly what's on screen right now.
   useEffect(() => {
-    onDraftChange({ name, subject, preheader: preheader || null, blocks });
-  }, [name, subject, preheader, blocks, onDraftChange]);
+    onDraftChange({
+      name,
+      subject,
+      preheader: preheader || null,
+      blocks,
+      background: background || null,
+      background_animated: backgroundAnimated,
+    });
+  }, [
+    name,
+    subject,
+    preheader,
+    blocks,
+    background,
+    backgroundAnimated,
+    onDraftChange,
+  ]);
 
   function updateBlock(index: number, patch: Partial<Block>) {
     setBlocks((prev) =>
@@ -737,6 +1000,8 @@ function CampaignEditor({
         subject,
         preheader: preheader || null,
         blocks,
+        background: background || null,
+        background_animated: backgroundAnimated,
         audience,
         channels,
         map_id: mapId || null,
@@ -894,6 +1159,29 @@ function CampaignEditor({
                 placeholder="The short text shown beside the subject"
               />
             </label>
+
+            <div>
+              <p className="admin-kicker">Background</p>
+              <p className="!mb-2 !mt-[-0.3rem] text-xs normal-case tracking-normal text-[var(--ivory-dim)]">
+                Sets the page color for the whole email — Light switches the
+                whole template to a light page, not just one block.
+              </p>
+              <ColorField
+                value={background}
+                readOnly={readOnly}
+                onChange={setBackground}
+              />
+              <label className="!mb-0 mt-2 flex items-center gap-2 !normal-case !tracking-normal text-sm text-[var(--ivory)]">
+                <input
+                  type="checkbox"
+                  checked={backgroundAnimated}
+                  disabled={readOnly || !background}
+                  onChange={(e) => setBackgroundAnimated(e.target.checked)}
+                  className="h-4 w-4 accent-[var(--gold)]"
+                />
+                Animate this background (a slow shimmer, not a flat fill)
+              </label>
+            </div>
 
             <label>
               Campaign ID
@@ -1129,6 +1417,361 @@ function CampaignEditor({
   );
 }
 
+/**
+ * Doubles as both "create" and "edit" — a null template means a new,
+ * unsaved one (purely client-side state until "Save template", unlike
+ * CampaignEditor there's no row to PATCH until it's actually finished);
+ * an existing template prefills every field and "Save" PATCHes it in
+ * place instead. Shares the same block-editing building blocks as
+ * CampaignEditor (BlockCard, BLOCK_KINDS), minus anything campaign-only
+ * (audience, channels, sending).
+ */
+function TemplateComposer({
+  template,
+  onClose,
+  onDraftChange,
+  onSaved,
+  onCreateCampaign,
+}: {
+  template?: EmailTemplate | null;
+  onClose: () => void;
+  onDraftChange: (draft: PreviewDraft) => void;
+  onSaved: (template: EmailTemplate) => void;
+  onCreateCampaign: (content: {
+    name: string;
+    subject: string;
+    preheader: string | null;
+    blocks: Block[];
+    background?: string | null;
+    background_animated?: boolean;
+  }) => Promise<void>;
+}) {
+  const [name, setName] = useState(template?.name ?? "");
+  const [description, setDescription] = useState(template?.description ?? "");
+  const [subject, setSubject] = useState(template?.subject ?? "");
+  const [preheader, setPreheader] = useState(template?.preheader ?? "");
+  const [blocks, setBlocks] = useState<Block[]>(
+    template?.blocks ?? defaultCampaignBlocks(),
+  );
+  const [background, setBackground] = useState(template?.background ?? "");
+  const [backgroundAnimated, setBackgroundAnimated] = useState(
+    template?.background_animated ?? false,
+  );
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [testEmail, setTestEmail] = useState("");
+  const [sendingTest, setSendingTest] = useState(false);
+  const [testSent, setTestSent] = useState(false);
+  const [startingCampaign, setStartingCampaign] = useState(false);
+
+  useEffect(() => {
+    onDraftChange({
+      name,
+      subject,
+      preheader: preheader || null,
+      blocks,
+      background: background || null,
+      background_animated: backgroundAnimated,
+    });
+  }, [
+    name,
+    subject,
+    preheader,
+    blocks,
+    background,
+    backgroundAnimated,
+    onDraftChange,
+  ]);
+
+  function updateBlock(index: number, patch: Partial<Block>) {
+    setBlocks((prev) =>
+      prev.map((b, i) => (i === index ? { ...b, ...patch } : b)),
+    );
+  }
+
+  function addBlock(type: string, make: () => Block) {
+    if (type === "image") {
+      const existingEmpty = blocks.findIndex(
+        (b) => b.type === "image" && !b.url,
+      );
+      if (existingEmpty !== -1) {
+        setSelectedIndex(existingEmpty);
+        return;
+      }
+    }
+    setSelectedIndex(blocks.length);
+    setBlocks((prev) => [...prev, make()]);
+  }
+
+  function removeBlock(index: number) {
+    setBlocks((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function moveBlock(index: number, direction: -1 | 1) {
+    setBlocks((prev) => {
+      const target = index + direction;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  }
+
+  async function save() {
+    if (!name.trim() || !subject.trim()) {
+      setError("A name and a subject are both needed before saving.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const body = JSON.stringify({
+        name,
+        description,
+        subject,
+        preheader: preheader || null,
+        blocks,
+        background: background || null,
+        background_animated: backgroundAnimated,
+      });
+      const saved = template
+        ? await apiFetch(`/email-templates/${template.id}`, {
+            method: "PATCH",
+            body,
+          })
+        : await apiFetch("/email-templates", { method: "POST", body });
+      onSaved(saved);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Couldn't save that template.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Stateless, same as the live preview beside it — sends exactly what's
+  // on screen right now, saved or not.
+  async function sendTest() {
+    if (!testEmail) return;
+    setSendingTest(true);
+    setError(null);
+    setTestSent(false);
+    try {
+      await apiFetch("/email-templates/test-send", {
+        method: "POST",
+        body: JSON.stringify({
+          subject,
+          preheader: preheader || null,
+          blocks,
+          background: background || null,
+          background_animated: backgroundAnimated,
+          email: testEmail,
+        }),
+      });
+      setTestSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't send that test.");
+    } finally {
+      setSendingTest(false);
+    }
+  }
+
+  // Starts a real campaign from whatever's currently on screen — the
+  // full audience-aware send lives on that campaign's own editor, not
+  // here, since a template has no audience of its own.
+  async function createCampaign() {
+    setStartingCampaign(true);
+    setError(null);
+    try {
+      await onCreateCampaign({
+        name: name || subject,
+        subject,
+        preheader: preheader || null,
+        blocks,
+        background: background || null,
+        background_animated: backgroundAnimated,
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Couldn't start that campaign.",
+      );
+    } finally {
+      setStartingCampaign(false);
+    }
+  }
+
+  return (
+    <section className="admin-camp-build">
+      <h2 id="camp-title">
+        {template ? "Edit template" : "Create a custom template"}
+      </h2>
+
+      {error && <p className="admin-hold mb-3 text-sm">{error}</p>}
+
+      <form
+        className="admin-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          save();
+        }}
+        onKeyDown={(e) => {
+          if (
+            e.key === "Enter" &&
+            (e.target as HTMLElement).tagName === "INPUT"
+          ) {
+            e.preventDefault();
+          }
+        }}
+      >
+        <label>
+          Template name
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Weekend special"
+            required
+          />
+        </label>
+        <label>
+          Short description
+          <input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="What this template's for — shown on its card"
+          />
+        </label>
+        <label>
+          Subject
+          <EmojiField
+            value={subject}
+            onChange={setSubject}
+            placeholder="What shows up in the inbox"
+            required
+          />
+        </label>
+        <label>
+          Inbox preview text
+          <input
+            value={preheader}
+            onChange={(e) => setPreheader(e.target.value)}
+            placeholder="The short text shown beside the subject"
+          />
+        </label>
+
+        <div>
+          <p className="admin-kicker">Background</p>
+          <p className="!mb-2 !mt-[-0.3rem] text-xs normal-case tracking-normal text-[var(--ivory-dim)]">
+            Sets the page color for the whole email — Light switches the
+            whole template to a light page, not just one block.
+          </p>
+          <ColorField
+            value={background}
+            readOnly={false}
+            onChange={setBackground}
+          />
+          <label className="!mb-0 mt-2 flex items-center gap-2 !normal-case !tracking-normal text-sm text-[var(--ivory)]">
+            <input
+              type="checkbox"
+              checked={backgroundAnimated}
+              disabled={!background}
+              onChange={(e) => setBackgroundAnimated(e.target.checked)}
+              className="h-4 w-4 accent-[var(--gold)]"
+            />
+            Animate this background (a slow shimmer, not a flat fill)
+          </label>
+        </div>
+
+        {/* Blocks */}
+        <div className="mt-4 space-y-3">
+          {blocks.length === 0 && (
+            <p className="admin-empty">
+              Nothing here yet — add a block below to get started.
+            </p>
+          )}
+
+          {blocks.map((block, index) => (
+            <BlockCard
+              key={index}
+              block={block}
+              index={index}
+              total={blocks.length}
+              readOnly={false}
+              selected={selectedIndex === index}
+              onSelect={() => setSelectedIndex(index)}
+              onChange={(patch) => updateBlock(index, patch)}
+              onRemove={() => removeBlock(index)}
+              onMove={(dir) => moveBlock(index, dir)}
+            />
+          ))}
+        </div>
+
+        <div className="admin-bit-bar" role="group" aria-label="Add a bit">
+          {BLOCK_KINDS.slice(0, 8).map((kind) => (
+            <button
+              key={kind.type}
+              type="button"
+              className="admin-add-bit"
+              onClick={() => addBlock(kind.type, kind.make)}
+            >
+              + {kind.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-2">
+          <p className="admin-kicker">Test &amp; send</p>
+          <p className="!mb-2 !mt-[-0.3rem] text-xs normal-case tracking-normal text-[var(--ivory-dim)]">
+            Send this to one inbox to see how it really looks, or turn it
+            into a real campaign — the full send-to-the-list step lives on
+            the new campaign&rsquo;s own editor.
+          </p>
+          <div className="admin-row-acts">
+            <input
+              type="email"
+              value={testEmail}
+              onChange={(e) => {
+                setTestEmail(e.target.value);
+                setTestSent(false);
+              }}
+              placeholder="you@sweet1ne.com"
+              autoComplete="email"
+              className="min-w-[14rem] flex-1"
+            />
+            <button
+              type="button"
+              className="admin-book"
+              onClick={sendTest}
+              disabled={sendingTest || !testEmail || !subject.trim()}
+            >
+              {sendingTest ? "Sending…" : testSent ? "Sent" : "Send a test"}
+            </button>
+            <button
+              type="button"
+              className="admin-book"
+              onClick={createCampaign}
+              disabled={startingCampaign || !subject.trim()}
+            >
+              {startingCampaign ? "Starting…" : "Create campaign"}
+            </button>
+          </div>
+        </div>
+
+        <p className="admin-row-acts is-sticky">
+          <button type="submit" className="admin-book" disabled={saving}>
+            {saving ? "Saving…" : "Save template"}
+          </button>
+          <button type="button" className="admin-book" onClick={onClose}>
+            Close
+          </button>
+        </p>
+      </form>
+    </section>
+  );
+}
+
 function BlockCard({
   block,
   index,
@@ -1205,24 +1848,34 @@ function BlockCard({
           a checkbox doesn't fight with that for the click. */}
       <div onClick={(e) => e.stopPropagation()}>
         {block.type === "logo" && (
-          <div className="flex flex-wrap gap-3">
-            <select
-              value={block.size ?? "m"}
-              disabled={readOnly}
-              onChange={(e) => onChange({ size: e.target.value })}
-            >
-              <option value="s">Small</option>
-              <option value="m">Medium</option>
-              <option value="l">Large</option>
-            </select>
-            <select
-              value={block.align ?? "center"}
-              disabled={readOnly}
-              onChange={(e) => onChange({ align: e.target.value })}
-            >
-              <option value="center">Center</option>
-              <option value="left">Left</option>
-            </select>
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-3">
+              <select
+                value={block.size ?? "m"}
+                disabled={readOnly}
+                onChange={(e) => onChange({ size: e.target.value })}
+              >
+                <option value="s">Small</option>
+                <option value="m">Medium</option>
+                <option value="l">Large</option>
+              </select>
+              <select
+                value={block.align ?? "center"}
+                disabled={readOnly}
+                onChange={(e) => onChange({ align: e.target.value })}
+              >
+                <option value="center">Center</option>
+                <option value="left">Left</option>
+              </select>
+            </div>
+            <div>
+              <p className="admin-kicker">Color</p>
+              <ColorField
+                value={block.color}
+                readOnly={readOnly}
+                onChange={(color) => onChange({ color })}
+              />
+            </div>
           </div>
         )}
 
@@ -1262,6 +1915,14 @@ function BlockCard({
                 onChange={(align) => onChange({ align })}
               />
             </div>
+            <div>
+              <p className="admin-kicker">Color</p>
+              <ColorField
+                value={block.color}
+                readOnly={readOnly}
+                onChange={(color) => onChange({ color })}
+              />
+            </div>
           </div>
         )}
 
@@ -1279,6 +1940,14 @@ function BlockCard({
               disabled={readOnly}
               onChange={(align) => onChange({ align })}
             />
+            <div>
+              <p className="admin-kicker">Color</p>
+              <ColorField
+                value={block.color}
+                readOnly={readOnly}
+                onChange={(color) => onChange({ color })}
+              />
+            </div>
           </div>
         )}
 
@@ -1300,11 +1969,19 @@ function BlockCard({
         )}
 
         {block.type === "ctas" && (
-          <CtaStack
-            items={block.items ?? []}
-            readOnly={readOnly}
-            onChange={(items) => onChange({ items })}
-          />
+          <div className="space-y-3">
+            <CtaStack
+              items={block.items ?? []}
+              readOnly={readOnly}
+              onChange={(items) => onChange({ items })}
+            />
+            <ButtonColorFields
+              textColor={block.color}
+              background={block.background}
+              readOnly={readOnly}
+              onChange={onChange}
+            />
+          </div>
         )}
 
         {block.type === "slogan" && (
@@ -1335,6 +2012,14 @@ function BlockCard({
                 value={block.align}
                 disabled={readOnly}
                 onChange={(align) => onChange({ align })}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <ButtonColorFields
+                textColor={block.color}
+                background={block.background}
+                readOnly={readOnly}
+                onChange={onChange}
               />
             </div>
           </div>
@@ -1482,6 +2167,93 @@ function AlignSelect({
       <option value="center">Center</option>
       <option value="right">Right</option>
     </select>
+  );
+}
+
+// A small curated palette plus a native color input for anything else —
+// "" always means "use the design's own default", never a literal color,
+// so old blocks saved before this field existed keep looking the same.
+const COLOR_PRESETS: { key: string; label: string; value: string }[] = [
+  { key: "default", label: "Default", value: "" },
+  { key: "gold", label: "Gold", value: "#c9a24a" },
+  { key: "light", label: "Light", value: "#f3efe8" },
+  { key: "red", label: "Red", value: "#8c3b3b" },
+  { key: "blue", label: "Blue", value: "#3b5b78" },
+];
+
+function ColorField({
+  value,
+  readOnly,
+  onChange,
+}: {
+  value?: string;
+  readOnly: boolean;
+  onChange: (color: string) => void;
+}) {
+  return (
+    <div className="admin-color-row" role="group" aria-label="Color">
+      {COLOR_PRESETS.map((preset) => (
+        <button
+          key={preset.key}
+          type="button"
+          className={(value || "") === preset.value ? "is-on" : undefined}
+          disabled={readOnly}
+          title={preset.label}
+          onClick={() => onChange(preset.value)}
+        >
+          <span
+            className={preset.value ? undefined : "is-none"}
+            style={preset.value ? { background: preset.value } : undefined}
+          />
+        </button>
+      ))}
+      <input
+        type="color"
+        value={value || "#c9a24a"}
+        disabled={readOnly}
+        onChange={(e) => onChange(e.target.value)}
+        className="admin-color-custom"
+        title="Custom color"
+        aria-label="Custom color"
+      />
+    </div>
+  );
+}
+
+// Shared by both the "button" and "ctas" blocks — one text color and one
+// background color for every button in that block. Leaving background
+// unset keeps the usual outline look (transparent fill, border matching
+// the text color); setting one switches to a filled button instead.
+function ButtonColorFields({
+  textColor,
+  background,
+  readOnly,
+  onChange,
+}: {
+  textColor?: string;
+  background?: string;
+  readOnly: boolean;
+  onChange: (patch: Partial<Block>) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="admin-kicker">Text color</p>
+        <ColorField
+          value={textColor}
+          readOnly={readOnly}
+          onChange={(color) => onChange({ color })}
+        />
+      </div>
+      <div>
+        <p className="admin-kicker">Background color</p>
+        <ColorField
+          value={background}
+          readOnly={readOnly}
+          onChange={(background) => onChange({ background })}
+        />
+      </div>
+    </div>
   );
 }
 

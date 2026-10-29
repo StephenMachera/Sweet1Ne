@@ -1081,6 +1081,136 @@ body {
   color: #0e0e0e;
 }
 
+/* Email templates grid — each card shows the real rendered email, scaled
+   down (see .admin-tpl-thumb/TemplateThumb); the name, description and the
+   two actions only surface on hover/focus so the grid itself stays calm
+   until someone's looking at a specific template. */
+.admin-tpl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+  margin: 0 0 1rem;
+}
+.admin-tpl-card {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border: 1px solid rgba(201, 162, 74, 0.28);
+  background: #0c0c0b;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.admin-tpl-card .admin-tpl-mark {
+  width: 4.5rem;
+  height: 4.5rem;
+  color: rgba(201, 162, 74, 0.4);
+}
+.admin-tpl-thumb {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #fff;
+  pointer-events: none;
+}
+.admin-tpl-thumb iframe {
+  display: block;
+  border: 0;
+  transform-origin: top left;
+}
+.admin-tpl-card .admin-tpl-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ivory);
+  background: linear-gradient(transparent, rgba(5, 5, 5, 0.88));
+}
+.admin-tpl-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1.1rem 0.7rem 0.7rem;
+  background: linear-gradient(
+    to top,
+    rgba(5, 5, 5, 0.95) 70%,
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.admin-tpl-card:hover .admin-tpl-overlay,
+.admin-tpl-card:focus-within .admin-tpl-overlay {
+  opacity: 1;
+}
+.admin-tpl-overlay h3 {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0;
+}
+.admin-tpl-overlay p {
+  font-size: 0.64rem;
+  color: var(--ivory-dim);
+  margin: 0;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.admin-tpl-actions {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.1rem;
+}
+.admin-tpl-actions button {
+  flex: 1;
+  appearance: none;
+  border: 1px solid rgba(201, 162, 74, 0.4);
+  background: transparent;
+  color: var(--ivory-dim);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.4rem;
+  cursor: pointer;
+}
+.admin-tpl-actions button:hover,
+.admin-tpl-actions button:disabled {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.admin-tpl-actions button:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.admin-tpl-card.is-blank {
+  cursor: pointer;
+  color: rgba(201, 162, 74, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.admin-tpl-card.is-blank:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
 /* A review-before-you-delete lightbox for one media item — replaces the
    old instant-delete-on-click behaviour on the Media library's grid. */
 .admin-lightbox-veil {
@@ -2586,6 +2716,69 @@ body:has(.home-page) .promo-stage {
   background: var(--gold);
   width: 0.55rem;
   height: 0.55rem;
+}
+
+/* A curated swatch row plus a native color input for anything outside the
+   presets — used for the logo/heading/paragraph text color and the image
+   block's background. */
+.admin-color-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.9rem;
+}
+.admin-color-row button {
+  appearance: none;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 162, 74, 0.28);
+  background: #050505;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.admin-color-row button span {
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 50%;
+  display: block;
+}
+.admin-color-row button span.is-none {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(229, 226, 225, 0.35),
+    rgba(229, 226, 225, 0.35) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  border: 1px solid rgba(229, 226, 225, 0.35);
+}
+.admin-color-row button:hover {
+  border-color: rgba(201, 162, 74, 0.55);
+}
+.admin-color-row button.is-on {
+  border-color: var(--gold);
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.35);
+}
+.admin-color-custom {
+  appearance: none;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border: 1px solid rgba(201, 162, 74, 0.28);
+  border-radius: 50%;
+  background: #050505;
+  cursor: pointer;
+  overflow: hidden;
+}
+.admin-color-custom::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+.admin-color-custom::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
 }
 
 /* Campaigns' own picture block reuses the same anchor-grid component as

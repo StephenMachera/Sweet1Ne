@@ -12,6 +12,7 @@ app = typer.Typer(
 
 from app.management.commands import (  # noqa: E402, F401
     seed_permissions,
+    seed_email_templates,
     create_tenant,
     create_branch,
     create_staff,

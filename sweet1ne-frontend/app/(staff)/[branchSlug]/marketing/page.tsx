@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { List, Send, ChartColumn } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { SubscriberList } from "@/components/campaigns/marketing/subscriber-list";
@@ -16,11 +17,12 @@ export default function AdminMarketingPage() {
   const router = useRouter();
   const { me, loading } = useMe();
   const canManage = hasPermission(me, "manage_marketing");
-  // Campaigns are company-wide, so branch-scoped staff can see the list but
-  // not the Campaigns tab — same restriction the old /campaigns route had.
+  // Campaigns and their activity are company-wide, so branch-scoped staff
+  // can see the list but not those two tabs — same restriction the old
+  // /campaigns route had.
   const isUnscoped = me?.branch_id === null;
 
-  const [view, setView] = useState<"campaigns" | "list">("list");
+  const [view, setView] = useState<"campaigns" | "list" | "activity">("list");
   const [placeFilter, setPlaceFilter] = useState("");
   const [branches, setBranches] = useState<Branch[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -97,26 +99,40 @@ export default function AdminMarketingPage() {
       <div className="admin-cats" role="group" aria-label="View">
         <button
           type="button"
-          className={effectiveView === "list" ? "is-on" : undefined}
+          className={`inline-flex items-center gap-1.5 ${effectiveView === "list" ? "is-on" : ""}`}
           onClick={() => setView("list")}
         >
+          <List className="h-3.5 w-3.5" aria-hidden="true" />
           The list
         </button>
         {isUnscoped && (
           <button
             type="button"
-            className={effectiveView === "campaigns" ? "is-on" : undefined}
+            className={`inline-flex items-center gap-1.5 ${effectiveView === "campaigns" ? "is-on" : ""}`}
             onClick={() => setView("campaigns")}
           >
+            <Send className="h-3.5 w-3.5" aria-hidden="true" />
             Campaigns
+          </button>
+        )}
+        {isUnscoped && (
+          <button
+            type="button"
+            className={`inline-flex items-center gap-1.5 ${effectiveView === "activity" ? "is-on" : ""}`}
+            onClick={() => setView("activity")}
+          >
+            <ChartColumn className="h-3.5 w-3.5" aria-hidden="true" />
+            Email activity
           </button>
         )}
       </div>
 
       {effectiveView === "list" ? (
         <SubscriberList tone="admin" canSendCampaigns={isUnscoped} hideHeader onChanged={loadStats} />
-      ) : (
+      ) : effectiveView === "campaigns" ? (
         <CampaignsPane />
+      ) : (
+        <p className="admin-empty">Email activity — coming soon.</p>
       )}
     </>
   );
