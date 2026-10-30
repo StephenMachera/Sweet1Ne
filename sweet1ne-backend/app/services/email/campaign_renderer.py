@@ -11,10 +11,17 @@ what stops a campaign looking nothing like Sweet1NE.
 """
 
 import colorsys
+import hashlib
+import io
+from functools import lru_cache
 from html import escape
 from typing import Any
 
+import httpx
+from PIL import Image
+
 from app.core.config import settings
+from app.core.supabase_client import get_supabase_admin
 from app.services.email.templates._layout import wrap
 
 # Matches the admin editor's own live preview exactly (app/globals.css,
@@ -343,6 +350,55 @@ def _quote(block: dict[str, Any], palette: dict[str, str]) -> str:
           </td></tr>"""
 
 
+@lru_cache(maxsize=64)
+def _recolored_logo_url(logo_url: str, color: str) -> str | None:
+    """A real recolored copy of the logo file, uploaded alongside the
+    original — not a CSS trick. CSS mask-image (the first thing tried
+    here) looked right in a browser but most real email clients strip
+    the mask properties while keeping background-color, so the "logo"
+    rendered as a plain colored block. Recoloring the actual pixels
+    (tinting every opaque pixel with the chosen color via the file's own
+    alpha channel as a mask) and serving a plain <img> is the only
+    approach that survives every client, Outlook included.
+
+    Cached per (logo_url, color) for this process's lifetime — the color
+    is the same for every recipient of one campaign, so without this a
+    send to a thousand people would otherwise fetch and re-upload the
+    same tinted image a thousand times. Returns None on any failure
+    (network, decode, upload), so the caller can fall back to the plain
+    logo rather than breaking the send.
+    """
+    try:
+        resp = httpx.get(logo_url, timeout=10)
+        resp.raise_for_status()
+        image = Image.open(io.BytesIO(resp.content)).convert("RGBA")
+
+        r, g, b = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
+        alpha = image.split()[3]
+        tinted = Image.new("RGBA", image.size, (r, g, b, 0))
+        tinted.putalpha(alpha)
+
+        buffer = io.BytesIO()
+        tinted.save(buffer, format="PNG")
+
+        # Content-addressed path — the same (logo, color) pair always
+        # lands on the same file, so re-sends/re-tests reuse it instead
+        # of piling up duplicate uploads.
+        digest = hashlib.sha1(f"{logo_url}:{color}".encode()).hexdigest()[:16]
+        path = f"brand/logo-email-tinted/{digest}.png"
+
+        bucket = get_supabase_admin().storage.from_(settings.SUPABASE_STORAGE_BUCKET)
+        bucket.upload(
+            path,
+            buffer.getvalue(),
+            {"content-type": "image/png", "upsert": "true"},
+        )
+        return bucket.get_public_url(path)
+    except Exception as e:
+        print(f"[email] Couldn't recolor the logo for {color}: {e}")
+        return None
+
+
 def _logo(block: dict[str, Any], palette: dict[str, str]) -> str:
     """Campaigns skip the fixed chrome header (see _layout.wrap's
     show_header) precisely so this block can be the logo instead — real
@@ -356,24 +412,14 @@ def _logo(block: dict[str, Any], palette: dict[str, str]) -> str:
     color = escape(chosen_color or palette["gold"])
 
     if settings.EMAIL_LOGO_URL and chosen_color:
-        # Recolors the real logo file by using it as a CSS mask and filling
-        # the shape with the chosen color, rather than just showing it
-        # as-is — a plain <img> can't be recolored by CSS at all. The box is
-        # a square sized to the logo's width with mask-size:contain, which
-        # scales the real file to fit without stretching regardless of its
-        # actual aspect ratio, so this doesn't need to know the logo file's
-        # real proportions. Renders correctly in the admin's own preview
-        # and in mask-aware clients (Gmail, Apple/iOS Mail); clients that
-        # ignore CSS masking (Outlook's Word engine) just fall back to
-        # showing the original, uncoloured logo rather than breaking.
-        logo_url = escape(settings.EMAIL_LOGO_URL)
-        mark = (
-            f"""<span style="display:inline-block;width:{width}px;height:{width}px;"""
-            f"""background-color:{color};-webkit-mask-image:url('{logo_url}');"""
-            f"""mask-image:url('{logo_url}');-webkit-mask-size:contain;mask-size:contain;"""
-            f"""-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;"""
-            f"""-webkit-mask-position:center;mask-position:center;"></span>"""
-        )
+        # A genuinely recolored copy of the file — see _recolored_logo_url
+        # for why a CSS mask-image trick doesn't survive real clients.
+        # Falls back to the plain, uncoloured logo if the recolor itself
+        # fails for any reason, rather than breaking the send.
+        tinted_url = _recolored_logo_url(settings.EMAIL_LOGO_URL, color)
+        logo_src = tinted_url or settings.EMAIL_LOGO_URL
+        mark = f"""<img src="{escape(logo_src)}" alt="Sweet1NE" width="{width}"
+                 style="display:inline-block;width:{width}px;height:auto;border:0;" />"""
     elif settings.EMAIL_LOGO_URL:
         mark = f"""<img src="{escape(settings.EMAIL_LOGO_URL)}" alt="Sweet1NE" width="{width}"
                  style="display:inline-block;width:{width}px;height:auto;border:0;" />"""
