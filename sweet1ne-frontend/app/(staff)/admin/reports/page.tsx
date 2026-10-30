@@ -12,7 +12,7 @@ export default function AdminReportsPage() {
   const { me, loading } = useMe();
   const canView = hasPermission(me, "access_reports");
 
-  const [tab, setTab] = useState<"general" | "revenue">("general");
+  const [tab, setTab] = useState<"general" | "revenue" | "insights">("general");
 
   useEffect(() => {
     if (loading || !me) return;
@@ -41,9 +41,14 @@ export default function AdminReportsPage() {
         <button type="button" className={tab === "revenue" ? "is-on" : undefined} onClick={() => setTab("revenue")}>
           Revenue reports
         </button>
+        <button type="button" className={tab === "insights" ? "is-on" : undefined} onClick={() => setTab("insights")}>
+          Insights
+        </button>
       </div>
 
-      {tab === "general" ? (
+      {tab === "insights" ? (
+        <p className="admin-empty">Insights — coming soon.</p>
+      ) : tab === "general" ? (
         <GeneralReport />
       ) : (
         <ReportView
