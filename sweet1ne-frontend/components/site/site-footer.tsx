@@ -54,6 +54,17 @@ export function SiteFooter() {
             {item.label}
           </Link>
         ))}
+        {/* Off-site, unlike the two above — kept out of the shared LEGAL
+            list (also used by ThankYouFooter) since only the main site
+            footer needs it. */}
+        <a
+          href="https://sweet1nelive.com/"
+          target="_blank"
+          rel="noreferrer"
+          className="text-[0.68rem] uppercase tracking-[0.14em] text-[var(--ivory-dim)] transition-colors hover:text-[var(--gold)]"
+        >
+          Go live
+        </a>
       </div>
 
       <p className="mt-5 text-[0.4rem] uppercase tracking-[0.16em] text-[rgba(229,226,225,0.18)]">

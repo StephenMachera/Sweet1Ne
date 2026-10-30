@@ -13,6 +13,9 @@ const NAV = [
   { href: "/events", label: "EVENTS" },
   { href: "/locations", label: "BOOK A TABLE" },
   { href: "/contact", label: "CONTACT" },
+  // Off-site, unlike every link above it — opens in a new tab rather
+  // than navigating away from the site entirely.
+  { href: "https://sweet1nelive.com/", label: "GO LIVE", external: true },
 ];
 
 export function SiteHeader() {
@@ -115,23 +118,36 @@ export function SiteHeader() {
           </Link>
 
           <nav className="hidden items-center gap-8 lg:flex">
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className={`text-xs transition-colors ${
-                  pathname === item.href
-                    ? "text-[var(--gold)]"
-                    : "text-white hover:text-[var(--gold)]"
-                }`}
-                // Sits over video, so the type needs its own separation from
-                // whatever's behind it.
-                style={{ textShadow: "0 1px 3px rgba(0,0,0,.6)" }}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {NAV.map((item) =>
+              item.external ? (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-white transition-colors hover:text-[var(--gold)]"
+                  style={{ textShadow: "0 1px 3px rgba(0,0,0,.6)" }}
+                >
+                  {item.label}
+                </a>
+              ) : (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className={`text-xs transition-colors ${
+                    pathname === item.href
+                      ? "text-[var(--gold)]"
+                      : "text-white hover:text-[var(--gold)]"
+                  }`}
+                  // Sits over video, so the type needs its own separation
+                  // from whatever's behind it.
+                  style={{ textShadow: "0 1px 3px rgba(0,0,0,.6)" }}
+                >
+                  {item.label}
+                </Link>
+              ),
+            )}
           </nav>
 
           <div className="flex items-center gap-3">
@@ -176,21 +192,36 @@ export function SiteHeader() {
         <div className="glow left-1/2 top-1/3 h-[380px] w-[380px] -translate-x-1/2" />
 
         <nav className="relative flex h-full flex-col justify-center px-6 pb-32 pt-24">
-          {NAV.map((item, i) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className={`border-b border-white/[0.06] py-4 font-display text-[2rem] leading-tight transition-all duration-500 last:border-0 ${
-                pathname === item.href ? "text-[var(--gold)]" : "text-[var(--ivory)]"
-              } ${open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
-              // Links arrive one after another rather than all at once —
-              // 60ms apart is enough to feel considered, not slow.
-              style={{ transitionDelay: open ? `${120 + i * 60}ms` : "0ms" }}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {NAV.map((item, i) =>
+            item.external ? (
+              <a
+                key={item.href}
+                href={item.href}
+                target="_blank"
+                rel="noreferrer"
+                className={`border-b border-white/[0.06] py-4 font-display text-[2rem] leading-tight transition-all duration-500 last:border-0 text-[var(--ivory)] ${
+                  open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+                }`}
+                style={{ transitionDelay: open ? `${120 + i * 60}ms` : "0ms" }}
+              >
+                {item.label}
+              </a>
+            ) : (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpen(false)}
+                className={`border-b border-white/[0.06] py-4 font-display text-[2rem] leading-tight transition-all duration-500 last:border-0 ${
+                  pathname === item.href ? "text-[var(--gold)]" : "text-[var(--ivory)]"
+                } ${open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
+                // Links arrive one after another rather than all at once —
+                // 60ms apart is enough to feel considered, not slow.
+                style={{ transitionDelay: open ? `${120 + i * 60}ms` : "0ms" }}
+              >
+                {item.label}
+              </Link>
+            ),
+          )}
         </nav>
 
         {/* Anchored at the bottom, thumb-reachable. Someone opening this menu

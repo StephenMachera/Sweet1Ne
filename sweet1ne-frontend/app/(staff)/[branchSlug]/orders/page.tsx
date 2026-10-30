@@ -1,12 +1,13 @@
 "use client";
 
-import { Fragment, use, useCallback, useEffect, useState } from "react";
+import { Fragment, use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronDown, Pencil, Plus } from "lucide-react";
+import { ChevronDown, Pencil, Plus, Volume2, VolumeX } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { useCurrentBranch } from "@/lib/use-current-branch";
+import { useAnnouncer } from "@/components/kitchen/announcer";
 import { MenuBrowser, type CartLine } from "@/components/menu/menu-browser";
 import { OrderLineEditor } from "@/components/orders/order-line-editor";
 import { OrderSummary } from "@/components/orders/order-summary";
@@ -90,6 +91,7 @@ export default function BranchOrdersPage({
   const router = useRouter();
   const { me, loading: meLoading } = useMe();
   const { branch, loading: branchLoading } = useCurrentBranch(branchSlug);
+  const { announce, enabled, toggle, needsUnlock, unlock } = useAnnouncer();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [period, setPeriod] = useState("daily");
@@ -109,6 +111,14 @@ export default function BranchOrdersPage({
   const canEdit = hasPermission(me, "edit_orders");
   const canVoid = hasPermission(me, "void_orders");
 
+  // Which pending orders have already been chimed for, independent of
+  // whatever filter happens to be selected — switching status/period
+  // shouldn't re-announce an order just because it's newly visible.
+  const announced = useRef<Set<string>>(new Set());
+  // The very first fetch seeds `announced` with whatever's already
+  // sitting there instead of reading the whole backlog out loud.
+  const firstLoad = useRef(true);
+
   // `silent` is set on the background poll so new orders just appear in
   // place, instead of the whole list flashing to a loading spinner every
   // few seconds.
@@ -120,13 +130,26 @@ export default function BranchOrdersPage({
 
       if (!silent) setLoading(true);
       return apiFetch(`/staff/orders?${params.toString()}`)
-        .then(setOrders)
+        .then((data: Order[]) => {
+          if (firstLoad.current) {
+            data.forEach((o) => announced.current.add(o.id));
+            firstLoad.current = false;
+          } else {
+            for (const order of data) {
+              if (order.status !== "pending" || announced.current.has(order.id)) continue;
+              announced.current.add(order.id);
+              const where = order.table_number ? `table ${order.table_number}` : "a table";
+              announce(`new-${order.id}`, `New order from ${where}.`);
+            }
+          }
+          setOrders(data);
+        })
         .catch((e) => setError(e.message))
         .finally(() => {
           if (!silent) setLoading(false);
         });
     },
-    [branch, period, status]
+    [branch, period, status, announce]
   );
 
   useEffect(() => {
@@ -394,7 +417,32 @@ export default function BranchOrdersPage({
 
   return (
     <>
-      <h1>Orders</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="!mb-0">Orders</h1>
+        <button
+          type="button"
+          className="admin-edit inline-flex items-center gap-1.5"
+          onClick={needsUnlock ? unlock : toggle}
+          aria-label={
+            needsUnlock
+              ? "Enable sound for new orders"
+              : enabled
+                ? "Mute new-order sound"
+                : "Unmute new-order sound"
+          }
+        >
+          {needsUnlock ? (
+            <>
+              <Volume2 size={14} />
+              Enable sound
+            </>
+          ) : enabled ? (
+            <Volume2 size={14} />
+          ) : (
+            <VolumeX size={14} />
+          )}
+        </button>
+      </div>
       <p className="admin-dek">
         {unreadCount > 0 ? `${unreadCount} new · ` : ""}
         {visible.length} ticket{visible.length === 1 ? "" : "s"}
