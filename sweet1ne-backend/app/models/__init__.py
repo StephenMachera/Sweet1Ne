@@ -19,6 +19,8 @@ from app.models.campigns import Campaign
 from app.models.media import Media
 from app.models.promotion import Promotion
 from app.models.guest_visit import GuestVisit
+from app.models.campaign_recipient import CampaignRecipient
+from app.models.event_email import EmailEvent
 __all__ = [
     "Tenant",
     "Branch", 
@@ -41,5 +43,7 @@ __all__ = [
     "Media",
     "Promotion",
     "GuestVisit",
+    "CampaignRecipient",
+    "EmailEvent",
 
     ]

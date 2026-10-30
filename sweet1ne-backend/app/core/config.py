@@ -38,5 +38,7 @@ class Settings(BaseSettings):
     # this is configured; the endpoint that uses it checks for that.
     TURNSTILE_SECRET_KEY: str = ""
 
+    RESEND_WEBHOOK_SECRET: str = ""
+
 
 settings = Settings()

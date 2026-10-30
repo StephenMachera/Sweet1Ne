@@ -8,6 +8,7 @@ import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { SubscriberList } from "@/components/campaigns/marketing/subscriber-list";
 import { CampaignsPane } from "@/components/campaigns/marketing/campaigns-pane";
+import { EmailActivityPane } from "@/components/campaigns/marketing/email-activity-pane";
 import { AdminLoading } from "@/components/admin/admin-loading";
 
 type Branch = { id: string; name: string };
@@ -132,7 +133,7 @@ export default function AdminMarketingPage() {
       ) : effectiveView === "campaigns" ? (
         <CampaignsPane />
       ) : (
-        <p className="admin-empty">Email activity — coming soon.</p>
+        <EmailActivityPane />
       )}
     </>
   );

@@ -880,6 +880,39 @@ body {
 .admin-data-panel .admin-sheet th:last-child {
   border-radius: 0 2px 0 0;
 }
+
+/* Email activity charts — same card convention as .admin-data-panel
+   (hairline gold border, panel-2 background) but with room to breathe
+   around a recharts plot instead of a table's tighter padding. */
+.admin-chart-card {
+  border: 1px solid rgba(201, 162, 74, 0.32);
+  background: var(--panel-2);
+  padding: 0.9rem 1rem 0.6rem;
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.06);
+  margin: 0 0 1rem;
+}
+/* One row above a chart naming each series by a short line-key rather
+   than a filled swatch — matches a line mark's own anatomy. */
+.admin-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--ivory-dim);
+}
+.admin-chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.admin-chart-legend i {
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+}
 .admin-sheet .admin-name {
   color: var(--ivory);
 }
