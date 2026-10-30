@@ -1,6 +1,26 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The in-house /reservations page is gone for good — booking always
+  // goes through a branch's SevenRooms page instead (see
+  // lib/site-content.ts). This catches whoever still has the old URL —
+  // an old bookmark, an already-sent campaign, a search result — and
+  // sends them to Locations rather than a 404.
+  async redirects() {
+    return [
+      {
+        source: "/reservations",
+        destination: "/locations",
+        permanent: true,
+      },
+      {
+        source: "/reservations/:path*",
+        destination: "/locations",
+        permanent: true,
+      },
+    ];
+  },
+
   async headers() {
     // Next serves public/ with max-age=0, so a returning visitor's browser
     // re-asks the server about every film before it will play one. A day
