@@ -16,4 +16,3 @@ qrcode[pil]==7.4.2
 pytest==8.3.4
 pytest-asyncio==0.25.0
 email-validator==2.3.0
-svix==2.9.1

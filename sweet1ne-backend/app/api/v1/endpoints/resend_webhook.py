@@ -1,15 +1,19 @@
+import base64
+import hashlib
+import hmac
+import json
+import time
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from svix.webhooks import Webhook, WebhookVerificationError
 
 from app.core.config import settings
-from app.db.session import get_db                    
-from app.models.campaign_recipient import CampaignRecipient   
-from app.models.event_email import EmailEvent                 
+from app.db.session import get_db
+from app.models.campaign_recipient import CampaignRecipient
+from app.models.event_email import EmailEvent
 
 router = APIRouter()
 
@@ -17,6 +21,38 @@ router = APIRouter()
 # "bounced" and "complained" are final, so they always win.
 STATUS_RANK = {"failed": 0, "sent": 1, "delivered": 2, "opened": 3, "clicked": 4}
 FINAL_STATUSES = {"bounced", "complained"}
+
+
+def _signature_is_valid(secret: str, body: bytes, headers) -> bool:
+    """Check Resend's (Svix) webhook signature."""
+    if not secret:  # never accept anything if no secret is set
+        return False
+
+    msg_id = headers.get("svix-id")
+    timestamp = headers.get("svix-timestamp")
+    signatures = headers.get("svix-signature")
+    if not (msg_id and timestamp and signatures):
+        return False
+
+    try:
+        # Reject old messages, so a captured request can't be replayed later.
+        if abs(time.time() - int(timestamp)) > 300:
+            return False
+        key = base64.b64decode(secret.removeprefix("whsec_"))
+    except Exception:
+        return False
+
+    signed_content = f"{msg_id}.{timestamp}.".encode() + body
+    expected = base64.b64encode(
+        hmac.new(key, signed_content, hashlib.sha256).digest()
+    ).decode()
+
+    # The header can hold several signatures, like "v1,abc v1,def".
+    for part in signatures.split(" "):
+        version, _, signature = part.partition(",")
+        if version == "v1" and hmac.compare_digest(signature, expected):
+            return True
+    return False
 
 
 def _advance(recipient: CampaignRecipient, new_status: str) -> None:
@@ -33,23 +69,25 @@ def _advance(recipient: CampaignRecipient, new_status: str) -> None:
 def _parse_time(value: str | None) -> datetime:
     if not value:
         return datetime.now(timezone.utc)
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return datetime.now(timezone.utc)
 
 
 @router.post("/webhooks/resend")
 async def resend_webhook(request: Request, db: Session = Depends(get_db)):
     # 1. Verify the signature, using the RAW body (not parsed JSON).
     raw_body = await request.body()
-    headers = {
-        "svix-id": request.headers.get("svix-id", ""),
-        "svix-timestamp": request.headers.get("svix-timestamp", ""),
-        "svix-signature": request.headers.get("svix-signature", ""),
-    }
-    try:
-        event = Webhook(settings.RESEND_WEBHOOK_SECRET).verify(raw_body, headers)
-    except WebhookVerificationError:
+    if not _signature_is_valid(settings.RESEND_WEBHOOK_SECRET, raw_body, request.headers):
         raise HTTPException(status_code=400, detail="Invalid signature")
 
+    try:
+        event = json.loads(raw_body)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid body")
+
+    svix_id = request.headers["svix-id"]
     event_type = event.get("type", "")
     data = event.get("data") or {}
     email_id = data.get("email_id")
@@ -61,14 +99,16 @@ async def resend_webhook(request: Request, db: Session = Depends(get_db)):
 
     # 2. Log the event. The unique svix_id catches retries.
     click = data.get("click") or {}
-    db.add(EmailEvent(
-        svix_id=headers["svix-id"],
-        resend_email_id=email_id,
-        event_type=event_type,
-        link=click.get("link"),
-        occurred_at=occurred_at,
-        payload=event,
-    ))
+    db.add(
+        EmailEvent(
+            svix_id=svix_id,
+            resend_email_id=email_id,
+            event_type=event_type,
+            link=click.get("link"),
+            occurred_at=occurred_at,
+            payload=event,
+        )
+    )
     try:
         db.flush()
     except IntegrityError:
