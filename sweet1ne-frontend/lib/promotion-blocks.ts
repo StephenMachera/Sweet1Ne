@@ -92,7 +92,7 @@ export type PromotionCtaKind =
 // but for anywhere else entirely — a full https/mailto/tel address, opened
 // in a new tab (see safeLink/isExternal below).
 export const CTA_PRESETS: Record<PromotionCtaKind, { label: string; href: string }> = {
-  book: { label: "Book a table", href: "/reservations" },
+  book: { label: "Book a table", href: "/locations" },
   find: { label: "Find Us", href: "/locations" },
   menu: { label: "The menu", href: "/menu" },
   events: { label: "Events", href: "/events" },

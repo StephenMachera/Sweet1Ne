@@ -373,7 +373,7 @@ function BlockCard({
             <Input
               value={block.url}
               onChange={(e) => onUpdate({ url: e.target.value })}
-              placeholder="https://sweet1ne.com/reservations"
+              placeholder="https://sweet1ne.com/locations"
             />
             <AlignPicker
               value={block.align}

@@ -177,7 +177,7 @@ RESPONSIVE_STYLES = """<style>
 # Where a CTA preset kind actually points on the guest site. "url" isn't
 # here — that's a marketer-typed custom link, handled separately in _ctas.
 CTA_PRESET_PATHS: dict[str, tuple[str, str]] = {
-    "book": ("/reservations", "Book a table"),
+    "book": ("/locations", "Book a table"),
     "menu": ("/menu", "Menu"),
     "order": ("/order", "Order"),
 }

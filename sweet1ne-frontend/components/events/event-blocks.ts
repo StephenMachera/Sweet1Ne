@@ -50,7 +50,7 @@ export type EventCta = { kind: EventCtaKind; label: string; href: string };
 
 // Real routes on the guest site — not invented placeholders.
 export const CTA_PRESETS: Record<Exclude<EventCtaKind, "url">, { label: string; href: string }> = {
-  book: { label: "Book", href: "/reservations" },
+  book: { label: "Book", href: "/locations" },
   menu: { label: "Menu", href: "/menu" },
   order: { label: "Order", href: "/order" },
 };

@@ -1,8 +1,9 @@
 import type { BranchVideoSources } from "@/components/site/branch-video";
 
 // Every public "Book a table" trigger opens a modal asking which branch,
-// then goes straight to that branch's SevenRooms page rather than the
-// site's own /reservations page. Keyed to match LOCATIONS' slugs.
+// then goes straight to that branch's SevenRooms page — there's no
+// in-house booking page on this site at all. Keyed to match LOCATIONS'
+// slugs.
 export const RESERVATION_URLS: Record<"lewisham" | "chingford", string> = {
   lewisham:
     "https://www.sevenrooms.com/explore/sweet1nerestaurantloungelewisham/reservations/create/search/",
