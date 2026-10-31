@@ -72,20 +72,6 @@ export function EventsPaths() {
           </Link>
         ))}
       </div>
-
-      {/* A third, lighter-weight way in — no emblem photo for this one,
-          since it's off-site rather than a page on the gallery's own
-          events-night imagery. */}
-      <p className="mt-2 text-center">
-        <a
-          href="https://sweet1nelive.com/"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-block rounded-[4px] border border-[rgba(201,162,74,.9)] px-6 py-3 text-sm font-semibold text-[var(--gold)] transition-colors hover:bg-[var(--gold)] hover:text-[#0e0e0e]"
-        >
-          Go live
-        </a>
-      </p>
     </>
   );
 }
