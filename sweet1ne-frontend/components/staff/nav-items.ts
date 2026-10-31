@@ -18,6 +18,7 @@ import {
   QrCode,
   Inbox,
   UserSearch,
+  Lightbulb,
   type LucideIcon,
 } from "lucide-react";
 
@@ -87,6 +88,7 @@ export const NAV_GROUPS: NavGroup[] = [
     heading: "System",
     items: [
       { label: "Reports", href: "/reports", icon: ChartColumn, permission: "access_reports" },
+      { label: "Insights", href: "/insights", icon: Lightbulb, permission: "access_reports" },
       { label: "Settings", href: "/settings", icon: Settings, permission: "manage_tenant" },
     ],
   },

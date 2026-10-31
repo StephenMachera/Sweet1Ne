@@ -38,6 +38,15 @@ export function SiteFooter() {
         ))}
       </div>
 
+      <a
+        href="https://sweet1nelive.com/"
+        target="_blank"
+        rel="noreferrer"
+        className="mb-6 inline-block rounded-[4px] bg-[var(--gold)] px-6 py-2.5 text-sm font-semibold text-[#0e0e0e] transition-opacity hover:opacity-85"
+      >
+        Go live
+      </a>
+
       <p className="text-[0.78rem] text-[var(--ivory-dim)]">
         © 2026 Sweet1NE Cuisine. All rights reserved.
       </p>
@@ -54,17 +63,6 @@ export function SiteFooter() {
             {item.label}
           </Link>
         ))}
-        {/* Off-site, unlike the two above — kept out of the shared LEGAL
-            list (also used by ThankYouFooter) since only the main site
-            footer needs it. */}
-        <a
-          href="https://sweet1nelive.com/"
-          target="_blank"
-          rel="noreferrer"
-          className="text-[0.68rem] uppercase tracking-[0.14em] text-[var(--ivory-dim)] transition-colors hover:text-[var(--gold)]"
-        >
-          Go live
-        </a>
       </div>
 
       <p className="mt-5 text-[0.4rem] uppercase tracking-[0.16em] text-[rgba(229,226,225,0.18)]">
