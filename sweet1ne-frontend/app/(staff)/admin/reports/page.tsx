@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { apiFetch } from "@/lib/api";
 import { GeneralReport } from "@/components/reports/general-report";
+import { RevenueReport } from "@/components/reports/revenue-report";
 import { AdminLoading } from "@/components/admin/admin-loading";
 
 type Branch = { id: string; name: string };
@@ -66,6 +67,7 @@ export default function AdminReportsPage() {
       </div>
 
       {tab === "general" && <GeneralReport branchId={branchFilter} />}
+      {tab === "revenue" && <RevenueReport branchId={branchFilter} />}
     </>
   );
 }

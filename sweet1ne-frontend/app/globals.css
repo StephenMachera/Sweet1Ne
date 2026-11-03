@@ -4155,3 +4155,69 @@ body:has(.home-page) .promo-stage {
   text-transform: uppercase;
   color: var(--gold);
 }
+
+/* ── Reports → Revenue tab ───────────────────────────────────────────── */
+.rv-track {
+  display: block;
+  height: 6px;
+  margin-top: 0.45rem;
+  background: rgba(229, 226, 225, 0.08);
+}
+.rv-track span {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+}
+.rv-split {
+  display: flex;
+  height: 16px;
+  overflow: hidden;
+  background: rgba(229, 226, 225, 0.08);
+}
+.rv-heat {
+  display: grid;
+  grid-template-columns: 3.2rem repeat(5, minmax(0, 1fr));
+  gap: 0.3rem;
+  align-items: stretch;
+  overflow-x: auto;
+  min-width: 0;
+}
+.rv-heat-head {
+  padding: 0.2rem 0.1rem;
+  text-align: center;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+}
+.rv-heat-day {
+  align-self: center;
+  font-size: 0.8rem;
+  color: var(--ivory);
+}
+.rv-heat-cell {
+  padding: 0.6rem 0.2rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--ivory);
+}
+.rv-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 1rem;
+}
+.rv-facts span {
+  display: block;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+}
+.rv-facts strong {
+  display: block;
+  margin-top: 0.25rem;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: var(--ivory);
+}

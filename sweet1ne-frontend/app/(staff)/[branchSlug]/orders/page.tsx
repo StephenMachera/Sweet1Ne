@@ -8,6 +8,7 @@ import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { useCurrentBranch } from "@/lib/use-current-branch";
 import { useAnnouncer } from "@/components/kitchen/announcer";
+import { setBackgroundInterval } from "@/lib/background-interval";
 import { MenuBrowser, type CartLine } from "@/components/menu/menu-browser";
 import { OrderLineEditor } from "@/components/orders/order-line-editor";
 import { OrderSummary } from "@/components/orders/order-summary";
@@ -161,8 +162,7 @@ export default function BranchOrdersPage({
     load();
     // New orders should show up on their own, not only when a filter is
     // touched — silent so it doesn't flash the whole list on every tick.
-    const id = setInterval(() => load(true), AUTO_REFRESH_MS);
-    return () => clearInterval(id);
+    return setBackgroundInterval(() => load(true), AUTO_REFRESH_MS);
   }, [meLoading, me, canView, branchSlug, router, load]);
 
   // This branch's own menu only — ordering from here shouldn't surface

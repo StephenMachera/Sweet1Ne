@@ -18,6 +18,30 @@ export function useAnnouncer() {
 
   useEffect(() => {
     setEnabled(window.localStorage.getItem(SOUND_KEY) !== "off");
+
+    // Sound is on unless someone muted it. The browser still wants one
+    // click on the page before it will play anything, so rather than
+    // making that click a special button, any click, tap or key press
+    // arms it. A mute is left alone: arming only lets audio play.
+    const ctx = new AudioContext();
+    audioContext.current = ctx;
+
+    const arm = () => {
+      ctx.resume().then(() => setNeedsUnlock(false)).catch(() => {});
+      events.forEach((name) => window.removeEventListener(name, arm));
+    };
+    const events = ["pointerdown", "keydown", "touchstart"] as const;
+    events.forEach((name) => window.addEventListener(name, arm, { once: true }));
+
+    // Some browsers already allow audio (a page the user has used a lot).
+    const probe = setTimeout(() => {
+      if (ctx.state === "running") setNeedsUnlock(false);
+    }, 0);
+
+    return () => {
+      clearTimeout(probe);
+      events.forEach((name) => window.removeEventListener(name, arm));
+    };
   }, []);
 
   const unlock = useCallback(() => {
@@ -47,6 +71,7 @@ export function useAnnouncer() {
   const chime = useCallback((urgent: boolean) => {
     const ctx = audioContext.current;
     if (!ctx) return;
+    if (ctx.state === "suspended") ctx.resume();
 
     // Two quick tones — a rising pair for arrivals, a falling pair for
     // anything that needs attention rather than action.

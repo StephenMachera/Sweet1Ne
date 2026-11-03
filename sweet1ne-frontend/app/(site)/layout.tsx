@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { PromoRibbon } from "@/components/site/promo-ribbon";
 import { BookingModal } from "@/components/site/booking-modal";
 import { Analytics } from "@/components/site/analytics";
+import { PageTracker } from "@/components/site/page-tracker";
 import { CookieConsent } from "@/components/site/cookie-consent";
 import { SmoothScroll } from "@/components/site/motion/smooth-scroll";
 import "./site.css";
@@ -61,6 +62,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       <BookingModal />
       <CookieConsent />
       <Analytics />
+      <PageTracker />
     </div>
   );
 }

@@ -42,7 +42,8 @@ from app.services import promotions as promotions_service
 router = APIRouter()
 
 # Quiet for longer than this and the next scan starts a new session.
-SESSION_TIMEOUT = timedelta(minutes=30)
+SESSION_TIMEOUT = timedelta(minutes=15)
+MIN_SEARCH_LENGTH = 3
 # The wording shown next to the newsletter tick. Kept here, not sent by the
 # browser, so a guest can't claim consent to text they were never shown.
 CONSENT_TEXT_VERSION = "2026-11-v1"
@@ -421,7 +422,7 @@ def track(payload: TrackIn, request: Request, db: Session = Depends(get_db)):
         needed = REQUIRED_FIELD.get(event.type)
         if needed == "path" and not path:
             continue
-        if needed == "search_text" and not (event.search_text or "").strip():
+        if needed == "search_text" and len((event.search_text or "").strip()) < MIN_SEARCH_LENGTH:
             continue
         if needed == "menu_item_id" and not event.menu_item_id:
             continue

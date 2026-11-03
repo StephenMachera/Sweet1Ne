@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { GeneralReport } from "@/components/reports/general-report";
+import { RevenueReport } from "@/components/reports/revenue-report";
 import { AdminLoading } from "@/components/admin/admin-loading";
 
 export default function BranchReportsPage({
@@ -41,6 +42,7 @@ export default function BranchReportsPage({
       </div>
 
       {tab === "general" && <GeneralReport />}
+      {tab === "revenue" && <RevenueReport />}
     </>
   );
 }

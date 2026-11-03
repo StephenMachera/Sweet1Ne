@@ -284,7 +284,7 @@ export default function GuestOrderPage({
 
   function trackSearch(term: string) {
     const text = term.trim().toLowerCase();
-    if (text.length < 2 || text === lastSearchSent.current) return;
+    if (text.length < 3 || text === lastSearchSent.current) return;
     lastSearchSent.current = text;
     trackQrEvent(qrToken, { type: "search", search_text: text, results_count: visibleItems.length });
   }
@@ -294,7 +294,7 @@ export default function GuestOrderPage({
       lastSearchSent.current = "";
       return;
     }
-    const timer = setTimeout(() => trackSearch(query), 1000);
+    const timer = setTimeout(() => trackSearch(query), 2500);
     return () => clearTimeout(timer);
     // trackSearch reads the latest results; the effect restarts whenever the
     // typed text or the result count changes, so it only fires after a pause.

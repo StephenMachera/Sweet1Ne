@@ -36,8 +36,8 @@ export function landingPath(me: Me): string {
   if (has("access_reports")) return `${base}/dashboard`;
   if (has("access_kitchen")) return `${base}/kitchen`;
   if (has("access_bar")) return `${base}/bar`;
-  if (has("view_menu")) return `${base}/menu/preview`;
   if (has("view_orders")) return `${base}/orders`;
+  if (has("view_menu")) return `${base}/menu/preview`;
   if (has("place_orders")) return `${base}/menu/preview`;
   if (has("manage_tables")) return `${base}/tables`;
   if (has("manage_reservations")) return `${base}/reservations`;

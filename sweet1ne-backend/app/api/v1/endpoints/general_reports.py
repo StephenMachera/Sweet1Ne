@@ -605,6 +605,7 @@ def general_searches(
     now, since, _ = _window(days)
     scope = _activity_scope(staff, branch_id, "search", source, since, now)
     scope.append(GuestActivity.search_text.is_not(None))
+    scope.append(func.length(func.trim(GuestActivity.search_text)) >= 3)
 
     term = func.lower(func.trim(GuestActivity.search_text))     # "Pizza " and "pizza" are the same search
 

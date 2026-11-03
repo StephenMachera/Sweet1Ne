@@ -7,6 +7,7 @@ import { ChevronDown, Volume2, VolumeX } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { useAnnouncer } from "@/components/kitchen/announcer";
+import { setBackgroundInterval } from "@/lib/background-interval";
 import { OrderSummary } from "@/components/orders/order-summary";
 import { AdminLoading } from "@/components/admin/admin-loading";
 
@@ -154,8 +155,7 @@ export default function AdminOrdersPage() {
     load();
     // New orders should show up on their own, not only when a filter is
     // touched — silent so it doesn't flash the whole list on every tick.
-    const id = setInterval(() => load(true), AUTO_REFRESH_MS);
-    return () => clearInterval(id);
+    return setBackgroundInterval(() => load(true), AUTO_REFRESH_MS);
   }, [meLoading, me, canView, router, load]);
 
   async function setRead(order: Order, isRead: boolean) {

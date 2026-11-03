@@ -141,7 +141,11 @@ function AdminRail({ basePath, branchName }: { basePath: string; branchName?: st
 
   const visibleGroups = NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => hasPermission(me, item.permission)),
+    items: group.items.filter(
+      (item) =>
+        hasPermission(me, item.permission) &&
+        !(item.hideWithPermission && hasPermission(me, item.hideWithPermission))
+    ),
   })).filter((group) => group.items.length > 0);
 
   // The reference's pageLabel(): the active item's label, "Staff" if

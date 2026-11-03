@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, ShoppingCart, X, Minus, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Search, X, Minus, Plus } from "lucide-react";
 import { effectivePrice } from "@/lib/pricing";
 
 export type MainCategory = {
@@ -62,6 +60,7 @@ export function resolveStation(
 
 const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
 
+const hairline = "border-[rgba(229,226,225,0.08)]";
 
 export function MenuBrowser({
   mode,
@@ -140,7 +139,6 @@ export function MenuBrowser({
     return sum + (item ? effectivePrice(item) * qty : 0);
   }, 0);
 
-  // What the same cart would cost at list prices — used to show the saving.
   const cartFullTotal = cartLines.reduce((sum, [id, qty]) => {
     const item = items.find((i) => i.id === id);
     return sum + (item ? item.price * qty : 0);
@@ -173,14 +171,12 @@ export function MenuBrowser({
 
   if (loading) {
     return (
-      <div className={`grid gap-4 ${compact ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3"}`}>
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="overflow-hidden rounded-xl border border-slate-bg bg-white">
-            <div className="h-40 animate-pulse bg-slate-bg" />
-            <div className="space-y-2 p-4">
-              <div className="h-4 w-32 animate-pulse rounded bg-slate-bg" />
-              <div className="h-3 w-full animate-pulse rounded bg-slate-bg" />
-            </div>
+      <div className="space-y-6" aria-busy="true">
+        <div className="h-8 w-2/3 animate-pulse bg-white/5" />
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className="space-y-2">
+            <div className="h-5 w-1/2 animate-pulse bg-white/5" />
+            <div className="h-3 w-4/5 animate-pulse bg-white/[0.03]" />
           </div>
         ))}
       </div>
@@ -188,320 +184,269 @@ export function MenuBrowser({
   }
 
   return (
-    <div className={`space-y-5 ${compact ? "" : "pb-24"}`}>
+    <div className="space-y-7 text-[var(--ivory)]">
       {error && (
-        <div
-          role="alert"
-          className="rounded-xl border border-danger/20 bg-danger-bg px-4 py-3 text-sm text-danger"
-        >
+        <p role="alert" className="border-l-2 border-[#ffb4ab] pl-3 text-sm text-[#ffb4ab]">
           {error}
-        </div>
+        </p>
       )}
 
       {headerSlot}
 
-      {/* Search */}
       <div className="relative">
         <Search
           size={16}
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-muted"
+          strokeWidth={1.5}
+          className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 text-[var(--gold)]"
         />
-        <Input
+        <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search the menu…"
-          className="h-11 border-slate-border bg-white pl-9 text-base"
+          placeholder="Search the menu"
+          className="w-full border-0 border-b border-[var(--gold-line)] bg-transparent pb-2.5 pl-7 pt-1 text-base text-[var(--ivory)] outline-none transition-colors placeholder:text-[var(--ivory-dim)] focus:border-[var(--gold)]"
         />
       </div>
 
-      {/* Main categories */}
       {!query && (
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+        <nav
+          aria-label="Courses"
+          className={`no-scrollbar -mb-2 flex gap-7 overflow-x-auto border-b ${hairline}`}
+        >
           {mains.map((main) => {
             const active = main.id === activeMain;
             return (
               <button
                 key={main.id}
+                type="button"
                 onClick={() => {
                   setActiveMain(main.id);
                   setActiveSub(null);
                 }}
-                className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                className={`-mb-px shrink-0 border-b-2 pb-3 font-display text-xl transition-colors sm:text-2xl ${
                   active
-                    ? "bg-gradient-to-br from-emerald to-emerald-dark text-white shadow-sm"
-                    : "border border-slate-border bg-white text-slate-subtle hover:text-navy"
+                    ? "border-[var(--gold)] text-[var(--gold)]"
+                    : "border-transparent text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
                 }`}
               >
                 {main.name}
               </button>
             );
           })}
-        </div>
+        </nav>
       )}
 
-      {/* Sub categories */}
       {!query && visibleSubs.length > 0 && (
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-          <button
-            onClick={() => setActiveSub(null)}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm transition-colors ${
-              activeSub === null
-                ? "bg-emerald/15 text-emerald-dark"
-                : "bg-white text-slate-muted hover:text-navy"
-            }`}
-          >
-            All
-          </button>
-          {visibleSubs.map((sub) => (
-            <button
-              key={sub.id}
-              onClick={() => setActiveSub(activeSub === sub.id ? null : sub.id)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm transition-colors ${
-                activeSub === sub.id
-                  ? "bg-emerald/15 text-emerald-dark"
-                  : "bg-white text-slate-muted hover:text-navy"
-              }`}
-            >
-              {sub.name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Items */}
-      {visibleItems.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-border bg-white/50 px-6 py-16 text-center">
-          <p className="text-sm text-slate-muted">
-            {query ? "Nothing matches that search." : "Nothing on the menu here yet."}
-          </p>
-        </div>
-      ) : (
-        <div
-          className={`grid gap-4 ${compact ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3"}`}
-        >
-          {visibleItems.map((item) => {
-            const qty = cart[item.id] ?? 0;
-            const discounted = item.promo_price != null;
-
+        <div className="no-scrollbar flex gap-5 overflow-x-auto text-[0.7rem] uppercase tracking-[0.18em]">
+          {[{ id: null as string | null, name: "All" }, ...visibleSubs].map((sub) => {
+            const active = activeSub === sub.id;
             return (
-              <div
-                key={item.id}
-                className={`flex flex-col overflow-hidden rounded-xl border bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${
-                  discounted ? "border-danger/30" : "border-slate-bg"
+              <button
+                key={sub.id ?? "all"}
+                type="button"
+                onClick={() => setActiveSub(sub.id === null ? null : activeSub === sub.id ? null : sub.id)}
+                className={`shrink-0 border-b pb-1 transition-colors ${
+                  active
+                    ? "border-[var(--gold)] text-[var(--gold)]"
+                    : "border-transparent text-[var(--ivory-dim)] hover:text-[var(--ivory)]"
                 }`}
               >
-                <div
-                  className={`relative flex items-center justify-center overflow-hidden bg-slate-bg ${
-                    compact ? "h-32" : "h-40"
-                  }`}
-                >
-                  {item.picture ? (
-                    <>
-                      <img
-                        src={item.picture}
-                        alt=""
-                        aria-hidden
-                        className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-xl"
-                      />
-                      <img
-                        src={item.picture}
-                        alt=""
-                        className="relative max-h-full max-w-full object-contain"
-                      />
-                    </>
-                  ) : (
-                    <span className="text-xs uppercase tracking-[0.14em] text-slate-muted">
-                      No photo
-                    </span>
-                  )}
-
-                  {discounted && (
-                    <span className="absolute left-2 top-2 rounded-full bg-danger px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
-                      Offer
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex flex-1 flex-col p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="font-medium text-navy">{item.title}</h3>
-
-                    {discounted ? (
-                      <span className="flex shrink-0 flex-col items-end">
-                        <span className="font-semibold tabular-nums text-danger">
-                          {gbp.format(item.promo_price!)}
-                        </span>
-                        <span className="text-xs tabular-nums text-slate-muted line-through">
-                          {gbp.format(item.price)}
-                        </span>
-                      </span>
-                    ) : (
-                      <span className="shrink-0 font-semibold tabular-nums text-navy">
-                        {gbp.format(item.price)}
-                      </span>
-                    )}
-                  </div>
-
-                  {item.description && (
-                    <p className="mt-1.5 line-clamp-2 text-sm text-slate-subtle">
-                      {item.description}
-                    </p>
-                  )}
-
-                  {(item.promo_titles.length > 0 ||
-                    item.dietary_tags.length > 0 ||
-                    item.allergen_tags.length > 0) && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {item.promo_titles.map((promoTitle) => (
-                        <span
-                          key={promoTitle}
-                          className="rounded-full bg-danger-bg px-2 py-0.5 text-[11px] font-medium text-danger"
-                        >
-                          {promoTitle}
-                        </span>
-                      ))}
-                      {item.dietary_tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full bg-success-bg px-2 py-0.5 text-[11px] text-success"
-                        >
-                          {tag.replace(/_/g, " ")}
-                        </span>
-                      ))}
-                      {item.allergen_tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full bg-warning-bg px-2 py-0.5 text-[11px] text-warning"
-                        >
-                          {tag.replace(/_/g, " ")}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {ordering && (
-                    <div className="mt-4 flex items-center justify-end gap-2 pt-1">
-                      {qty > 0 ? (
-                        <div className="flex items-center gap-3 rounded-lg border border-slate-border px-2 py-1">
-                          <button
-                            onClick={() => change(item.id, -1)}
-                            aria-label="Remove one"
-                            className="flex h-7 w-7 items-center justify-center rounded text-slate-subtle hover:bg-slate-bg"
-                          >
-                            <Minus size={15} />
-                          </button>
-                          <span className="w-4 text-center text-sm font-medium tabular-nums text-navy">
-                            {qty}
-                          </span>
-                          <button
-                            onClick={() => change(item.id, 1)}
-                            aria-label="Add one"
-                            className="flex h-7 w-7 items-center justify-center rounded text-emerald-dark hover:bg-emerald/10"
-                          >
-                            <Plus size={15} />
-                          </button>
-                        </div>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={() => change(item.id, 1)}
-                          className="bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
-                        >
-                          Add
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+                {sub.name}
+              </button>
             );
           })}
         </div>
       )}
 
-      {/* Cart bar */}
+      {visibleItems.length === 0 ? (
+        <p className="py-14 text-center font-display text-lg italic text-[var(--ivory-dim)]">
+          {query ? "Nothing matches that search." : "Nothing on the menu here yet."}
+        </p>
+      ) : (
+        <ul className={compact ? "" : "lg:columns-2 lg:gap-x-14"}>
+          {visibleItems.map((item) => {
+            const qty = cart[item.id] ?? 0;
+            const discounted = item.promo_price != null;
+
+            return (
+              <li key={item.id} className={`break-inside-avoid border-b py-5 ${hairline}`}>
+                <div className="flex gap-4">
+                  {item.picture && (
+                    <img
+                      src={item.picture}
+                      alt=""
+                      className="h-16 w-16 shrink-0 rounded-full object-cover ring-1 ring-[var(--gold-line)]"
+                    />
+                  )}
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-3">
+                      <h3 className="font-display text-lg leading-tight">{item.title}</h3>
+                      <span
+                        aria-hidden
+                        className="min-w-4 flex-1 translate-y-[-0.3rem] border-b border-dotted border-[var(--gold-line)]"
+                      />
+                      <span className="flex shrink-0 items-baseline gap-2">
+                        {discounted && (
+                          <span className="text-sm tabular-nums text-[var(--ivory-dim)] line-through">
+                            {gbp.format(item.price)}
+                          </span>
+                        )}
+                        <span className="font-display text-lg tabular-nums text-[var(--gold)]">
+                          {gbp.format(discounted ? item.promo_price! : item.price)}
+                        </span>
+                      </span>
+                    </div>
+
+                    {item.description && (
+                      <p className="mt-1.5 text-sm italic leading-relaxed text-[var(--ivory-dim)]">
+                        {item.description}
+                      </p>
+                    )}
+
+                    {(item.promo_titles.length > 0 ||
+                      item.dietary_tags.length > 0 ||
+                      item.allergen_tags.length > 0) && (
+                      <p className="mt-2 text-[0.66rem] uppercase leading-relaxed tracking-[0.16em]">
+                        {item.promo_titles.length > 0 && (
+                          <span className="font-semibold text-[var(--gold)]">
+                            {item.promo_titles.join(" · ")}
+                          </span>
+                        )}
+                        {item.dietary_tags.length > 0 && (
+                          <span className="ml-3 text-[var(--gold)]/80">
+                            {item.dietary_tags.map((t) => t.replace(/_/g, " ")).join(" · ")}
+                          </span>
+                        )}
+                        {item.allergen_tags.length > 0 && (
+                          <span className="ml-3 text-[var(--ivory-dim)]">
+                            Contains {item.allergen_tags.map((t) => t.replace(/_/g, " ")).join(", ")}
+                          </span>
+                        )}
+                      </p>
+                    )}
+
+                    {ordering && (
+                      <div className="mt-3 flex justify-end">
+                        {qty > 0 ? (
+                          <div className="flex items-center gap-4 text-[var(--gold)]">
+                            <button
+                              type="button"
+                              onClick={() => change(item.id, -1)}
+                              aria-label="Remove one"
+                              className="grid h-8 w-8 place-items-center border border-[var(--gold-line)] transition-colors hover:border-[var(--gold)]"
+                            >
+                              <Minus size={14} />
+                            </button>
+                            <span className="w-5 text-center font-display text-lg tabular-nums text-[var(--ivory)]">
+                              {qty}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => change(item.id, 1)}
+                              aria-label="Add one"
+                              className="grid h-8 w-8 place-items-center border border-[var(--gold-line)] transition-colors hover:border-[var(--gold)]"
+                            >
+                              <Plus size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => change(item.id, 1)}
+                            className="border border-[var(--gold)] px-5 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[var(--gold)] transition-colors hover:bg-[var(--gold)] hover:text-[#0e0e0e]"
+                          >
+                            Add
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
       {ordering && cartCount > 0 && (
-        <div
-          className={
-            compact
-              ? "sticky bottom-0 mt-4 rounded-t-xl border-t border-slate-border bg-white px-3 py-3 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]"
-              : "fixed inset-x-0 bottom-0 z-30 border-t border-slate-border bg-white px-4 py-3 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]"
-          }
-        >
-          <div className={`flex items-center gap-3 ${compact ? "" : "mx-auto max-w-3xl"}`}>
+        <div className="sticky bottom-0 -mx-1 border-t border-[var(--gold)] bg-[#0a0a0a] px-4 py-4 shadow-[0_-18px_30px_rgba(0,0,0,0.55)]">
+          <div className="flex items-center gap-4">
             <button
+              type="button"
               onClick={() => setCartOpen((v) => !v)}
-              className="flex items-center gap-2 text-sm text-slate-subtle hover:text-navy"
+              className="text-[0.7rem] uppercase tracking-[0.18em] text-[var(--ivory-dim)] transition-colors hover:text-[var(--gold)]"
             >
-              <ShoppingCart size={18} />
-              {cartCount} item{cartCount === 1 ? "" : "s"}
+              {cartCount} item{cartCount === 1 ? "" : "s"} {cartOpen ? "−" : "+"}
             </button>
 
             <span className="flex-1 text-right">
-              <span className="font-semibold tabular-nums text-navy">
+              <span className="font-display text-xl tabular-nums text-[var(--gold)]">
                 {gbp.format(cartTotal)}
               </span>
               {saving > 0 && (
-                <span className="ml-2 text-xs font-medium text-danger">
+                <span className="ml-2 text-[0.68rem] uppercase tracking-[0.14em] text-[var(--gold)]/80">
                   saving {gbp.format(saving)}
                 </span>
               )}
             </span>
 
-            <Button
+            <button
+              type="button"
               onClick={submit}
               disabled={submitting}
-              className="bg-gradient-to-br from-emerald to-emerald-dark text-white hover:opacity-90"
+              className="bg-[var(--gold)] px-6 py-2.5 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[#0e0e0e] transition-opacity hover:opacity-90 disabled:opacity-60"
             >
               {submitting ? "Sending…" : submitLabel}
-            </Button>
+            </button>
           </div>
 
           {cartOpen && (
-            <div
-              className={`mt-3 space-y-2 border-t border-slate-bg pt-3 ${
-                compact ? "max-h-40 overflow-y-auto" : "mx-auto max-w-3xl"
-              }`}
-            >
+            <ul className={`mt-4 space-y-2.5 border-t pt-4 ${hairline} ${compact ? "max-h-40 overflow-y-auto" : ""}`}>
               {cartLines.map(([id, qty]) => {
                 const item = items.find((i) => i.id === id);
                 if (!item) return null;
                 const lineTotal = effectivePrice(item) * qty;
 
                 return (
-                  <div key={id} className="flex items-center gap-3 text-sm">
-                    <span className="flex-1 truncate text-body">
+                  <li key={id} className="flex items-center gap-3 text-sm">
+                    <span className="flex-1 truncate">
                       {item.title}
                       {item.promo_price != null && (
-                        <span className="ml-1.5 text-[11px] text-danger">offer</span>
+                        <span className="ml-2 text-[0.62rem] uppercase tracking-[0.14em] text-[var(--gold)]">offer</span>
                       )}
                     </span>
                     <button
+                      type="button"
                       onClick={() => change(id, -1)}
-                      className="flex h-6 w-6 items-center justify-center rounded text-slate-muted hover:bg-slate-bg"
+                      aria-label="Remove one"
+                      className="grid h-6 w-6 place-items-center text-[var(--gold)] hover:bg-white/5"
                     >
                       <Minus size={13} />
                     </button>
-                    <span className="w-4 text-center tabular-nums text-navy">{qty}</span>
+                    <span className="w-4 text-center tabular-nums">{qty}</span>
                     <button
+                      type="button"
                       onClick={() => change(id, 1)}
-                      className="flex h-6 w-6 items-center justify-center rounded text-emerald-dark hover:bg-emerald/10"
+                      aria-label="Add one"
+                      className="grid h-6 w-6 place-items-center text-[var(--gold)] hover:bg-white/5"
                     >
                       <Plus size={13} />
                     </button>
-                    <span className="w-16 text-right tabular-nums text-navy">
+                    <span className="w-16 text-right tabular-nums text-[var(--ivory-dim)]">
                       {gbp.format(lineTotal)}
                     </span>
                     <button
+                      type="button"
                       onClick={() => setCart((prev) => ({ ...prev, [id]: 0 }))}
-                      className="text-slate-muted hover:text-danger"
+                      aria-label="Remove item"
+                      className="text-[var(--ivory-dim)] hover:text-[#ffb4ab]"
                     >
                       <X size={14} />
                     </button>
-                  </div>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           )}
         </div>
       )}
