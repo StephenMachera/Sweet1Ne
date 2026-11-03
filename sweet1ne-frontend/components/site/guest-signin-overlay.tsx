@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { NewsletterForm } from "./newsletter-form";
 
 /** Shown once per device, before the menu, on the table's own order page —
@@ -10,7 +11,7 @@ import { NewsletterForm } from "./newsletter-form";
    guest-* theme tokens (light/dark, gold-on-black to match the admin/site
    dark theme) rather than a separate palette, since it renders inside that
    page. */
-export function GuestSignInOverlay({ onDone }: { onDone: () => void }) {
+export function GuestSignInOverlay({ onDone, qrToken }: { onDone: () => void; qrToken?: string }) {
   return (
     <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-guest-bg px-6 text-center text-guest-text">
       <p className="text-xs font-semibold uppercase tracking-wide text-guest-accent">Before you order</p>
@@ -20,8 +21,17 @@ export function GuestSignInOverlay({ onDone }: { onDone: () => void }) {
       </p>
 
       <div className="mt-6 w-full max-w-xs">
-        <NewsletterForm variant="guest" source="qr" onSubscribed={onDone} />
+        <NewsletterForm variant="guest" source="qr" qrToken={qrToken} onSubscribed={onDone} />
       </div>
+
+      <p className="mt-8 flex gap-5 text-xs text-guest-muted">
+        <Link href="/terms" target="_blank" className="underline-offset-2 hover:underline">
+          Terms
+        </Link>
+        <Link href="/privacy" target="_blank" className="underline-offset-2 hover:underline">
+          Privacy
+        </Link>
+      </p>
     </div>
   );
 }

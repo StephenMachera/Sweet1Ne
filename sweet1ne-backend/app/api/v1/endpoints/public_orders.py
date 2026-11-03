@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -6,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import resolve_branch_from_qr, resolve_customer_order
 from app.db.session import get_db
+from app.models.guest_session import GuestSession
 from app.models.menu_item import MenuItem
 from app.models.orders import Order, OrderStatus
 from app.models.order_item import OrderItem
@@ -25,7 +27,19 @@ def create_order(
 ):
     branch = db.get(Branch, table.branch_id)
 
+    session_id = None
+    if payload.session_id is not None:
+        guest_session = db.get(GuestSession, payload.session_id)
+        if (
+            guest_session is not None
+            and guest_session.branch_id == table.branch_id
+            and (payload.guest_id is None or payload.guest_id == guest_session.device_id)
+        ):
+            session_id = guest_session.id
+            guest_session.last_active_at = datetime.now(timezone.utc)
+
     order = Order(
+        session_id=session_id,
         table_id=table.id,
         seat_number=payload.seat_number,
         special_request=payload.special_request,

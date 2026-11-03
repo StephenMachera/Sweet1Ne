@@ -4022,3 +4022,136 @@ body:has(.home-page) .promo-stage {
 }
 .ty-curtain[data-flat="true"] .ty-stage { margin-bottom: 0; min-height: 0; }
 .ty-curtain[data-flat="true"] .ty-cfoot { position: relative; height: auto; }
+
+/* ── Reports → General tab ───────────────────────────────────────────── */
+.rg-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.9rem;
+}
+.rg-controls button {
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--gold-line);
+  background: transparent;
+  color: var(--ivory-dim);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+.rg-controls button.is-on {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #0e0e0e;
+  font-weight: 600;
+}
+.rg-note {
+  margin: 0 0 1.1rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px dashed var(--gold-line);
+  color: var(--ivory-dim);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+.rg-note strong {
+  color: var(--gold);
+}
+.rg-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.85rem;
+  margin: 0 0 1.4rem;
+}
+.rg-kpis .admin-card {
+  min-height: 0;
+}
+.admin-card .rg-stat-text {
+  font-size: 1.35rem;
+}
+.rg-h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 1.8rem 0 0.8rem;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.15rem;
+  color: var(--ivory);
+}
+.rg-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  gap: 0.85rem;
+  margin: 0 0 0.85rem;
+}
+.rg-row-4 {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+}
+.rg-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1rem 1.05rem 1.1rem;
+  border: 1px solid rgba(201, 162, 74, 0.32);
+  background: var(--panel-2);
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.06);
+}
+.rg-panel.is-wide {
+  grid-column: 1 / -1;
+}
+.rg-panel.is-sample {
+  border-style: dashed;
+}
+.rg-panel.is-sample .admin-sheet,
+.rg-panel.is-sample canvas {
+  opacity: 0.55;
+}
+.rg-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.rg-panel-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ivory);
+}
+.rg-panel-head p {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--ivory-dim);
+}
+.rg-panel .admin-data-panel {
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.rg-tag {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--gold-line);
+  border-radius: 999px;
+  color: var(--gold);
+  font-family: var(--font-body, inherit);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.rg-empty {
+  margin: 0;
+  color: var(--ivory-dim);
+  font-size: 0.86rem;
+}
+.rg-link {
+  margin-top: auto;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}

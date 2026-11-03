@@ -5,7 +5,7 @@ from app.api.v1.endpoints import (
       public_menu, uploads,
       public_orders, station,
       staff_orders, settings,
-      table, promo, public_site,
+      table, promo, public_site,general_reports,
       branch, signup, events,email_analytics,
       tenant, staff, reservations,
       roles, reports, newsletter, campaigns,
@@ -40,3 +40,4 @@ api_router.include_router(promotions.router, prefix="/promotions", tags=["promot
 api_router.include_router(email_templates.router, prefix="/email-templates", tags=["email-templates"])
 api_router.include_router(resend_webhook.router, prefix="/resend", tags=["resend-webhook"])
 api_router.include_router(email_analytics.router, prefix="/email-analytics", tags=["email-analytics"])
+api_router.include_router(general_reports.router, prefix="/reports", tags=["general-reports"])

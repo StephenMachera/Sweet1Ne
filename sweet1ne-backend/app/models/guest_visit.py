@@ -31,3 +31,7 @@ class GuestVisit(Base):
     visit_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Set once this device is tied to a known person (see GuestProfile).
+    profile_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("guest_profiles.id", ondelete="SET NULL"), nullable=True, index=True
+    )

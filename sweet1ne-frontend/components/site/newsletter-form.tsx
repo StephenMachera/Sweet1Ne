@@ -2,18 +2,24 @@
 
 import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
+import { getGuestId } from "@/lib/guest-id";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 export function NewsletterForm({
   variant = "default",
   source = "website",
+  qrToken,
   onSubscribed,
 }: {
   variant?: "default" | "order" | "guest";
   // Which real form this came from — the table sign-in step passes "qr" so
   // Leads can tell it apart from the site footer's own form.
   source?: string;
+  // The table's QR token. With the guest variant it switches the form from
+  // the newsletter endpoint to the table scan, which records the guest and
+  // subscribes them (and sends a welcome email) if the box is ticked.
+  qrToken?: string;
   // Fires a beat after the confirmation shows, so a caller that gated
   // something on this (the table sign-in step) can move on. Existing
   // callers that don't pass it are unaffected.
@@ -27,6 +33,10 @@ export function NewsletterForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (variant === "guest" && qrToken) {
+      await handleScan();
+      return;
+    }
     if (!consent) {
       setError("Please tick the box so we know it's alright to email you.");
       return;
@@ -55,6 +65,37 @@ export function NewsletterForm({
     }
   }
 
+  async function handleScan() {
+    setStatus("sending");
+    try {
+      const res = await fetch(`${API_URL}/public/menu/scan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          newsletter_opt_in: consent,
+          device_id: getGuestId() ?? crypto.randomUUID(),
+          qr_token: qrToken,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        const detail = body?.detail;
+        throw new Error(typeof detail === "string" ? detail : "Please enter a valid email address.");
+      }
+      const data: { session_id: string } = await res.json();
+      try {
+        // Per tab, not kept for good: a new visit gets a fresh session.
+        window.sessionStorage.setItem("sweet1ne_session_id", data.session_id);
+      } catch {}
+      setStatus("done");
+      if (onSubscribed) setTimeout(onSubscribed, 1400);
+    } catch (err) {
+      setStatus("idle");
+      setError(err instanceof Error && err.message ? err.message : "Something went wrong. Try again in a moment.");
+    }
+  }
+
   const guestVariant = variant === "guest";
   const orderVariant = variant === "order";
 
@@ -63,7 +104,9 @@ export function NewsletterForm({
       return (
         <div className="flex items-center gap-3 rounded-xl border border-guest-border bg-guest-card px-5 py-4">
           <Check size={18} strokeWidth={1} className="shrink-0 text-guest-accent" />
-          <p className="text-sm text-guest-muted">You&apos;re on the list — thank you.</p>
+          <p className="text-sm text-guest-muted">
+            {consent ? "Congratulations, you're on the list. Check your inbox." : "Thank you — enjoy the menu."}
+          </p>
         </div>
       );
     }

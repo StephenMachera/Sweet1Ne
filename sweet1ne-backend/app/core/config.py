@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     SUPABASE_STORAGE_BUCKET: str = "sweet1ne-storage"
 
     FRONTEND_URL: str = "http://localhost:3000"
+    WEBSITE_TENANT_ID: str | None = None
     
     # AI assistant
     ANTHROPIC_API_KEY: str = ""

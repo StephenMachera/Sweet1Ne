@@ -3,16 +3,25 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMe, hasPermission } from "@/lib/use-me";
-import { ReportView } from "@/components/reports/report-view";
+import { apiFetch } from "@/lib/api";
 import { GeneralReport } from "@/components/reports/general-report";
 import { AdminLoading } from "@/components/admin/admin-loading";
+
+type Branch = { id: string; name: string };
 
 export default function AdminReportsPage() {
   const router = useRouter();
   const { me, loading } = useMe();
   const canView = hasPermission(me, "access_reports");
 
-  const [tab, setTab] = useState<"general" | "revenue" | "insights">("general");
+  const [tab, setTab] = useState<"general" | "revenue">("general");
+
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchFilter, setBranchFilter] = useState("");
+
+  useEffect(() => {
+    apiFetch("/branches").then(setBranches).catch(() => setBranches([]));
+  }, []);
 
   useEffect(() => {
     if (loading || !me) return;
@@ -25,52 +34,38 @@ export default function AdminReportsPage() {
 
   return (
     <>
-      <div className="admin-top">
-        <p className="admin-who">{me?.email ?? "—"}</p>
+      <h1>Reports</h1>
+
+      <div className="admin-places" role="group" aria-label="Branch">
+        <button
+          type="button"
+          className={branchFilter === "" ? "is-on" : undefined}
+          onClick={() => setBranchFilter("")}
+        >
+          All
+        </button>
+        {branches.map((b) => (
+          <button
+            key={b.id}
+            type="button"
+            className={branchFilter === b.id ? "is-on" : undefined}
+            onClick={() => setBranchFilter(b.id)}
+          >
+            {b.name}
+          </button>
+        ))}
       </div>
 
-      <h1>Reports</h1>
-      <p className="admin-dek">
-        What filled the floor. One ID per promotion or mail. Booked and sat wait for SevenRooms and Toast.
-      </p>
-
-      <div className="admin-cats" role="group" aria-label="View">
+      <div className="admin-cats" style={{ marginTop: "1.25rem" }} role="group" aria-label="View">
         <button type="button" className={tab === "general" ? "is-on" : undefined} onClick={() => setTab("general")}>
           General
         </button>
         <button type="button" className={tab === "revenue" ? "is-on" : undefined} onClick={() => setTab("revenue")}>
           Revenue reports
         </button>
-        <button type="button" className={tab === "insights" ? "is-on" : undefined} onClick={() => setTab("insights")}>
-          Insights
-        </button>
       </div>
 
-      {tab === "insights" ? (
-        <p className="admin-empty">Insights — coming soon.</p>
-      ) : tab === "general" ? (
-        <GeneralReport />
-      ) : (
-        <ReportView
-          title="Revenue reports"
-          showBranchComparison
-          hideHeader
-          palette={{
-            accent: "#c9a24a",
-            accentSoft: "rgba(201,162,74,0.12)",
-            text: "text-[var(--ivory)]",
-            muted: "text-[var(--ivory-dim)]",
-            card: "bg-[var(--panel-2)]",
-            border: "border-[var(--gold-line)]",
-            activeTab: "bg-[var(--gold)] text-[#0e0e0e]",
-            inactiveTab:
-              "border border-[var(--gold-line)] bg-[var(--panel)] text-[var(--ivory-dim)] hover:text-[var(--ivory)]",
-            positive: "text-[var(--gold)]",
-            negative: "text-[var(--ivory-dim)]",
-            series: ["#c9a24a", "#7c9473", "#4a8f91", "#8a7bab", "#b8724a", "#a15c78"],
-          }}
-        />
-      )}
+      {tab === "general" && <GeneralReport branchId={branchFilter} />}
     </>
   );
 }

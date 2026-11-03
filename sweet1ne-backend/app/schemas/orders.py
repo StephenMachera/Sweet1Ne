@@ -22,6 +22,7 @@ class OrderCreate(BaseModel):
     # menu analytics events. Lets a "once per guest" code tell this guest's
     # past orders apart from a different table using the same code.
     guest_id: str | None = None
+    session_id: uuid.UUID | None = None
 
 
 class OrderItemOut(BaseModel):

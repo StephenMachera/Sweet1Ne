@@ -6,8 +6,9 @@
  * its sidebar and auth checks for this path.
  */
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { trackQrEvent } from "@/lib/track";
 import {
   Check,
   ChefHat,
@@ -105,6 +106,14 @@ const TRACK_STEPS = [
 ];
 
 
+
+function readSessionId(): string | null {
+  try {
+    return window.sessionStorage.getItem("sweet1ne_session_id");
+  } catch {
+    return null;
+  }
+}
 
 async function publicFetch(path: string, init: RequestInit = {}) {
   const res = await fetch(`${API_URL}${path}`, {
@@ -271,6 +280,35 @@ export default function GuestOrderPage({
     });
   }, [items, visibleSubs, activeSub, query]);
 
+  const lastSearchSent = useRef("");
+
+  function trackSearch(term: string) {
+    const text = term.trim().toLowerCase();
+    if (text.length < 2 || text === lastSearchSent.current) return;
+    lastSearchSent.current = text;
+    trackQrEvent(qrToken, { type: "search", search_text: text, results_count: visibleItems.length });
+  }
+
+  useEffect(() => {
+    if (!query.trim()) {
+      lastSearchSent.current = "";
+      return;
+    }
+    const timer = setTimeout(() => trackSearch(query), 1000);
+    return () => clearTimeout(timer);
+    // trackSearch reads the latest results; the effect restarts whenever the
+    // typed text or the result count changes, so it only fires after a pause.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, visibleItems.length]);
+
+  useEffect(() => {
+    if (!loading && context) trackQrEvent(qrToken, { type: "page_view", path: "/order" });
+  }, [loading, context, qrToken]);
+
+  useEffect(() => {
+    if (sheetStep) trackQrEvent(qrToken, { type: "page_view", path: `/order/${sheetStep}` });
+  }, [sheetStep, qrToken]);
+
   const cartLines = Object.entries(cart).filter(([, qty]) => qty > 0);
   const cartCount = cartLines.reduce((sum, [, qty]) => sum + qty, 0);
 
@@ -307,6 +345,7 @@ export default function GuestOrderPage({
   function change(itemId: string, delta: number) {
     const wasEmpty = !(cart[itemId] > 0);
     setCart((prev) => ({ ...prev, [itemId]: Math.max(0, (prev[itemId] ?? 0) + delta) }));
+    if (delta > 0) trackQrEvent(qrToken, { type: "add_to_basket", menu_item_id: itemId });
     if (delta > 0 && wasEmpty) {
       publicFetch(`/public/menu/events?qr_token=${qrToken}`, {
         method: "POST",
@@ -318,6 +357,7 @@ export default function GuestOrderPage({
   function openDetail(item: MenuItem) {
     setDetailItem(item);
     setDetailIndex(0);
+    trackQrEvent(qrToken, { type: "item_view", menu_item_id: item.id });
     publicFetch(`/public/menu/events?qr_token=${qrToken}`, {
       method: "POST",
       body: JSON.stringify({ menu_item_id: item.id, event_type: "dish_view" }),
@@ -325,6 +365,10 @@ export default function GuestOrderPage({
   }
 
   function openCheckout() {
+    trackQrEvent(qrToken, {
+      type: "cta_click",
+      path: `/order#${!canSelfCheckout ? "ask-waiter" : addingMore ? "review-order" : "place-order"}`,
+    });
     // Adding to an existing order skips the details step — seat and any
     // request belong to the original order. A "waiter" table skips it too
     // — there's nothing to collect, it jumps straight to the cart preview.
@@ -353,10 +397,12 @@ export default function GuestOrderPage({
                 items: lines,
                 promo_code: manualCode.trim() || codePromo?.code || null,
                 guest_id: getGuestId(),
+                session_id: readSessionId(),
               }),
             });
 
       window.localStorage.setItem(storageKey, placed.id);
+      trackQrEvent(qrToken, { type: "cta_click", path: "/order#order-placed" });
       setOrder(placed);
       setCart({});
       setSheetStep(null);
@@ -401,7 +447,7 @@ export default function GuestOrderPage({
       data-guest-theme={theme}
       className="min-h-screen bg-guest-bg text-guest-text transition-colors"
     >
-      {showSignIn && <GuestSignInOverlay onDone={dismissSignIn} />}
+      {showSignIn && <GuestSignInOverlay onDone={dismissSignIn} qrToken={qrToken} />}
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-guest-border bg-guest-bg/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-[1.05rem] px-4 py-3 sm:px-6 lg:px-8">
@@ -546,6 +592,7 @@ export default function GuestOrderPage({
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && trackSearch(query)}
                 placeholder="Search the menu"
                 className="h-12 w-full rounded-xl border border-guest-border bg-guest-card pl-11 pr-4 text-base outline-none placeholder:text-guest-muted focus:border-guest-accent"
               />

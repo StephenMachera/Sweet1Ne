@@ -47,3 +47,6 @@ __all__ = [
     "EmailEvent",
 
     ]
+from app.models.guest_profile import GuestProfile
+from app.models.guest_session import GuestSession
+from app.models.guest_activity import GuestActivity

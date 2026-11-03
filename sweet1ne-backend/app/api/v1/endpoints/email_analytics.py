@@ -1,10 +1,12 @@
 import uuid
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.security import CurrentStaff, require_permission
 from app.db.session import get_db
 
@@ -270,5 +272,63 @@ def campaign_recipients(
                 "click_count": r.click_count,
             }
             for r in rows
+        ],
+    }
+
+
+def _display_link(raw: str) -> str:
+    """A site link shows as its path, like /menu; any other link as host and path."""
+    parsed = urlparse(raw)
+    site_host = urlparse(settings.FRONTEND_URL).netloc
+    path = parsed.path or "/"
+    if not parsed.netloc or parsed.netloc == site_host:
+        return path
+    return f"{parsed.netloc}{path}"
+
+
+@router.get("/links")
+def top_links(
+    days: int = Query(30, ge=1, le=365),
+    limit: int = Query(10, ge=1, le=50),
+    staff: CurrentStaff = Depends(require_permission("manage_marketing")),
+    db: Session = Depends(get_db),
+):
+    """Most clicked links across all campaigns in the window."""
+    _central_only(staff)
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+
+    rows = db.execute(
+        select(
+            EmailEvent.link,
+            CR.email,
+            CR.campaign_id,
+            func.count(EmailEvent.id),
+        )
+        .join(CR, CR.resend_email_id == EmailEvent.resend_email_id)
+        .where(
+            CR.tenant_id == staff.tenant_id,
+            EmailEvent.event_type == "email.clicked",
+            EmailEvent.link.is_not(None),
+            ~EmailEvent.link.ilike("%unsubscribe%"),
+            EmailEvent.occurred_at >= since,
+        )
+        .group_by(EmailEvent.link, CR.email, CR.campaign_id)
+    ).all()
+
+    clicks: dict[str, int] = {}
+    people: dict[str, set[str]] = {}
+    campaigns: dict[str, set[uuid.UUID]] = {}
+    for link, email, campaign_id, n in rows:
+        key = _display_link(link)
+        clicks[key] = clicks.get(key, 0) + n
+        people.setdefault(key, set()).add(email)
+        campaigns.setdefault(key, set()).add(campaign_id)
+
+    ranked = sorted(clicks.items(), key=lambda kv: kv[1], reverse=True)[:limit]
+    return {
+        "days": days,
+        "items": [
+            {"link": key, "clicks": total, "people": len(people[key]), "campaigns": len(campaigns[key])}
+            for key, total in ranked
         ],
     }
