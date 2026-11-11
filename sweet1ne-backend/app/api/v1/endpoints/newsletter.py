@@ -4,9 +4,10 @@ import uuid
 from datetime import datetime, timezone
 
 from email_validator import EmailNotValidError, validate_email
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -18,6 +19,7 @@ from app.models.newsletter_subscriber import NewsletterSubscriber
 from app.models.tenant import Tenant
 
 from app.services.email.client import send_email
+from app.services.lead_import import MAX_FILE_BYTES, ImportFileError, parse_leads
 from app.services.email.templates import newsletter_welcome
 
 from app.schemas.newsletter import (
@@ -198,6 +200,89 @@ def create_subscriber(
     db.commit()
     db.refresh(subscriber)
     return SubscriberCreateOut(subscriber=_subscriber_out(subscriber), created=True)
+
+
+@router.post("/newsletter/import")
+def import_subscribers(
+    file: UploadFile = File(...),
+    source: str = Form("import"),
+    consented: bool = Form(False),
+    staff: CurrentStaff = Depends(require_permission("manage_marketing")),
+    db: Session = Depends(get_db),
+):
+    """Bulk import from an Excel or CSV file. Everyone in it is saved with
+    the source label given here (a "source" column in the file wins for that
+    row). Anyone not marked as having agreed is stored but not mailed. People
+    already on the list are left exactly as they are, so an unsubscribe is
+    never undone by a spreadsheet."""
+    content = file.file.read(MAX_FILE_BYTES + 1)
+    if len(content) > MAX_FILE_BYTES:
+        raise HTTPException(status_code=413, detail="That file is over 5 MB.")
+
+    try:
+        rows, unreadable, truncated = parse_leads(file.filename or "", content)
+    except ImportFileError as err:
+        raise HTTPException(status_code=400, detail=str(err))
+
+    batch_source = source.strip()[:60] or "import"
+    unique: dict[str, tuple[str, bool]] = {}
+    for row in rows:
+        unique.setdefault(
+            row.email,
+            (row.source or batch_source, consented if row.consented is None else row.consented),
+        )
+    duplicates_in_file = len(rows) - len(unique)
+
+    existing: dict[str, str] = {}
+    emails = list(unique)
+    for i in range(0, len(emails), 500):
+        chunk = emails[i : i + 500]
+        for email, tenant_id in db.execute(
+            select(NewsletterSubscriber.email, NewsletterSubscriber.tenant_id).where(
+                NewsletterSubscriber.email.in_(chunk)
+            )
+        ):
+            existing[email] = str(tenant_id)
+
+    now = datetime.now(timezone.utc)
+    added = mailable = already_there = other_company = 0
+    for email, (row_source, agreed) in unique.items():
+        if email in existing:
+            if existing[email] == str(staff.tenant_id):
+                already_there += 1
+            else:
+                other_company += 1
+            continue
+        db.add(
+            NewsletterSubscriber(
+                tenant_id=staff.tenant_id,
+                email=email,
+                source=row_source,
+                is_subscribed=agreed,
+                consented_at=now,
+                is_read=True,
+            )
+        )
+        added += 1
+        mailable += 1 if agreed else 0
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Someone added some of these at the same time. Try the import again.")
+
+    return {
+        "added": added,
+        "mailable": mailable,
+        "not_mailable": added - mailable,
+        "already_there": already_there,
+        "other_company": other_company,
+        "unreadable": unreadable,
+        "duplicates_in_file": duplicates_in_file,
+        "truncated": truncated,
+        "source": batch_source,
+    }
 
 
 @router.patch("/newsletter/subscribers/{subscriber_id}", response_model=SubscriberOut)

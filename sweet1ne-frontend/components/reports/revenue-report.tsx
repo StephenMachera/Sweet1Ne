@@ -458,25 +458,6 @@ export function RevenueReport({ branchId = "" }: { branchId?: string }) {
           )}
         </Panel>
       </div>
-
-      <div className="rg-row">
-        <Panel
-          wide
-          sample
-          title="Not shown yet, and why"
-          dek="These are left out on purpose, so nothing here is a guess."
-        >
-          <Table
-            head={["", ""]}
-            rows={[
-              ["Profit and margin", "Needs what each dish costs to make. Only revenue is recorded today."],
-              ["Payment methods", "Not recorded on orders, so card and cash cannot be split."],
-              ["Tips and refunds", "Not recorded on orders."],
-              ["Revenue forecast", "Needs about eight weeks of real orders before a forecast means anything."],
-            ]}
-          />
-        </Panel>
-      </div>
     </>
   );
 }

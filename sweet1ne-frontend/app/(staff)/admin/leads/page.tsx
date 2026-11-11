@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
@@ -69,33 +69,6 @@ function formatDate(iso: string) {
   });
 }
 
-function parseCsvRows(
-  text: string,
-): { email: string; source: string; consented: boolean }[] {
-  const lines = text.split(/\r\n|\n|\r/).filter((l) => l.trim());
-  if (lines.length === 0) return [];
-
-  const header = lines[0].split(",").map((h) => h.trim().toLowerCase());
-  const emailIdx = header.indexOf("email");
-  const sourceIdx = header.indexOf("source");
-  const consentIdx = header.findIndex((h) => h.includes("consent"));
-  const hasHeader = emailIdx !== -1;
-  const dataLines = hasHeader ? lines.slice(1) : lines;
-  const col = hasHeader ? emailIdx : 0;
-
-  return dataLines
-    .map((line) => line.split(","))
-    .filter((cols) => (cols[col] ?? "").includes("@"))
-    .map((cols) => ({
-      email: cols[col].trim(),
-      source: sourceIdx !== -1 ? cols[sourceIdx]?.trim() || "import" : "import",
-      consented:
-        consentIdx !== -1
-          ? /^(y|yes|true|1)$/i.test(cols[consentIdx]?.trim() || "")
-          : false,
-    }));
-}
-
 export default function AdminLeadsPage() {
   const router = useRouter();
   const { me, loading: meLoading } = useMe();
@@ -108,11 +81,10 @@ export default function AdminLeadsPage() {
   const [mailFilter, setMailFilter] = useState<"all" | "on" | "off">("all");
   const [query, setQuery] = useState("");
   const [exporting, setExporting] = useState(false);
-  const [importing, setImporting] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [importNote, setImportNote] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [drawerSlot, setDrawerSlot] = useState<Element | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
@@ -247,45 +219,13 @@ export default function AdminLeadsPage() {
     }
   }
 
-  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
-    setImporting(true);
-    setError(null);
-    let added = 0;
-    let updated = 0;
-    let skipped = 0;
-    try {
-      const rows = parseCsvRows(await file.text());
-      for (const row of rows) {
-        try {
-          const result = await apiFetch("/newsletter/subscribers", {
-            method: "POST",
-            body: JSON.stringify(row),
-          });
-          if (result.created) added++;
-          else updated++;
-        } catch {
-          skipped++;
-        }
-      }
-      setImportNote(
-        `${added} added · ${updated} already there · ${skipped} skipped. Consent yes is the send list.`,
-      );
-      load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't read that file.");
-    } finally {
-      setImporting(false);
-    }
-  }
-
   if (meLoading || !me || !canManage) {
     return <AdminLoading />;
   }
 
+  const customSources = Array.from(new Set(subscribers.map((r) => r.source))).filter(
+    (src) => !SOURCE_FILTERS.includes(src),
+  );
   const all = subscribers.length;
   const on = subscribers.filter((s) => s.is_subscribed).length;
   const qr = subscribers.filter((s) => s.source === "qr").length;
@@ -343,7 +283,7 @@ export default function AdminLeadsPage() {
         >
           All
         </button>
-        {SOURCE_FILTERS.map((s) => (
+        {[...SOURCE_FILTERS, ...customSources].map((s) => (
           <button
             key={s}
             type="button"
@@ -390,25 +330,23 @@ export default function AdminLeadsPage() {
         <button
           type="button"
           className="admin-book"
-          onClick={() => setAddOpen(true)}
+          onClick={() => {
+            setImportOpen(false);
+            setAddOpen(true);
+          }}
         >
           Add lead
         </button>
         <button
           type="button"
           className="admin-book"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={importing}
+          onClick={() => {
+            setAddOpen(false);
+            setImportOpen(true);
+          }}
         >
-          {importing ? "Importing…" : "Import CSV"}
+          Import
         </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv,text/csv"
-          hidden
-          onChange={handleImport}
-        />
         <button
           type="button"
           className="admin-book"
@@ -543,6 +481,20 @@ export default function AdminLeadsPage() {
       {/* Add lead — portaled into the third grid column owned by the shared
           /admin layout, same as menu, events, tables, staff, roles, inbox
           and marketing. See #admin-drawer-slot in admin/layout.tsx. */}
+      {importOpen &&
+        drawerSlot &&
+        createPortal(
+          <ImportLeadsDrawer
+            knownSources={[...SOURCE_FILTERS, ...customSources]}
+            onClose={() => setImportOpen(false)}
+            onImported={(note) => {
+              setImportNote(note);
+              load();
+            }}
+          />,
+          drawerSlot,
+        )}
+
       {addOpen &&
         drawerSlot &&
         createPortal(
@@ -644,6 +596,153 @@ function AddLeadDrawer({
           <div className="flex gap-3 pt-1">
             <button type="submit" className="admin-book" disabled={saving}>
               {saving ? "Saving…" : "Save"}
+            </button>
+            <button type="button" className="admin-book" onClick={onClose}>
+              Close
+            </button>
+          </div>
+        </fieldset>
+      </form>
+    </aside>
+  );
+}
+
+function ImportLeadsDrawer({
+  knownSources,
+  onClose,
+  onImported,
+}: {
+  knownSources: string[];
+  onClose: () => void;
+  onImported: (note: string) => void;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [source, setSource] = useState("import");
+  const [consent, setConsent] = useState(false);
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<string[] | null>(null);
+
+  function downloadTemplate() {
+    const blob = new Blob(["email,source,consent\nname@example.com,Wedding fair,yes\n"], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "sweet1ne-leads-template.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!file) return;
+    setWorking(true);
+    setError(null);
+    setResult(null);
+    try {
+      const {
+        data: { session },
+      } = await createClient().auth.getSession();
+
+      const body = new FormData();
+      body.append("file", file);
+      body.append("source", source.trim() || "import");
+      body.append("consented", String(consent));
+
+      const res = await fetch(`${API_URL}/newsletter/import`, {
+        method: "POST",
+        headers: session ? { Authorization: `Bearer ${session.access_token}` } : {},
+        body,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Couldn't import that file.");
+
+      const lines = [
+        `${data.added} added as "${data.source}"${data.added ? ` (${data.mailable} can be emailed)` : ""}`,
+        data.already_there ? `${data.already_there} were already on the list and left as they were` : "",
+        data.duplicates_in_file ? `${data.duplicates_in_file} repeated in the file` : "",
+        data.unreadable ? `${data.unreadable} rows had no valid email` : "",
+        data.other_company ? `${data.other_company} belong to another company's list` : "",
+        data.truncated ? "Only the first 5,000 rows were read" : "",
+      ].filter(Boolean);
+      setResult(lines);
+      onImported(lines.join(" · "));
+      setFile(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't import that file.");
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  return (
+    <aside className="admin-drawer-edit">
+      <h2>Import leads</h2>
+      <form onSubmit={handleSubmit} className="admin-form">
+        <fieldset disabled={working} className="contents">
+          {error && (
+            <p role="alert" className="admin-hold mb-3 text-sm">
+              {error}
+            </p>
+          )}
+
+          <label>
+            Excel or CSV file
+            <input
+              type="file"
+              accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              required
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+          <p className="!mb-3 !mt-[-0.4rem] text-xs normal-case tracking-normal text-[var(--ivory-dim)]">
+            Needs a column headed <strong>email</strong>. Optional columns: <strong>source</strong> and{" "}
+            <strong>consent</strong> (yes/no). Up to 5,000 rows.{" "}
+            <button type="button" className="underline" onClick={downloadTemplate}>
+              Download a template
+            </button>
+          </p>
+
+          <label>
+            Where are these leads from?
+            <input
+              list="lead-sources"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              placeholder="e.g. Wedding fair 2026"
+              maxLength={60}
+            />
+            <datalist id="lead-sources">
+              {knownSources.map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+          </label>
+          <p className="!mb-3 !mt-[-0.4rem] text-xs normal-case tracking-normal text-[var(--ivory-dim)]">
+            Every imported lead gets this label. A <strong>source</strong> column in the file overrides it for that row.
+          </p>
+
+          <label className="!mb-1 flex items-center gap-2 !normal-case !tracking-normal text-sm text-[var(--ivory)]">
+            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+            Everyone in this file asked to be emailed
+          </label>
+          <p className="!mb-3 !mt-[-0.4rem] text-xs normal-case tracking-normal text-[var(--ivory-dim)]">
+            Tick only if you can show they agreed. Leave it empty and they are saved but never emailed. A{" "}
+            <strong>consent</strong> column overrides this per row. People already on the list, including anyone
+            who unsubscribed, are never changed.
+          </p>
+
+          {result && (
+            <ul className="mb-3 space-y-1 text-sm text-[var(--ivory)]">
+              {result.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          )}
+
+          <div className="flex gap-3 pt-1">
+            <button type="submit" className="admin-book" disabled={working || !file}>
+              {working ? "Importing…" : "Import"}
             </button>
             <button type="button" className="admin-book" onClick={onClose}>
               Close
