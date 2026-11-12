@@ -661,7 +661,7 @@ function ImportLeadsDrawer({
         `${data.added} added as "${data.source}"${data.added ? ` (${data.mailable} can be emailed)` : ""}`,
         data.already_there ? `${data.already_there} were already on the list and left as they were` : "",
         data.duplicates_in_file ? `${data.duplicates_in_file} repeated in the file` : "",
-        data.unreadable ? `${data.unreadable} rows had no valid email` : "",
+        data.unreadable ? `${data.unreadable} rows had no email` : "",
         data.other_company ? `${data.other_company} belong to another company's list` : "",
         data.truncated ? "Only the first 5,000 rows were read" : "",
       ].filter(Boolean);

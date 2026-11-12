@@ -3,7 +3,6 @@ import io
 import re
 from dataclasses import dataclass
 
-from email_validator import EmailNotValidError, validate_email
 from openpyxl import load_workbook
 
 MAX_FILE_BYTES = 5 * 1024 * 1024
@@ -79,10 +78,8 @@ def parse_leads(filename: str, content: bytes) -> tuple[list[ImportRow], int, bo
     rows: list[ImportRow] = []
     unreadable = 0
     for r in body:
-        raw = _text(r[email_col]) if email_col < len(r) else ""
-        try:
-            email = validate_email(raw, check_deliverability=False).normalized.lower()
-        except EmailNotValidError:
+        email = (_text(r[email_col]) if email_col < len(r) else "").lower()
+        if not email:
             unreadable += 1
             continue
         source = _text(r[source_col])[:60] if source_col is not None and source_col < len(r) else ""

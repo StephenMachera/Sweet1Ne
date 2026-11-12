@@ -238,8 +238,8 @@ def import_subscribers(
     for i in range(0, len(emails), 500):
         chunk = emails[i : i + 500]
         for email, tenant_id in db.execute(
-            select(NewsletterSubscriber.email, NewsletterSubscriber.tenant_id).where(
-                NewsletterSubscriber.email.in_(chunk)
+            select(func.lower(NewsletterSubscriber.email), NewsletterSubscriber.tenant_id).where(
+                func.lower(NewsletterSubscriber.email).in_(chunk)
             )
         ):
             existing[email] = str(tenant_id)
