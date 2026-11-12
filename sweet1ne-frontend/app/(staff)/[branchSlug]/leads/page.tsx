@@ -663,7 +663,7 @@ function ImportLeadsDrawer({
         data.duplicates_in_file ? `${data.duplicates_in_file} repeated in the file` : "",
         data.unreadable ? `${data.unreadable} rows had no email` : "",
         data.other_company ? `${data.other_company} belong to another company's list` : "",
-        data.truncated ? "Only the first 5,000 rows were read" : "",
+        data.truncated ? "Only the first 25,000 rows were read" : "",
       ].filter(Boolean);
       setResult(lines);
       onImported(lines.join(" · "));
@@ -697,7 +697,7 @@ function ImportLeadsDrawer({
           </label>
           <p className="!mb-3 !mt-[-0.4rem] text-xs normal-case tracking-normal text-[var(--ivory-dim)]">
             Needs a column headed <strong>email</strong>. Optional columns: <strong>source</strong> and{" "}
-            <strong>consent</strong> (yes/no). Up to 5,000 rows.{" "}
+            <strong>consent</strong> (yes/no). Up to 25,000 rows, every tab is read.{" "}
             <button type="button" className="underline" onClick={downloadTemplate}>
               Download a template
             </button>

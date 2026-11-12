@@ -217,7 +217,7 @@ def import_subscribers(
     never undone by a spreadsheet."""
     content = file.file.read(MAX_FILE_BYTES + 1)
     if len(content) > MAX_FILE_BYTES:
-        raise HTTPException(status_code=413, detail="That file is over 5 MB.")
+        raise HTTPException(status_code=413, detail="That file is over 10 MB.")
 
     try:
         rows, unreadable, truncated = parse_leads(file.filename or "", content)
@@ -227,9 +227,12 @@ def import_subscribers(
     batch_source = source.strip()[:60] or "import"
     unique: dict[str, tuple[str, bool]] = {}
     for row in rows:
+        label = row.source or batch_source
+        if row.location:
+            label = f"{label} · {row.location}"
         unique.setdefault(
             row.email,
-            (row.source or batch_source, consented if row.consented is None else row.consented),
+            (label[:60], consented if row.consented is None else row.consented),
         )
     duplicates_in_file = len(rows) - len(unique)
 
