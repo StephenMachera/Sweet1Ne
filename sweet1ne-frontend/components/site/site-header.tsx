@@ -220,7 +220,7 @@ export function SiteHeader() {
           </a>
           <div className="flex gap-3">
             
-            <a  href="https://instagram.com/sweet1necuisine"
+            <a  href="https://www.instagram.com/ssweet1ne/?hl=en"
               target="_blank"
               rel="noreferrer"
               className="flex-1 border border-[var(--ivory)]/25 py-3.5 text-center text-sm"

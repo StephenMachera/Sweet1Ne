@@ -21,6 +21,14 @@ from app.models.promotion import Promotion
 from app.models.guest_visit import GuestVisit
 from app.models.campaign_recipient import CampaignRecipient
 from app.models.event_email import EmailEvent
+from app.models.insights import Insight
+from app.models.insight_settings import InsightSetting
+from app.models.insights_feedback import InsightFeedback
+from app.models.guest_profile import GuestProfile
+from app.models.guest_session import GuestSession
+from app.models.guest_activity import GuestActivity
+from app.models.insights_run import InsightRun
+
 __all__ = [
     "Tenant",
     "Branch", 
@@ -45,8 +53,11 @@ __all__ = [
     "GuestVisit",
     "CampaignRecipient",
     "EmailEvent",
-
+    "GuestProfile",
+    "GuestSession",
+    "GuestActivity",
+    "InsightFeedback",
+    "Insight",
+    "InsightSetting",
+    "InsightRun",
     ]
-from app.models.guest_profile import GuestProfile
-from app.models.guest_session import GuestSession
-from app.models.guest_activity import GuestActivity

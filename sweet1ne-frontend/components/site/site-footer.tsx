@@ -68,8 +68,15 @@ export function SiteFooter() {
       <p className="mt-5 text-[0.4rem] uppercase tracking-[0.16em] text-[rgba(229,226,225,0.18)]">
         This website is Powered By
       </p>
-      <p className="mt-1 text-[0.4rem] uppercase tracking-[0.16em] text-[rgba(229,226,225,0.18)]">
-        Global Solutions x Spectre Limited
+      <p className="mt-1 text-[0.5rem] uppercase tracking-[0.16em]">
+        <a
+          href="https://globalsolutions.gsdeck.com/"
+          target="_blank"
+          rel="noreferrer"
+          className="credit-glow"
+        >
+          Global Solutions x Spectre Limited
+        </a>
       </p>
     </footer>
   );

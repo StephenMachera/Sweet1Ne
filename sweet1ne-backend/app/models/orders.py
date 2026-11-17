@@ -1,9 +1,10 @@
 import enum
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, Integer, Numeric, String, func
+from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, Index, Integer, Numeric, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,15 +25,22 @@ class OrderStatus(str, enum.Enum):
 
 class Order(Base):
     __tablename__ = "orders"
+    __table_args__ = (
+        # Postgres only indexes primary keys and unique constraints for you.
+        # Every report filters by date and joins through the table, so these
+        # two carry almost all the report load.
+        Index("ix_orders_created_at", "created_at"),
+        Index("ix_orders_table_id", "table_id"),
+    )
 
-    #--- Indifiers---
+    #--- Identifiers ---
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     session_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("guest_sessions.id", ondelete="SET NULL"), nullable=True, index=True
     )
 
     table_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("tables.id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True), ForeignKey("tables.id", ondelete="RESTRICT"), nullable=False
     )
     placed_by_staff_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("staff.id", ondelete="SET NULL")
@@ -51,7 +59,9 @@ class Order(Base):
     # independent of status; it just drives the sidebar's "new orders"
     # badge, not the kitchen/fulfilment workflow.
     is_read: Mapped[bool] = mapped_column(default=False, server_default="false")
-    total_amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
+    # Numeric gives back a Decimal, never a float. Arithmetic that mixes the
+    # two raises, which is why report code wraps it in float() first.
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     # The live "code" promotion's code that discounted this order, if any —
     # stored so a later edit (adding items, changing the order) can
     # re-check and reapply it, rather than silently losing the discount.
@@ -70,9 +80,12 @@ class Order(Base):
     #--- Relationships ---
     table: Mapped["Table"] = relationship(back_populates="orders")
     order_items: Mapped[list["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan")
-    
 
     #---methods---
+    # NOTE: branch_id and branch_name are properties ON PURPOSE. Never add a
+    # column with one of these names: a property later in the class body
+    # silently replaces the column, the column never reaches the table, and
+    # queries filtering on it compile to WHERE false with no error.
     @property
     def table_number(self) -> int | None:
         return self.table.number if self.table else None

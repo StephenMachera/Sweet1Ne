@@ -3,6 +3,7 @@
 import { use, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMe, hasPermission } from "@/lib/use-me";
+import { InsightsView } from "@/components/insights/insights-view";
 import { AdminLoading } from "@/components/admin/admin-loading";
 
 export default function BranchInsightsPage({
@@ -27,7 +28,7 @@ export default function BranchInsightsPage({
   return (
     <>
       <h1>Insights</h1>
-      <p className="admin-empty">Insights — coming soon.</p>
+      <InsightsView central={false} />
     </>
   );
 }

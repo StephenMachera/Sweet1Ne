@@ -9,7 +9,8 @@ from app.api.v1.endpoints import (
       branch, signup, events,email_analytics,
       tenant, staff, reservations,
       roles, reports, newsletter, campaigns,
-      media, promotions,email_templates,resend_webhook
+      media, promotions,email_templates,resend_webhook,
+      insights
       )
 
 api_router = APIRouter()
@@ -41,3 +42,4 @@ api_router.include_router(email_templates.router, prefix="/email-templates", tag
 api_router.include_router(resend_webhook.router, prefix="/resend", tags=["resend-webhook"])
 api_router.include_router(email_analytics.router, prefix="/email-analytics", tags=["email-analytics"])
 api_router.include_router(general_reports.router, prefix="/reports", tags=["general-reports"])
+api_router.include_router(insights.router, prefix="/insights", tags=["insights"])
