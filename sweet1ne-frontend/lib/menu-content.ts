@@ -129,8 +129,10 @@ export function buildMenu(data: PublicMenuData): { chapters: Chapter[]; courseId
           name: item.title,
           price: priceLabel(item),
           description: item.description ?? undefined,
-          featured: Boolean(item.picture),
-          image: item.picture ?? undefined,
+          // The website menu is text only. Dish photos (item.picture/pictures)
+          // are for the QR menu, so they are deliberately not used here.
+          featured: false,
+          image: undefined,
           sub: subName && subName.toLowerCase() !== "general" ? subName : undefined,
         };
       });

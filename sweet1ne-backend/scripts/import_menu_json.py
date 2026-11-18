@@ -29,7 +29,7 @@ Usage:
     python scripts/import_menu_json.py \
         --menu-json /path/to/menu.json \
         --media-dir /path/to/homepage-gallery/menu \
-        --api-url https://api.fgck-githurai44.com/api/v1 \
+        --api-url https://api.sweet1ne.com/api/v1 \
         --email you@sweet1ne.com --password '...' \
         --supabase-url https://xxxx.supabase.co --supabase-key '...' \
         --dry-run
@@ -183,7 +183,13 @@ class Importer:
         item["is_available"] = False
 
 
-def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, password: str, supabase_url: str, supabase_key: str, dry_run: bool):
+def item_files(item: dict) -> list[str]:
+    """The website menu.json lists an item's photos under "files"; the QR pack
+    (qr-app-menu.json) lists them under "photos". Either way: filenames in order."""
+    return list(item.get("files") or item.get("photos") or [])
+
+
+def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, password: str, supabase_url: str, supabase_key: str, dry_run: bool, photos_only: bool = False, keep_category_pictures: bool = False):
     data = json.loads(menu_json_path.read_text())
     items = data["items"]
 
@@ -205,8 +211,8 @@ def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, passwor
     course_by_cat = {c["cat"]: c for c in courses}
 
     unique_files = sorted(
-        {f for i in items for f in i.get("files", [])}
-        | {c["file"] for c in courses if c.get("file")}
+        {f for i in items for f in item_files(i)}
+        | ({c["file"] for c in courses if c.get("file")} if not (photos_only or keep_category_pictures) else set())
     )
     media_urls: dict[str, str] = {}
     print(f"Photos: {len(unique_files)} referenced by the menu…")
@@ -222,6 +228,40 @@ def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, passwor
             continue
         media_urls[rel_path] = imp.upload_and_register_media(local_file, label)
         print(f"  + {local_file.name} -> {media_urls[rel_path]}")
+
+    if photos_only:
+        # Touch nothing but dish pictures: no categories, sub-categories, prices,
+        # descriptions or availability, and nothing is created or turned off.
+        # Dishes are matched by title alone (any sub-category).
+        by_title: dict[str, list] = {}
+        for it in existing_items:
+            by_title.setdefault(it["title"].strip().lower(), []).append(it)
+        set_n, same_n, nophoto_n, missing = 0, 0, 0, []
+        for item in items:
+            pictures = [media_urls[f] for f in item_files(item) if f in media_urls]
+            if not pictures:
+                nophoto_n += 1
+                continue
+            matches = by_title.get(item["name"].strip().lower(), [])
+            if len(matches) != 1:
+                missing.append(f"{item['name']} ({'no match' if not matches else f'{len(matches)} matches'})")
+                continue
+            match = matches[0]
+            if match.get("pictures") == pictures:
+                same_n += 1
+                continue
+            imp.patch_json(f"/staff/menu/menu-items/{match['id']}", {"pictures": pictures})
+            set_n += 1
+            print(f"    ~ {item['name']}: {len(match.get('pictures') or [])} -> {len(pictures)} picture(s)")
+        print()
+        print(f"Photos only. {set_n} dishes given pictures; {same_n} already had these; {nophoto_n} have no photos in the file.")
+        if missing:
+            print(f"Could not match {len(missing)} dish(es) to a live dish by title, left alone:")
+            for m in missing:
+                print(f"    ? {m}")
+        if dry_run:
+            print("This was a dry run — nothing was written. Drop --dry-run to apply it for real.")
+        return
 
     created_categories, created_subs, created_items = 0, 0, 0
     updated_items, unchanged_items = 0, 0
@@ -248,7 +288,7 @@ def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, passwor
         # as every other field diff in this script.
         course = course_by_cat.get(cat_name)
         course_file = course.get("file") if course else None
-        if course_file and course_file in media_urls:
+        if course_file and course_file in media_urls and not keep_category_pictures:
             new_picture = media_urls[course_file]
             if main.get("picture") != new_picture:
                 imp.patch_json(f"/staff/menu/main-categories/{main['id']}", {"picture": new_picture})
@@ -262,7 +302,7 @@ def run(menu_json_path: Path, media_dir: Path, api_url: str, email: str, passwor
             if len(existing_subs) > before_sub:
                 created_subs += 1
 
-            pictures = [media_urls[f] for f in item.get("files", []) if f in media_urls]
+            pictures = [media_urls[f] for f in item_files(item) if f in media_urls]
             desc = item.get("desc") or None
             price = parse_price(item["price"])
             is_available = bool(item.get("on", True))
@@ -355,6 +395,8 @@ if __name__ == "__main__":
     parser.add_argument("--password", help="Or set SWEET1NE_PASSWORD")
     parser.add_argument("--supabase-url", help="Or set SWEET1NE_SUPABASE_URL")
     parser.add_argument("--supabase-key", help="Or set SWEET1NE_SUPABASE_KEY. The anon/public key, same one the frontend uses")
+    parser.add_argument("--photos-only", action="store_true", help="Only set dish pictures (matched by title). Creates, renames and turns off nothing; category pictures untouched")
+    parser.add_argument("--keep-category-pictures", action="store_true", help="Full sync, but leave each main category's own picture as it is")
     parser.add_argument("--dry-run", action="store_true", help="Print every planned change without writing anything")
     args = parser.parse_args()
 
@@ -380,4 +422,4 @@ if __name__ == "__main__":
     if "\n" in supabase_url or "\n" in supabase_key:
         parser.error("supabase url/key contains a newline — a value got corrupted when it was copied in")
 
-    run(args.menu_json, args.media_dir, api_url, email, password, supabase_url, supabase_key, args.dry_run)
+    run(args.menu_json, args.media_dir, api_url, email, password, supabase_url, supabase_key, args.dry_run, args.photos_only, args.keep_category_pictures)

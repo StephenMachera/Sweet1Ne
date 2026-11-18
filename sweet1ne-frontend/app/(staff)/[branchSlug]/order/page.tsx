@@ -687,14 +687,14 @@ export default function GuestOrderPage({
                         type="button"
                         onClick={() => gallery.length > 0 && openDetail(item)}
                         aria-label={gallery.length > 0 ? `See photos of ${item.title}` : undefined}
-                        className={`relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-guest-elevated ${
+                        className={`relative h-24 w-24 shrink-0 self-start overflow-hidden rounded-full bg-guest-elevated ring-1 ring-guest-border ${
                           gallery.length > 0 ? "cursor-pointer" : "cursor-default"
                         }`}
                       >
                         <ItemThumb gallery={gallery} />
 
                         {discounted && (
-                          <span className="absolute left-1.5 top-1.5 rounded-full bg-guest-accent px-2 py-0.5 text-[10px] font-semibold text-guest-accent-text">
+                          <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded-full bg-guest-accent px-2 py-0.5 text-[10px] font-semibold text-guest-accent-text">
                             Offer
                           </span>
                         )}
@@ -1154,22 +1154,8 @@ function ItemThumb({ gallery }: { gallery: string[] }) {
   const src = gallery[Math.min(index, gallery.length - 1)];
   if (!src) return null;
 
-  return (
-    <>
-      <img
-        src={src}
-        alt=""
-        aria-hidden
-        className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-lg"
-      />
-      <img src={src} alt="" className="relative h-full w-full object-contain" />
-      {gallery.length > 1 && (
-        <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
-          {index + 1}/{gallery.length}
-        </span>
-      )}
-    </>
-  );
+  // Fills the round frame; the photo just changes, no counter on it.
+  return <img src={src} alt="" className="h-full w-full object-cover" />;
 }
 
 function DishCarousel({
