@@ -4597,6 +4597,17 @@ body:has(.home-page) .promo-stage {
   animation: credit-glow 3.2s ease-in-out infinite;
   transition: color 0.2s ease, text-shadow 0.2s ease;
 }
+/* The arrow says "this is a link" at a glance; it inherits the glow. */
+.credit-glow::after {
+  content: "\00a0\2197";
+  content: "\00a0\2197" / "";
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+.credit-glow:hover::after,
+.credit-glow:focus-visible::after {
+  transform: translate(2px, -2px);
+}
 .credit-glow:hover,
 .credit-glow:focus-visible {
   color: #f3e2b2;
