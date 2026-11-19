@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type ChangeEvent = {
@@ -10,12 +10,18 @@ type ChangeEvent = {
   oldRow: any;
 };
 
-export function useStationRealtime(onChange: (event: ChangeEvent) => void) {
+export type RealtimeStatus = "connecting" | "live" | "lost";
+
+/** Returns the live connection status so a screen can say so when updates
+ *  have stopped, instead of looking fine while showing stale orders. */
+export function useStationRealtime(onChange: (event: ChangeEvent) => void): RealtimeStatus {
   const handler = useRef(onChange);
   handler.current = onChange;
+  const [status, setStatus] = useState<RealtimeStatus>("connecting");
 
   useEffect(() => {
     const supabase = createClient();
+    let closed = false;
 
     const channel = supabase
       .channel("station-orders")
@@ -41,12 +47,17 @@ export function useStationRealtime(onChange: (event: ChangeEvent) => void) {
             oldRow: payload.old,
           })
       )
-      .subscribe((status) => {
-        console.log("REALTIME STATUS", status);
+      .subscribe((next) => {
+        if (closed) return;
+        if (next === "SUBSCRIBED") setStatus("live");
+        else if (next === "CHANNEL_ERROR" || next === "TIMED_OUT" || next === "CLOSED") setStatus("lost");
       });
 
     return () => {
+      closed = true;
       supabase.removeChannel(channel);
     };
   }, []);
+
+  return status;
 }

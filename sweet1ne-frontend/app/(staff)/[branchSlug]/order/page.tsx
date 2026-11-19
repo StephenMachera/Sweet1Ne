@@ -601,7 +601,7 @@ export default function GuestOrderPage({
             {/* Categories — sticky just under the header, so switching
                 category never means scrolling back up to find the tabs. */}
             {!query && mains.length > 0 && (
-              <div className="no-scrollbar sticky top-[64px] z-10 -mx-4 mb-3 flex gap-2 overflow-x-auto bg-guest-bg px-4 pb-1 pt-2 sm:mx-0 sm:flex-wrap sm:px-0">
+              <ScrollRow className="no-scrollbar sticky top-[64px] z-10 -mx-4 mb-3 flex gap-2 overflow-x-auto bg-guest-bg px-4 pb-1 pt-2 sm:mx-0 sm:flex-wrap sm:px-0">
                 {mains.map((main) => {
                   const active = main.id === activeMain;
                   return (
@@ -621,11 +621,11 @@ export default function GuestOrderPage({
                     </button>
                   );
                 })}
-              </div>
+              </ScrollRow>
             )}
 
             {!query && visibleSubs.length > 0 && (
-              <div className="no-scrollbar -mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+              <ScrollRow className="no-scrollbar -mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
                 <button
                   onClick={() => setActiveSub(null)}
                   className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm ${
@@ -649,7 +649,7 @@ export default function GuestOrderPage({
                     {sub.name}
                   </button>
                 ))}
-              </div>
+              </ScrollRow>
             )}
 
             {/* Items */}
@@ -1140,6 +1140,77 @@ export default function GuestOrderPage({
 /** The item row's own thumbnail — cycles through every photo on its own,
    same pace as the full-screen DishCarousel below, so a dish with several
    pictures shows them all without the guest needing to tap it open first. */
+/* A row of tabs that scrolls sideways. A phone swipes it, but with a mouse
+   (the dashboard's phone preview, or a desktop browser) a hidden-scrollbar
+   row can't be moved at all — so the wheel scrolls it sideways while it has
+   room to move, and it can be dragged. At either end the wheel falls through
+   to the page, so it never traps the scroll. */
+function ScrollRow({ className, children }: { className: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    function onWheel(e: WheelEvent) {
+      if (!el || el.scrollWidth <= el.clientWidth) return;
+      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      const next = Math.max(0, Math.min(el.scrollLeft + delta, el.scrollWidth - el.clientWidth));
+      if (next === el.scrollLeft) return;
+      el.scrollLeft = next;
+      e.preventDefault();
+    }
+
+    let startX = 0;
+    let startLeft = 0;
+    let dragging = false;
+    let moved = false;
+    function onDown(e: PointerEvent) {
+      if (e.pointerType !== "mouse" || e.button !== 0 || !el) return;
+      dragging = true;
+      moved = false;
+      startX = e.clientX;
+      startLeft = el.scrollLeft;
+    }
+    function onMove(e: PointerEvent) {
+      if (!dragging || !el) return;
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) > 5) moved = true;
+      if (moved) el.scrollLeft = startLeft - dx;
+    }
+    function onUp() {
+      dragging = false;
+    }
+    // A drag must not also count as a tap on the tab it ended over.
+    function onClick(e: MouseEvent) {
+      if (moved) {
+        e.stopPropagation();
+        e.preventDefault();
+        moved = false;
+      }
+    }
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    el.addEventListener("click", onClick, true);
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      el.removeEventListener("click", onClick, true);
+    };
+  }, []);
+
+  return (
+    <div ref={ref} className={className}>
+      {children}
+    </div>
+  );
+}
+
 function ItemThumb({ gallery }: { gallery: string[] }) {
   const [index, setIndex] = useState(0);
 

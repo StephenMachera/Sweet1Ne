@@ -3,11 +3,11 @@
 import { Fragment, use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronDown, Pencil, Plus, Volume2, VolumeX } from "lucide-react";
+import { ChevronDown, Pencil, Plus } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { useCurrentBranch } from "@/lib/use-current-branch";
-import { useAnnouncer } from "@/components/kitchen/announcer";
+import { AdminSoundButton, useAnnouncer } from "@/components/kitchen/announcer";
 import { setBackgroundInterval } from "@/lib/background-interval";
 import { MenuBrowser, type CartLine } from "@/components/menu/menu-browser";
 import { OrderLineEditor } from "@/components/orders/order-line-editor";
@@ -92,7 +92,7 @@ export default function BranchOrdersPage({
   const router = useRouter();
   const { me, loading: meLoading } = useMe();
   const { branch, loading: branchLoading } = useCurrentBranch(branchSlug);
-  const { announce, enabled, toggle, needsUnlock, unlock } = useAnnouncer();
+  const { announce, enabled, toggle, needsUnlock, unlock, test } = useAnnouncer();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [period, setPeriod] = useState("daily");
@@ -419,29 +419,13 @@ export default function BranchOrdersPage({
     <>
       <div className="flex items-center justify-between gap-3">
         <h1 className="!mb-0">Orders</h1>
-        <button
-          type="button"
-          className="admin-edit inline-flex items-center gap-1.5"
-          onClick={needsUnlock ? unlock : toggle}
-          aria-label={
-            needsUnlock
-              ? "Enable sound for new orders"
-              : enabled
-                ? "Mute new-order sound"
-                : "Unmute new-order sound"
-          }
-        >
-          {needsUnlock ? (
-            <>
-              <Volume2 size={14} />
-              Enable sound
-            </>
-          ) : enabled ? (
-            <Volume2 size={14} />
-          ) : (
-            <VolumeX size={14} />
-          )}
-        </button>
+        <AdminSoundButton
+          enabled={enabled}
+          onToggle={toggle}
+          needsUnlock={needsUnlock}
+          onUnlock={unlock}
+          onTest={test}
+        />
       </div>
       <p className="admin-dek">
         {unreadCount > 0 ? `${unreadCount} new · ` : ""}

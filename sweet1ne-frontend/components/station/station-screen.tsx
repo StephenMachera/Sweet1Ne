@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useMe, hasPermission } from "@/lib/use-me";
 import { useStationRealtime } from "@/lib/use-station-realtime";
+import { setBackgroundInterval } from "@/lib/background-interval";
 import { useAnnouncer, SoundControls } from "@/components/kitchen/announcer";
 import { AdminLoading } from "@/components/admin/admin-loading";
 
@@ -68,7 +69,7 @@ export function StationScreen({
 }) {
   const router = useRouter();
   const { me, loading: meLoading } = useMe();
-  const { announce, enabled, toggle, needsUnlock, unlock } = useAnnouncer();
+  const { announce, enabled, toggle, needsUnlock, unlock, test } = useAnnouncer();
 
   const [orders, setOrders] = useState<StationOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +83,9 @@ export function StationScreen({
   // Snapshot of the previous fetch, so the next one can work out what to
   // announce rather than repeating everything on screen.
   const previous = useRef<Map<string, StationOrder>>(new Map());
+  // The first successful load only shows what is already there. (Not "the
+  // board was empty": an empty board's first real order must still sound.)
+  const firstLoad = useRef(true);
 
   const load = useCallback(async () => {
     try {
@@ -96,7 +100,7 @@ export function StationScreen({
 
         if (!before) {
           // Skip the very first load — nobody wants every open order read out.
-          if (seen.size > 0) {
+          if (!firstLoad.current) {
             announce(`new-${order.order_id}`, `New order from ${where}.`);
           }
         } else if (order.items.length > before.items.length) {
@@ -116,6 +120,7 @@ export function StationScreen({
         }
       }
 
+      firstLoad.current = false;
       previous.current = new Map(data.map((o) => [o.order_id, o]));
       setOrders(data);
       setError(null);
@@ -133,11 +138,15 @@ export function StationScreen({
       return;
     }
     load();
+    // Backup for realtime: if that connection quietly drops, orders still
+    // arrive (and sound) within a few seconds. Runs in a worker so a hidden
+    // tab or a sleeping-screen tablet is not throttled to once a minute.
+    return setBackgroundInterval(() => load(), 5000);
   }, [meLoading, me, canAccess, router, load]);
 
   // Realtime is a signal, not the data — any change means refetch the
   // station-shaped payload, which the raw row can't provide.
-  useStationRealtime(() => {
+  const realtime = useStationRealtime(() => {
     load();
   });
 
@@ -209,6 +218,7 @@ export function StationScreen({
             onToggle={toggle}
             needsUnlock={needsUnlock}
             onUnlock={unlock}
+            onTest={test}
           />
 
           <button
@@ -228,6 +238,26 @@ export function StationScreen({
             className="mb-4 rounded-xl border border-danger/25 bg-danger-bg px-4 py-3 text-sm text-danger"
           >
             {error}
+          </div>
+        )}
+
+        {needsUnlock && (
+          <div
+            role="alert"
+            className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
+          >
+            <span className="flex-1">
+              Sound is OFF. New orders will not make a noise until you turn it on.
+            </span>
+            <button onClick={unlock} className="rounded-lg bg-red-600 px-3.5 py-2 font-semibold text-white">
+              Turn sound on
+            </button>
+          </div>
+        )}
+
+        {realtime === "lost" && (
+          <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Live updates dropped. Still checking for new orders every few seconds.
           </div>
         )}
 

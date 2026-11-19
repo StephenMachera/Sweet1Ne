@@ -3,10 +3,10 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronDown, Volume2, VolumeX } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useMe, hasPermission } from "@/lib/use-me";
-import { useAnnouncer } from "@/components/kitchen/announcer";
+import { AdminSoundButton, useAnnouncer } from "@/components/kitchen/announcer";
 import { setBackgroundInterval } from "@/lib/background-interval";
 import { OrderSummary } from "@/components/orders/order-summary";
 import { AdminLoading } from "@/components/admin/admin-loading";
@@ -86,7 +86,7 @@ function timeOf(iso: string) {
 export default function AdminOrdersPage() {
   const router = useRouter();
   const { me, loading: meLoading } = useMe();
-  const { announce, enabled, toggle, needsUnlock, unlock } = useAnnouncer();
+  const { announce, enabled, toggle, needsUnlock, unlock, test } = useAnnouncer();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -353,29 +353,13 @@ export default function AdminOrdersPage() {
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          className="admin-edit inline-flex items-center gap-1.5"
-          onClick={needsUnlock ? unlock : toggle}
-          aria-label={
-            needsUnlock
-              ? "Enable sound for new orders"
-              : enabled
-                ? "Mute new-order sound"
-                : "Unmute new-order sound"
-          }
-        >
-          {needsUnlock ? (
-            <>
-              <Volume2 size={14} />
-              Enable sound
-            </>
-          ) : enabled ? (
-            <Volume2 size={14} />
-          ) : (
-            <VolumeX size={14} />
-          )}
-        </button>
+        <AdminSoundButton
+          enabled={enabled}
+          onToggle={toggle}
+          needsUnlock={needsUnlock}
+          onUnlock={unlock}
+          onTest={test}
+        />
         <p className="admin-who">{me?.email ?? "—"}</p>
       </div>
 
